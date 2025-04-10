@@ -1,0 +1,4 @@
+﻿<?php
+/**
+ * Product Form Template
+ */

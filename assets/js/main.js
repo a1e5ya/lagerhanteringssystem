@@ -1,0 +1,4 @@
+﻿/**
+ * Main JavaScript
+ * Common functionality
+ */
