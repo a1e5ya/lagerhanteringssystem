@@ -8,3 +8,4 @@
  * - checkAuth() - Verifies authentication/authorization
  * - getSessionUser() - Gets user from session
  */
+?>

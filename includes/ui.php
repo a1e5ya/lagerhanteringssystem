@@ -8,3 +8,4 @@
  * - renderBackendNavigation() - Renders admin navigation
  * - renderInputAlternatives() - Generates form options for dropdowns
  */
+?>

@@ -12,3 +12,4 @@
  * - backupDatabase() - Creates database backup
  * - subscribeToNewsletter() - Adds email to newsletter list
  */
+?>

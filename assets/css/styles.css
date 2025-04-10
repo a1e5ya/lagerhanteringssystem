@@ -1,3 +1,603 @@
 ﻿/**
  * Main Stylesheet
  */
+
+ /* Green color scheme */
+:root {
+    --primary-color: #2e8b57;        /* Sea Green - Main brand color */
+    --primary-dark: #1f6e43;         /* Darker green for hover states */
+    --primary-light: #3aab6e;        /* Lighter green for highlights */
+    --primary-very-light: #e8f5ee;   /* Very light green for backgrounds */
+    --accent-color: #f8f9d7;         /* Light yellow-green for accents */
+    --success-color: #4caf50;        /* Green for success states */
+    --text-light: #f8f9fa;           /* Light text on dark backgrounds */
+    --text-dark: #343a40;            /* Dark text on light backgrounds */
+    --border-color: #dee2e6;         /* Light gray for borders */
+}
+
+/* General Styles */
+html, body {
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    background-color: #f8f9fa;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    color: var(--text-dark);
+    min-height: 100vh;
+}
+
+/* Navbar Styling */
+.site-header .navbar {
+    background-color: var(--primary-color);
+    padding-top: 1rem;
+    padding-bottom: 1rem;
+}
+
+.navbar-dark .navbar-nav .nav-link {
+    color: rgba(255, 255, 255, 1);
+}
+
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus {
+    color: #fff;
+}
+
+.navbar-dark .navbar-nav .nav-link.active {
+    color: #fff;
+    font-weight: 500;
+}
+
+.btn-outline-light:hover {
+    background-color: var(--accent-color);
+    color: var(--primary-dark);
+    border-color: var(--accent-color);
+}
+
+/* Hero Container and Image */
+.hero-container {
+    position: relative;
+    width: 100%;
+    height: calc(100vh - 75px);
+    min-height: 450px;
+    max-height: 650px;
+    overflow: hidden;
+    margin-bottom: 2rem;
+}
+
+.hero-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.hero-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 100%;
+    max-width: 600px;
+    z-index: 1;
+}
+
+.hero-text-container {
+    background-color: rgba(46, 139, 87, 0.85);
+    color: white;
+    border-radius: 1rem;
+    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+
+.hero-text-container h1 {
+    font-weight: 700;
+    margin-bottom: 1rem;
+}
+
+/* Sections */
+section h2 {
+    color: var(--primary-color);
+    border-bottom: 2px solid var(--primary-light);
+    padding-bottom: 0.5rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Store Carousel */
+#storeCarousel {
+    box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.15);
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+.carousel-item {
+    height: 350px;
+}
+
+.carousel-item img {
+    height: 100%;
+    object-fit: cover;
+}
+
+.carousel-indicators {
+    margin-bottom: 0.5rem;
+}
+
+.carousel-indicators button {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background-color: rgba(255, 255, 255, 0.5);
+    border: none;
+}
+
+.carousel-indicators button.active {
+    background-color: white;
+}
+
+/* Footer */
+.footer {
+    background-color: var(--primary-color);
+    margin-top: 2rem;
+}
+
+.footer h5 {
+    color: var(--accent-color);
+    font-weight: 600;
+    margin-bottom: 1rem;
+}
+
+.footer a:hover {
+    color: var(--accent-color) !important;
+}
+
+.social-icons a {
+    font-size: 1.25rem;
+    margin-right: 1rem;
+}
+
+/* Button styling */
+.btn-primary {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-primary:hover, 
+.btn-primary:focus {
+    background-color: var(--primary-dark);
+    border-color: var(--primary-dark);
+}
+
+.btn-outline-primary {
+    color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+.btn-outline-primary:hover {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+#featured-items {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+/* Card styling */
+/* Enhanced Card Styles */
+.card {
+    border-radius: 0.5rem;
+    overflow: hidden;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    transition: box-shadow 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 0.1rem 0.5rem rgba(0, 0, 0, 0.15);
+}
+
+.card .card-img-top {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+}
+
+/* Horizontal Card Layout */
+.card .row.g-0 {
+    align-items: stretch;
+}
+
+.card .row.g-0 .col-4 {
+    max-width: 150px;
+}
+
+.card .row.g-0 .col-4 img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    object-position: center;
+}
+
+.card .card-img-top {
+    width: 100%;
+    height: 200px;
+    object-fit: cover;
+    object-position: center;
+}
+
+.card .card-body {
+    padding: 1rem;
+}
+
+.card .card-title {
+    font-size: 1.1rem;
+    margin-bottom: 0.5rem;
+}
+
+.card .card-text {
+    color: var(--text-dark);
+}
+
+.card .text-success {
+    color: var(--primary-color) !important;
+    font-weight: 600;
+}
+
+
+
+
+
+/* Table Styles */
+.table th {
+    font-weight: 600;
+    color: var(--text-dark);
+}
+
+.table-hover tbody tr:hover {
+    background-color: var(--primary-very-light);
+}
+
+/* Status Badge */
+.status-badge {
+    padding: 0.25rem 0.5rem;
+    border-radius: 0.25rem;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.status-available {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.status-sold {
+    background-color: #e2e3e5;
+    color: #383d41;
+}
+
+/* Tabs Styling */
+.nav-tabs .nav-link {
+    color: var(--text-dark);
+}
+
+.nav-tabs .nav-link.active {
+    color: var(--primary-color);
+    font-weight: 500;
+    border-bottom-color: var(--primary-color);
+}
+
+/* Form Styling */
+.form-control:focus, 
+.form-select:focus {
+    border-color: var(--primary-light);
+    box-shadow: 0 0 0 0.25rem rgba(46, 139, 87, 0.25);
+}
+
+.form-label {
+    font-weight: 500;
+    color: var(--text-dark);
+}
+
+/* Login Modal */
+.modal-header {
+    background-color: var(--primary-color);
+    color: white;
+}
+
+/* Action Buttons */
+.action-btn {
+    min-width: 60px;
+}
+
+.sell-btn {
+    background-color: var(--success-color);
+    border-color: var(--success-color);
+    color: white;
+}
+
+.sell-btn:hover {
+    background-color: #3d8b40;
+    border-color: #3d8b40;
+}
+
+.sell-btn.disabled {
+    background-color: #8bc34a;
+    border-color: #8bc34a;
+    pointer-events: none;
+}
+
+.delete-btn {
+    color: #dc3545;
+    border-color: #dc3545;
+}
+
+.delete-btn:hover {
+    background-color: #f8d7da;
+}
+
+/* Notes cell truncation */
+.notes-cell {
+    max-width: 200px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Item Details Page */
+.item-image-container {
+    background-color: #f8f9fa;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    text-align: center;
+}
+
+.item-details {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+}
+
+.price-container {
+    border-radius: 0.5rem;
+    margin-top: 1rem;
+}
+
+
+.related-items {
+    border-top: 1px solid var(--border-color);
+    padding-top: 1.5rem;
+}
+
+#card-controls {
+    display: flex;
+    justify-content: space-between;
+}
+
+/* Admin Panel Specific */
+#inventory-system {
+    background-color: white;
+    border-radius: 0.5rem;
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+}
+
+#transaction-history-table {
+    font-size: 0.9rem;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    .hero-container {
+        height: 60vh;
+        min-height: 350px;
+    }
+    
+    .hero-content {
+        width: 90%;
+    }
+    
+    .carousel-item {
+        height: 250px;
+    }
+    
+    .action-btn {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.75rem;
+        min-width: 50px;
+    }
+    
+    .container {
+        padding-left: 15px;
+        padding-right: 15px;
+    }
+
+    .item-image-container {
+        margin-bottom: 1.5rem;
+    }
+}
+
+/* Animation for loading content */
+.loading {
+    position: relative;
+    min-height: 200px;
+}
+
+.loading::after {
+    content: "";
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50px;
+    height: 50px;
+    margin-top: -25px;
+    margin-left: -25px;
+    border: 5px solid var(--primary-light);
+    border-top: 5px solid var(--primary-dark);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+
+/* Enhanced Clickable Row Styles */
+.clickable-row {
+    cursor: pointer;
+    transition: background-color 0.2s ease-in-out;
+}
+
+.clickable-row:hover {
+    background-color: var(--primary-very-light);
+}
+
+.clickable-row:active {
+    background-color: var(--primary-light);
+    color: white;
+}
+
+/* Hover effect for action buttons within rows */
+.clickable-row .btn-group {
+    position: relative;
+    z-index: 2; /* Ensure buttons appear above the row clickable area */
+}
+
+/* Make action buttons stand out more on hover */
+.clickable-row:hover .btn-outline-secondary,
+.clickable-row:hover .btn-outline-danger {
+    border-width: 2px;
+}
+
+/* Add slight padding to table cells for better spacing */
+#inventory-table td {
+    padding: 0.75rem;
+    vertical-align: middle;
+}
+
+/* Style for highlighting search matches */
+.highlight-match {
+    background-color: rgba(252, 248, 227, 0.5);
+    font-weight: 500;
+}
+
+/* Language Switcher and Button Consistency */
+.language-switcher .btn {
+    width: 40px;  /* Square buttons */
+    height: 40px; /* Same width and height */
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    margin-right: 0.5rem;
+}
+
+.language-switcher .btn:last-child {
+    margin-right: 0;
+}
+
+.login-btn {
+    height: 40px;  /* Match language button height */
+    display: inline-flex;
+    align-items: center;
+    padding: 0 0.75rem;
+}
+
+/* Ensure consistent vertical alignment */
+.language-switcher,
+.login-btn {
+    display: flex;
+    align-items: center;
+}
+
+address i {
+    width: 20px;
+}
+
+/* Enhanced Add Item Tab Styles */
+
+/* Card styling for add item form */
+#add .card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border-radius: 0.5rem;
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+}
+
+#add .card-title {
+    color: var(--primary-color);
+    border-bottom: 1px solid var(--border-color);
+    padding-bottom: 0.75rem;
+}
+
+/* Image container styling */
+#add .item-image-container {
+    height: 250px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f8f9fa;
+    border-radius: 0.5rem;
+    overflow: hidden;
+}
+
+#add .item-image-container img {
+    max-height: 100%;
+    max-width: 100%;
+    object-fit: contain;
+}
+
+/* Form field spacing */
+#add label.form-label {
+    font-weight: 500;
+    margin-bottom: 0.3rem;
+}
+
+#add .form-control,
+#add .form-select {
+    margin-bottom: 0.75rem;
+}
+
+/* Checkbox styling */
+#add .form-check {
+    padding-top: 0.5rem;
+}
+
+#add .form-check-input:checked {
+    background-color: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Button styling */
+#add .btn-primary {
+    min-width: 120px;
+}
+
+#add .btn-outline-secondary {
+    min-width: 100px;
+}
+
+/* Animation for image change */
+#new-item-image {
+    transition: all 0.3s ease;
+}
+
+/* Required field indicator */
+#add .form-label[for="item-title"]::after,
+#add .form-label[for="item-category"]::after {
+    content: " *";
+    color: #dc3545;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #add .item-image-container {
+        height: 200px;
+    }
+    
+    #add .col-md-8,
+    #add .col-md-4 {
+        margin-bottom: 0.5rem;
+    }
+}
