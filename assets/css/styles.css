@@ -601,3 +601,56 @@ address i {
         margin-bottom: 0.5rem;
     }
 }
+
+/* Mobile responsiveness for inventory table */
+@media (max-width: 767.98px) {
+    #public-inventory-table {
+      border: 0;
+    }
+    
+    #public-inventory-table thead {
+      display: none; /* Hide the header on mobile */
+    }
+    
+    #public-inventory-table tr {
+      display: block;
+      margin-bottom: 1rem;
+      border-radius: 0.5rem;
+      box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.5);
+      overflow: hidden;
+      background-color: white;
+      border: 1px solid var(--border-color);
+    }
+    
+    #public-inventory-table td {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.75rem 1rem;
+      text-align: right;
+      border-bottom: 1px solid var(--border-color);
+    }
+    
+    #public-inventory-table td:last-child {
+      border-bottom: 0;
+    }
+    
+    #public-inventory-table td::before {
+      content: attr(data-label);
+      font-weight: 600;
+      text-align: left;
+      color: var(--primary-color);
+    }
+    
+    /* Adjust display for better spacing */
+
+    
+    /* Make the entire row clickable while maintaining styles */
+    #public-inventory-table .clickable-row {
+      cursor: pointer;
+      transition: transform 0.2s;
+    }
+    
+    #public-inventory-table .clickable-row:hover {
+      transform: translateY(-2px);
+    }
+  }

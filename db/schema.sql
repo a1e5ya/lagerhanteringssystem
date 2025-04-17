@@ -1,4 +1,4 @@
-﻿-- Database Schema
+-- Database Schema
 -- SQL script for creating database structure
 
 -- phpMyAdmin SQL Dump

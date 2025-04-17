@@ -120,62 +120,62 @@ include 'templates/header.php';
     </div>
     
     <div class="table-responsive">
-        <table class="table table-hover" id="public-inventory-table">
-            <thead class="table-light">
-                <tr>
-                    <th>Titel</th>
-                    <th>Författare/Artist</th>
-                    <th>Kategori</th>
-                    <th>Genre</th>
-                    <th>Skick</th>
-                    <th>Pris (€)</th>
-                </tr>
-            </thead>
-            <tbody id="public-inventory-body">
-                <!-- Placeholder data -->
-                <tr class="clickable-row" data-href="singleproduct.php?id=1">
-                    <td>Trollvinter</td>
-                    <td>Tove Jansson</td>
-                    <td>Bok - Finlandssvenska</td>
-                    <td>Barnböcker, Äventyr</td>
-                    <td>Nyskick</td>
-                    <td>€24.95</td>
-                </tr>
-                <tr class="clickable-row" data-href="singleproduct.php?id=2">
-                    <td>Muumipeikko ja pyrstötähti</td>
-                    <td>Tove Jansson</td>
-                    <td>Bok - Finlandssvenska</td>
-                    <td>Barnböcker</td>
-                    <td>Mycket bra</td>
-                    <td>€19.95</td>
-                </tr>
-                <tr class="clickable-row" data-href="singleproduct.php?id=3">
-                    <td>Pippi Långstrump</td>
-                    <td>Astrid Lindgren</td>
-                    <td>Bok - Barn/Ungdom</td>
-                    <td>Barnböcker, Äventyr</td>
-                    <td>Mycket bra</td>
-                    <td>€14.95</td>
-                </tr>
-                <tr class="clickable-row" data-href="singleproduct.php?id=4">
-                    <td>Harry Potter och De Vises Sten</td>
-                    <td>J.K. Rowling</td>
-                    <td>Bok - Barn/Ungdom</td>
-                    <td>Barnböcker, Äventyr</td>
-                    <td>Nyskick</td>
-                    <td>€29.95</td>
-                </tr>
-                <tr class="clickable-row" data-href="singleproduct.php?id=5">
-                    <td>Jazz Classics</td>
-                    <td></td>
-                    <td>CD - Musik</td>
-                    <td>Jazz</td>
-                    <td>Bra</td>
-                    <td>€15.00</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
+    <table class="table table-hover" id="public-inventory-table">
+        <thead class="table-light">
+            <tr>
+                <th>Titel</th>
+                <th>Författare/Artist</th>
+                <th>Kategori</th>
+                <th>Genre</th>
+                <th>Skick</th>
+                <th>Pris (€)</th>
+            </tr>
+        </thead>
+        <tbody id="public-inventory-body">
+            <!-- Placeholder data -->
+            <tr class="clickable-row" data-href="singleproduct.php?id=1">
+                <td data-label="Titel">Trollvinter</td>
+                <td data-label="Författare/Artist">Tove Jansson</td>
+                <td data-label="Kategori">Bok - Finlandssvenska</td>
+                <td data-label="Genre">Barnböcker, Äventyr</td>
+                <td data-label="Skick">Nyskick</td>
+                <td data-label="Pris">€24.95</td>
+            </tr>
+            <tr class="clickable-row" data-href="singleproduct.php?id=2">
+                <td data-label="Titel">Muumipeikko ja pyrstötähti</td>
+                <td data-label="Författare/Artist">Tove Jansson</td>
+                <td data-label="Kategori">Bok - Finlandssvenska</td>
+                <td data-label="Genre">Barnböcker</td>
+                <td data-label="Skick">Mycket bra</td>
+                <td data-label="Pris">€19.95</td>
+            </tr>
+            <tr class="clickable-row" data-href="singleproduct.php?id=3">
+                <td data-label="Titel">Pippi Långstrump</td>
+                <td data-label="Författare/Artist">Astrid Lindgren</td>
+                <td data-label="Kategori">Bok - Barn/Ungdom</td>
+                <td data-label="Genre">Barnböcker, Äventyr</td>
+                <td data-label="Skick">Mycket bra</td>
+                <td data-label="Pris">€14.95</td>
+            </tr>
+            <tr class="clickable-row" data-href="singleproduct.php?id=4">
+                <td data-label="Titel">Harry Potter och De Vises Sten</td>
+                <td data-label="Författare/Artist">J.K. Rowling</td>
+                <td data-label="Kategori">Bok - Barn/Ungdom</td>
+                <td data-label="Genre">Barnböcker, Äventyr</td>
+                <td data-label="Skick">Nyskick</td>
+                <td data-label="Pris">€29.95</td>
+            </tr>
+            <tr class="clickable-row" data-href="singleproduct.php?id=5">
+                <td data-label="Titel">Jazz Classics</td>
+                <td data-label="Författare/Artist"></td>
+                <td data-label="Kategori">CD - Musik</td>
+                <td data-label="Genre">Jazz</td>
+                <td data-label="Skick">Bra</td>
+                <td data-label="Pris">€15.00</td>
+            </tr>
+        </tbody>
+    </table>
+</div>
 </section>
 
 
