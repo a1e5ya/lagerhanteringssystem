@@ -39,3 +39,5 @@ try {
     // Log the error and display a user-friendly message
     error_log('Database Connection Error: ' . $e->getMessage());
     die('Could not connect to the database. Please try again later.');
+}
+?>
