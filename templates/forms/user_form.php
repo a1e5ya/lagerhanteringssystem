@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * User Form Template
  */

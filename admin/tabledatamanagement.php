@@ -1,4 +1,4 @@
-﻿<?php
+<?php
 /**
  * Table Data Management
  * 

@@ -1,3 +1,3 @@
-﻿/**
+/**
  * Form Validation
  */
