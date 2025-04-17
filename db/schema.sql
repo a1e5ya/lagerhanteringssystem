@@ -1,7 +1,6 @@
 ﻿-- Database Schema
 -- SQL script for creating database structure
 
-
 -- phpMyAdmin SQL Dump
 -- version 5.2.1
 -- https://www.phpmyadmin.net/
@@ -14,7 +13,6 @@
 SET SQL_MODE = "NO_AUTO_VALUE_ON_ZERO";
 START TRANSACTION;
 SET time_zone = "+00:00";
-
 
 /*!40101 SET @OLD_CHARACTER_SET_CLIENT=@@CHARACTER_SET_CLIENT */;
 /*!40101 SET @OLD_CHARACTER_SET_RESULTS=@@CHARACTER_SET_RESULTS */;
@@ -35,7 +33,7 @@ CREATE TABLE `author` (
   `author_id` int NOT NULL,
   `first_name` varchar(100) DEFAULT NULL,
   `last_name` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -46,7 +44,7 @@ CREATE TABLE `author` (
 CREATE TABLE `category` (
   `category_id` int NOT NULL,
   `category_name` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -59,7 +57,7 @@ CREATE TABLE `condition` (
   `condition_name` varchar(50) NOT NULL,
   `condition_code` varchar(10) NOT NULL,
   `condition_description` text
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -74,7 +72,7 @@ CREATE TABLE `event_log` (
   `event_description` text,
   `event_timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
   `product_id` int DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -85,7 +83,7 @@ CREATE TABLE `event_log` (
 CREATE TABLE `genre` (
   `genre_id` int NOT NULL,
   `genre_name` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -100,7 +98,7 @@ CREATE TABLE `newsletter_subscriber` (
   `subscribed_date` datetime DEFAULT CURRENT_TIMESTAMP,
   `subscriber_is_active` tinyint(1) DEFAULT '1',
   `subscriber_language_pref` varchar(10) DEFAULT 'sv'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -124,7 +122,7 @@ CREATE TABLE `product` (
   `special_price` tinyint(1) DEFAULT '0',
   `rare` tinyint(1) DEFAULT '0',
   `date_added` datetime DEFAULT CURRENT_TIMESTAMP
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -136,7 +134,7 @@ CREATE TABLE `product_author` (
   `product_author_id` int NOT NULL,
   `product_id` int DEFAULT NULL,
   `author_id` int DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -148,7 +146,7 @@ CREATE TABLE `product_genre` (
   `product_genre_id` int NOT NULL,
   `product_id` int DEFAULT NULL,
   `genre_id` int DEFAULT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -159,7 +157,7 @@ CREATE TABLE `product_genre` (
 CREATE TABLE `shelf` (
   `shelf_id` int NOT NULL,
   `shelf_name` varchar(100) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
 
@@ -170,7 +168,7 @@ CREATE TABLE `shelf` (
 CREATE TABLE `status` (
   `status_id` int NOT NULL,
   `status_name` varchar(50) NOT NULL
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `status`
@@ -197,7 +195,7 @@ CREATE TABLE `user` (
   `user_last_login` datetime DEFAULT NULL,
   `user_created_at` datetime DEFAULT CURRENT_TIMESTAMP,
   `user_is_active` tinyint(1) DEFAULT '1'
-) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_0900_ai_ci;
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `user`
