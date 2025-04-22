@@ -24,26 +24,26 @@ $username = isset($currentUser['user_username']) ? $currentUser['user_username']
     <!-- Font Awesome for icons -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Custom CSS -->
-    <link rel="stylesheet" href="/Project KA/lagerhanteringssystem/assets/css/styles.css">
-    <link rel="stylesheet" href="/Project KA/lagerhanteringssystem/assets/css/admin.css">
+    <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/styles.css">
+    <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/admin.css">
 </head>
 <body>
     <!-- Header/Navigation for Admin Pages -->
     <header class="site-header sticky-top">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
-                <a class="navbar-brand" href="/Project KA/lagerhanteringssystem/index.php"><i class="fas fa-book-open me-2"></i>Karis Antikvariat</a>
+                <a class="navbar-brand" href="/prog23/lagerhanteringssystem/index.php"><i class="fas fa-book-open me-2"></i>Karis Antikvariat</a>
                 <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarMain">
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarMain">
                     <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($currentPage == 'admin.php') ? 'active' : ''; ?>" href="/Project KA/lagerhanteringssystem/admin.php">Lager</a>
+                            <a class="nav-link <?php echo ($currentPage == 'admin.php') ? 'active' : ''; ?>" href="/prog23/lagerhanteringssystem/admin.php">Lager</a>
                         </li>
                         <?php if (isset($currentUser['user_role']) && $currentUser['user_role'] == 1): // Admin only ?>
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($currentPage == '/Project KA/lagerhanteringssystem/admin/usermanagement.php') ? 'active' : ''; ?>" href="/Project KA/lagerhanteringssystem/admin/usermanagement.php">Användare</a>
+                            <a class="nav-link <?php echo ($currentPage == '/prog23/lagerhanteringssystem/admin/usermanagement.php') ? 'active' : ''; ?>" href="/prog23/lagerhanteringssystem/admin/usermanagement.php">Användare</a>
                         </li>
                         <?php endif; ?>
                     </ul>
