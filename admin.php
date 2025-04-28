@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Admin Dashboard
  * 
@@ -106,6 +106,7 @@ include_once 'templates/admin_header.php';
 
     <!-- Main Content Container -->
     <div class="container my-4">
+    <div id="message-container" style="display:none;"></div>
         <!-- Inventory System -->
         <div id="inventory-system">
             <!-- Tab Navigation -->
@@ -114,7 +115,7 @@ include_once 'templates/admin_header.php';
                     <a class="nav-link active" data-tab="search">Sök</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-tab="addproduct">Lägg till objekt</a>
+                    <a class="nav-link" data-tab="addproduct">Lägg till produkt</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" data-tab="tabledatamanagement">Redigera databas</a>
