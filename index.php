@@ -5,6 +5,7 @@
  * Contains:
  * - Feature items display
  * - Search functionality
+ * - Language switching
  */
 
 // Include necessary files
@@ -17,19 +18,26 @@ require_once 'admin/search.php';
 $categories = getCategories($pdo);
 $specialProducts = getSpecialPriceProducts($pdo, 3); // 3 produkter på rea
 
+// Check if language change is requested
+if (isset($_GET['lang'])) {
+    changeLanguage($_GET['lang']);
+}
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Load language settings if multilingual support is enabled
+// Get current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
 
-// Page title
-$pageTitle = "Karis Antikvariat";
+// Load language strings
+$strings = loadLanguageStrings($language);
 
-// Include header
-include 'templates/header.php';
-?>
-<?php
-// Hantera sökformuläret
+// Get categories for the search dropdown
+$categories = getCategories($pdo);
+
+// Handle search form
 $searchResults = [];
 if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')) {
     $searchResults = searchProducts([
@@ -37,32 +45,43 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
         'category' => $_GET['category'] ?? 'all'
     ]);
 }
+
+// Page title
+$pageTitle = "Karis Antikvariat";
+
+// Include header
+include 'templates/header.php';
 ?>
 
+<!-- Hero Banner with Full Width Image -->
 <div class="hero-container position-relative">
     <img src="assets/images/hero.webp" alt="Karis Antikvariat" class="hero-image w-100">
     <div class="container">
         <div class="hero-content position-absolute">
             <div class="hero-text-container p-5 rounded text-center">
-                <h1>Välkommen till Karis Antikvariat</h1>
-                <p class="lead">Din lokala antikvariat med ett brett utbud av böcker, musik och samlarobjekt</p>
-                <a href="#browse" class="btn btn-primary btn-lg mt-3">Bläddra i vårt sortiment</a>
+                <h1><?php echo $strings['welcome']; ?></h1>
+                <p class="lead"><?php echo $strings['subtitle']; ?></p>
+                <a href="#browse" class="btn btn-primary btn-lg mt-3 border-light"><?php echo $strings['browse_button']; ?></a>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Main Content Container -->
 <div class="container my-4">
+    <!-- Homepage Content -->
     <div id="homepage" class="mb-5">
+        <!-- About Section -->
         <section id="about" class="my-5">
             <div class="row">
                 <div class="col-lg-6">
-                    <h2>Om vår butik</h2>
-                    <p>Karis Antikvariat har ett mycket brett utbud av böcker, men vi har specialiserat oss på finlandssvenska författare, lokalhistoria och sjöfart.</p>
-                    <p>Vi har dessutom barn- och ungdomsböcker, serietidningar, seriealbum, DVD-filmer, CD- och vinylskivor samt samlarobjekt.</p>
-                    <p>Välkommen att besöka oss och upptäck vårt unika utbud!</p>
+                    <h2><?php echo $strings['about_heading']; ?></h2>
+                    <p><?php echo $strings['about_p1']; ?></p>
+                    <p><?php echo $strings['about_p2']; ?></p>
+                    <p><?php echo $strings['about_p3']; ?></p>
                 </div>
                 <div class="col-lg-6">
+                    <!-- Image Carousel -->
                     <div id="storeCarousel" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-indicators">
                             <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
@@ -86,59 +105,59 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
                         </div>
                         <button class="carousel-control-prev" type="button" data-bs-target="#storeCarousel" data-bs-slide="prev">
                             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Föregående</span>
+                            <span class="visually-hidden"><?php echo $strings['previous']; ?></span>
                         </button>
                         <button class="carousel-control-next" type="button" data-bs-target="#storeCarousel" data-bs-slide="next">
                             <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Nästa</span>
+                            <span class="visually-hidden"><?php echo $strings['next']; ?></span>
                         </button>
                     </div>
                 </div>
             </div>
         </section>
 
-
+        <!-- Browse Section -->
         <section id="browse" class="my-5">
-            <h2 class="mb-4">Bläddra i vårt sortiment</h2>
-
+            <h2 class="mb-4"><?php echo $strings['browse_heading']; ?></h2>
+            
             <div class="search-bar mb-4">
                 <form method="get" action="" id="search-form">
                     <div class="row">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <input type="text" class="form-control" id="public-search" name="search" 
-                                placeholder="Sök efter titel, författare eller kategori" 
+                                placeholder="<?php echo $strings['search_placeholder']; ?>" 
                                 value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
                         </div>
                         <div class="col-md-4 mb-3 mb-md-0">
                             <select class="form-select" id="public-category" name="category">
-                                <option value="all">Alla kategorier</option>
-                                    <?php foreach ($categories as $category): ?>
-                                    <option value="<?= htmlspecialchars($category['category_id']) ?>" 
-                                    <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
+                                <option value="all"><?php echo $strings['all_categories']; ?></option>
+                                <?php foreach ($categories as $category): ?>
+                                <option value="<?= htmlspecialchars($category['category_id']) ?>" 
+                                <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($category['category_name']) ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100" id="public-search-btn">Sök</button>
+                            <button type="submit" class="btn btn-primary w-100" id="public-search-btn"><?php echo $strings['search_button']; ?></button>
                         </div>
                     </div>
                 </form>
             </div>
-
+            
             <div class="table-responsive">
     <table class="table table-hover" id="public-inventory-table">
         <thead class="table-light">
-            <tr>
-                <th>Titel</th>
-                <th>Författare/Artist</th>
-                <th>Kategori</th>
-                <th>Genre</th>
-                <th>Skick</th>
-                <th>Pris (€)</th>
-                <th></th>
-            </tr>
+        <tr>
+                            <th><?php echo $strings['title']; ?></th>
+                            <th><?php echo $strings['author_artist']; ?></th>
+                            <th><?php echo $strings['category']; ?></th>
+                            <th><?php echo $strings['genre']; ?></th>
+                            <th><?php echo $strings['condition']; ?></th>
+                            <th><?php echo $strings['price']; ?></th>
+                            <th></th>
+                        </tr>
         </thead>
         <tbody id="public-inventory-body">
 <!--Anropar fuktionen renderIndexProducts -->            
@@ -149,7 +168,7 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
         </section>
 
         <section class="my-5">
-    <h2 class="mb-4"></h2>
+    <h2 class="mb-4"><?php echo $strings['on_sale']; ?></h2>
     <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="featured-items">
         <?php foreach ($specialProducts as $product): ?>
         <div class="col">
@@ -175,7 +194,7 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
                         </div>
                     </div>
                 </div>
-               
+
                 <!-- For laptop/desktop: vertical layout -->
                 <div class="d-none d-md-block">
                     <?php
@@ -211,7 +230,7 @@ include 'templates/footer.php';
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Gör raderna klickbara
+        // Make rows clickable
         const clickableRows = document.querySelectorAll('#public-inventory-body .clickable-row');
         clickableRows.forEach(row => {
             row.addEventListener('click', function(event) {
@@ -221,7 +240,7 @@ include 'templates/footer.php';
             });
         });
 
-        // Scrolla automatiskt till sökresultaten om en sökning har gjorts
+        // Auto scroll to search results if a search has been performed
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('search') || (urlParams.has('category') && urlParams.get('category') !== 'all')) {
             const browseSection = document.getElementById('browse');

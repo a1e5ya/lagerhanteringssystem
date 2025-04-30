@@ -28,6 +28,10 @@ body {
     min-height: 100vh;
 }
 
+.row {
+    justify-content: center
+}
+
 /* Navbar Styling */
 .site-header .navbar {
     background-color: var(--primary-color);
@@ -200,54 +204,6 @@ section h2 {
     box-shadow: 0 0.1rem 0.5rem rgba(0, 0, 0, 0.15);
 }
 
-.card .card-img-top {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-}
-
-/* Horizontal Card Layout */
-.card .row.g-0 {
-    align-items: stretch;
-}
-
-.card .row.g-0 .col-4 {
-    max-width: 150px;
-}
-
-.card .row.g-0 .col-4 img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-    object-position: center;
-}
-
-.card .card-img-top {
-    width: 100%;
-    height: 200px;
-    object-fit: cover;
-    object-position: center;
-}
-
-.card .card-body {
-    padding: 1rem;
-}
-
-.card .card-title {
-    font-size: 1.1rem;
-    margin-bottom: 0.5rem;
-}
-
-.card .card-text {
-    color: var(--text-dark);
-}
-
-.card .text-success {
-    color: var(--primary-color) !important;
-    font-weight: 600;
-}
-
-
 
 
 
@@ -350,7 +306,6 @@ section h2 {
 /* Item Details Page */
 .item-image-container {
     background-color: #f8f9fa;
-    padding: 1rem;
     border-radius: 0.5rem;
     box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
     text-align: center;
@@ -362,9 +317,17 @@ section h2 {
     justify-content: center;
 }
 
+.item-price-status {
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+    flex-direction: column;
+}
+
 .price-container {
     border-radius: 0.5rem;
     margin-top: 1rem;
+
 }
 
 

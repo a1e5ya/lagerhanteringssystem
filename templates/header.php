@@ -11,10 +11,18 @@
 // Get current page for active menu highlighting
 $currentPage = basename($_SERVER['PHP_SELF']);
 
-// Get language from session or set default
-$lang = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+// Get language from session or set default (this should now be set in the main page)
+// $language is expected to be passed from the parent file
+if (!isset($language)) {
+    $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+}
+
+// Load language strings if not already loaded
+if (!isset($strings)) {
+    $strings = loadLanguageStrings($language);
+}
 ?><!DOCTYPE html>
-<html lang="<?php echo $lang; ?>">
+<html lang="<?php echo $language; ?>">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -38,24 +46,24 @@ $lang = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
                 <div class="collapse navbar-collapse" id="navbarMain">
                     <ul class="navbar-nav me-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>" id="nav-home" href="index.php">Hem</a>
+                            <a class="nav-link <?php echo ($currentPage == 'index.php') ? 'active' : ''; ?>" id="nav-home" href="index.php"><?php echo $strings['menu_home']; ?></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" id="nav-about" href="index.php#about">Om oss</a>
+                            <a class="nav-link" id="nav-about" href="index.php#about"><?php echo $strings['menu_about']; ?></a>
                         </li>
                         <li class="nav-item">
-                            <a class="nav-link" id="nav-browse" href="index.php#browse">Bläddra böcker</a>
+                            <a class="nav-link" id="nav-browse" href="index.php#browse"><?php echo $strings['menu_browse']; ?></a>
                         </li>
                     </ul>
                     <div class="d-flex align-items-center">
                         <!-- Language Switcher -->
                         <div class="language-switcher me-3">
-                            <a href="?lang=sv" class="btn btn-sm btn-outline-light <?php echo ($lang == 'sv') ? 'active' : ''; ?> square-btn">SV</a>
-                            <a href="?lang=fi" class="btn btn-sm btn-outline-light <?php echo ($lang == 'fi') ? 'active' : ''; ?> square-btn">FI</a>
+                            <a href="?lang=sv" class="btn btn-sm btn-outline-light <?php echo ($language == 'sv') ? 'active' : ''; ?> square-btn">SV</a>
+                            <a href="?lang=fi" class="btn btn-sm btn-outline-light <?php echo ($language == 'fi') ? 'active' : ''; ?> square-btn">FI</a>
                         </div>
                         <!-- Login Button -->
                         <a href="#" class="btn btn-outline-light login-btn" id="login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">
-                            <i class="fas fa-user me-1"></i> Logga in
+                            <i class="fas fa-user me-1"></i> <?php echo $strings['login']; ?>
                         </a>
                     </div>
                 </div>
@@ -68,33 +76,33 @@ $lang = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header text-white">
-                    <h5 class="modal-title">Personalinloggning</h5>
+                    <h5 class="modal-title"><?php echo $strings['staff_login']; ?></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div id="login-error" class="alert alert-danger <?php echo isset($_GET['error']) ? '' : 'd-none'; ?>" role="alert">
-                        <?php echo isset($_GET['error']) ? htmlspecialchars($_GET['error']) : 'Ogiltigt användarnamn eller lösenord. Försök igen.'; ?>
+                        <?php echo isset($_GET['error']) ? htmlspecialchars($_GET['error']) : $strings['invalid_credentials']; ?>
                     </div>
                     <form id="login-form" method="post" action="includes/login_process.php">
                         <div class="mb-3">
-                            <label for="username" class="form-label">Användarnamn</label>
+                            <label for="username" class="form-label"><?php echo $strings['username']; ?></label>
                             <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
                         </div>
                         <div class="mb-3">
-                            <label for="password" class="form-label">Lösenord</label>
+                            <label for="password" class="form-label"><?php echo $strings['password']; ?></label>
                             <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check">
                                 <input class="form-check-input" type="checkbox" id="remember-me" name="remember">
                                 <label class="form-check-label" for="remember-me">
-                                    Kom ihåg mig
+                                    <?php echo $strings['remember_me']; ?>
                                 </label>
                             </div>
-                            <a href="#" id="forgot-password" class="text-decoration-none">Glömt lösenord?</a>
+                            <a href="#" id="forgot-password" class="text-decoration-none"><?php echo $strings['forgot_password']; ?></a>
                         </div>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Logga in</button>
+                            <button type="submit" class="btn btn-primary"><?php echo $strings['login_button']; ?></button>
                         </div>
                     </form>
                 </div>
@@ -107,18 +115,18 @@ $lang = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Återställ lösenord</h5>
+                    <h5 class="modal-title"><?php echo $strings['reset_password']; ?></h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p class="text-muted mb-4">Ange din e-postadress så skickar vi instruktioner för att återställa ditt lösenord.</p>
+                    <p class="text-muted mb-4"><?php echo $strings['reset_instructions']; ?></p>
                     <form id="forgot-password-form" method="post" action="includes/password_reset.php">
                         <div class="mb-3">
-                            <label for="recovery-email" class="form-label">E-postadress</label>
+                            <label for="recovery-email" class="form-label"><?php echo $strings['email']; ?></label>
                             <input type="email" class="form-control" id="recovery-email" name="email" required>
                         </div>
                         <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Skicka återställningslänk</button>
+                            <button type="submit" class="btn btn-primary"><?php echo $strings['send_reset_link']; ?></button>
                         </div>
                     </form>
                 </div>
