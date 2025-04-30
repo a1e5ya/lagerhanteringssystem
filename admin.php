@@ -1,4 +1,4 @@
-<?php
+﻿<?php
 /**
  * Admin Dashboard
  * 
@@ -94,7 +94,6 @@ $pageTitle = "Lagerhanteringssystem - Karis Antikvariat";
 include_once 'templates/admin_header.php';
 ?>
 
-<!-- Displays product added succesfully message -->
 
     <?php
     // Check and display success message
@@ -106,6 +105,7 @@ include_once 'templates/admin_header.php';
 
     <!-- Main Content Container -->
     <div class="container my-4">
+    <div id="message-container" style="display:none;"></div>
         <!-- Inventory System -->
         <div id="inventory-system">
             <!-- Tab Navigation -->
@@ -114,7 +114,7 @@ include_once 'templates/admin_header.php';
                     <a class="nav-link active" data-tab="search">Sök</a>
                 </li>
                 <li class="nav-item">
-                    <a class="nav-link" data-tab="addproduct">Lägg till objekt</a>
+                    <a class="nav-link" data-tab="addproduct">Lägg till produkt</a>
                 </li>
                 <li class="nav-item">
                     <a class="nav-link" data-tab="tabledatamanagement">Redigera databas</a>
@@ -130,7 +130,9 @@ include_once 'templates/admin_header.php';
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/admin.js"></script>
+    
     <?php
     // Include admin footer
     include_once 'templates/admin_footer.php';
