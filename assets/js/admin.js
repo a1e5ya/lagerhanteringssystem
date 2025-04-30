@@ -54,7 +54,7 @@ $(document).off('submit', '#add-item-form').on('submit', '#add-item-form', funct
     
     $.ajax({
         type: 'POST',
-        url: '/prog23/lagerhanteringssystem/admin/addproduct.php', // Use the full path
+        url: '/prog23/lagerhanteringssystem/admin/addproduct.php', 
         data: new FormData(form[0]),
         processData: false,
         contentType: false,
@@ -101,22 +101,24 @@ $(document).off('submit', '#add-item-form').on('submit', '#add-item-form', funct
 });
 
 
-// Intercept delete links
-$(document).on('click', 'a[href*="action=delete"]', function(e) {
-    e.preventDefault(); // Stop the default link behavior
+//  delete button functionality
+
+// Single event handler for delete functionality
+$(document).off('click', '.delete-item').on('click', '.delete-item', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
     
-    // Extract data from the href attribute
-    const href = $(this).attr('href');
-    const urlParams = new URLSearchParams(href.split('?')[1]);
-    const id = urlParams.get('id');
-    const type = urlParams.get('type');
+    // Get data from data attributes
+    const id = $(this).data('id');
+    const type = $(this).data('type');
     
-    // Skip confirmation if the link already has an onclick attribute
-    if ($(this).attr('onclick')) {
-        // Use the original confirmation dialog result
-        const originalConfirm = $(this).attr('onclick');
-        // Extract the confirmation action instead of adding our own
+    // Show confirmation
+    if (confirm(`Are you sure you want to delete this ${type}?`)) {
+        // Temporarily disable the button to prevent double-clicks
+        const $button = $(this);
+        $button.prop('disabled', true);
         
+        // Send AJAX request
         $.ajax({
             type: 'POST',
             url: '/prog23/lagerhanteringssystem/admin/delete_item.php',
@@ -132,18 +134,97 @@ $(document).on('click', 'a[href*="action=delete"]', function(e) {
                     $('#message-container').show();
                     
                     // Remove the row from the table
-                    $(`a[href*="id=${id}"][href*="type=${type}"]`).closest('tr').remove();
+                    $button.closest('tr').fadeOut(300, function() {
+                        $(this).remove();
+                    });
                 } else {
                     // Show error message
                     $('#message-container').html(`<div class="alert alert-danger">${response.message}</div>`);
                     $('#message-container').show();
+                    
+                    // Re-enable the button
+                    $button.prop('disabled', false);
                 }
             },
             error: function(xhr) {
                 console.error('Error:', xhr.responseText);
                 $('#message-container').html('<div class="alert alert-danger">An error occurred during deletion.</div>');
                 $('#message-container').show();
+                
+                // Re-enable the button
+                $button.prop('disabled', false);
             }
         });
     }
+});
+
+// Modal
+
+// Handle edit link clicks
+$(document).on('click', '.edit-item', function(e) {
+    e.preventDefault();
+    
+    // Get data attributes
+    const id = $(this).data('id');
+    const type = $(this).data('type');
+    const name = $(this).data('name');
+    
+    // Set modal title
+    $('#editItemModalLabel').text('Edit ' + type.charAt(0).toUpperCase() + type.slice(1));
+    
+    // Fill form fields
+    $('#edit-item-id').val(id);
+    $('#edit-item-type').val(type);
+    $('#edit-item-name').val(name);
+    
+    // Show the modal
+    $('#editItemModal').modal('show');
+});
+
+// Handle save button click
+$(document).on('click', '#save-edit', function() {
+    // Get form data
+    const id = $('#edit-item-id').val();
+    const type = $('#edit-item-type').val();
+    const name = $('#edit-item-name').val();
+    
+    // Validate form
+    if (!name.trim()) {
+        alert('Please enter a name');
+        return;
+    }
+    
+    // Send AJAX request
+    $.ajax({
+        type: 'POST',
+        url: '/prog23/lagerhanteringssystem/admin/edit_item.php',
+        data: {
+            id: id,
+            type: type,
+            name: name
+        },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                // Show success message
+                $('#message-container').html(`<div class="alert alert-success">${response.message}</div>`);
+                $('#message-container').show();
+                
+                // Update the row in the table
+                const rowSelector = `a.edit-item[data-id="${id}"][data-type="${type}"]`;
+                $(rowSelector).closest('tr').find('td:nth-child(2)').text(name);
+                $(rowSelector).data('name', name);
+                
+                // Close the modal
+                $('#editItemModal').modal('hide');
+            } else {
+                // Show error message in the modal
+                alert(`Error: ${response.message}`);
+            }
+        },
+        error: function(xhr) {
+            console.error('Error:', xhr.responseText);
+            alert('An error occurred. Please try again.');
+        }
+    });
 });

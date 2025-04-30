@@ -53,6 +53,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
         // Handle file upload
         if (isset($_FILES['item-image']) && $_FILES['item-image']['error'] === UPLOAD_ERR_OK) {
+            
             $fileTmpPath = $_FILES['item-image']['tmp_name'];
             $fileName = $_FILES['item-image']['name'];
             $uploadFileDir = '../assets/uploads/'; 
@@ -116,9 +117,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title mb-3">Objektbild</h5>
+                        <h5 class="card-title mb-3">Produktbild</h5>
                         <div class="item-image-container mb-3">
-                            <img src="assets/images/src-book.webp" alt="Objektbild" class="img-fluid rounded shadow" id="new-item-image">
+                            <img src="assets/images/src-book.webp" alt="Produktbild" class="img-fluid rounded shadow" id="new-item-image">
                         </div>
                         <div class="mb-3">
                             <label for="item-image-upload" class="form-label">Ladda upp bild</label>
@@ -213,8 +214,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <select class="form-select" id="item-language" name="language">
                                 <option value="">Select Language</option>
                                 <option value="english">English</option>
-                                <option value="swedish">Swedish</option>
-                                <!-- Add more languages as necessary -->
+                                <option value="svenska">Svenska</option>
+                                <option value="suomi">Suomi</option>
                             </select>
                         </div>
 
