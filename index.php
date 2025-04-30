@@ -126,15 +126,15 @@ include 'templates/header.php';
                         <div class="col-md-6 mb-3 mb-md-0">
                             <input type="text" class="form-control" id="public-search" name="search" 
                                 placeholder="<?php echo $strings['search_placeholder']; ?>" 
-                                value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
+                                value="<?= safeEcho($_GET['search'] ?? '') ?>">
                         </div>
                         <div class="col-md-4 mb-3 mb-md-0">
                             <select class="form-select" id="public-category" name="category">
                                 <option value="all"><?php echo $strings['all_categories']; ?></option>
                                 <?php foreach ($categories as $category): ?>
-                                <option value="<?= htmlspecialchars($category['category_id']) ?>" 
+                                <option value="<?= safeEcho($category['category_id']) ?>" 
                                 <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
-                                    <?= htmlspecialchars($category['category_name']) ?>
+                                    <?= safeEcho($category['category_name']) ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -183,12 +183,12 @@ include 'templates/header.php';
                             $productDefaultImage = 'assets/images/src-book.webp'; // Default image
                             $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
                             ?>
-                            <img src="<?php echo $productImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo htmlspecialchars($product->title); ?>">
+                            <img src="<?php echo $productImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($product->title); ?>">
                         </div>
                         <div class="col-6">
                             <div class="card-body d-flex flex-column h-100">
-                                <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
-                                <p class="card-text text-muted flex-grow-1"><?php echo htmlspecialchars($product->author_name); ?></p>
+                                <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
+                                <p class="card-text text-muted flex-grow-1"><?php echo safeEcho($product->author_name); ?></p>
                                 <p class="text-success fw-bold mb-2"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
                             </div>
                         </div>
@@ -203,15 +203,15 @@ include 'templates/header.php';
                     $productDefaultImage = 'assets/images/src-book.webp'; // Default image
                     $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
                     ?>
-                    <img src="<?php echo $productImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo htmlspecialchars($product->title); ?>">
+                    <img src="<?php echo $productImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($product->title); ?>">
                     <div class="card-body">
-                        <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
-                        <p class="card-text text-muted"><?php echo htmlspecialchars($product->author_name); ?></p>
+                        <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
+                        <p class="card-text text-muted"><?php echo safeEcho($product->author_name); ?></p>
                         <p class="text-success fw-bold"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
                     </div>
                 </div>
                
-                <a href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>" class="stretched-link"></a>
+                <a href="singleproduct.php?id=<?php echo safeEcho($product->prod_id); ?>" class="stretched-link"></a>
             </div>
         </div>
         <?php endforeach; ?>

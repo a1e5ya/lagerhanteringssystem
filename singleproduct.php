@@ -213,7 +213,7 @@ switch ($product->status_id) {
 }
 
 // Update page title with product name
-$pageTitle = htmlspecialchars($product->title) . " - Karis Antikvariat";
+$pageTitle = safeEcho($product->title) . " - Karis Antikvariat";
 
 // Include header
 include 'templates/header.php';
@@ -246,33 +246,33 @@ include 'templates/header.php';
                     
                     $imageToShow = file_exists($imagePath) ? $imagePath : $defaultImage;
                     ?>
-                    <img src="<?php echo $imageToShow; ?>" alt="<?php echo htmlspecialchars($product->title); ?>" class="img-fluid rounded shadow" id="item-image">
+                    <img src="<?php echo $imageToShow; ?>" alt="<?php echo safeEcho($product->title); ?>" class="img-fluid rounded shadow" id="item-image">
                 </div>
             </div>
             
             <!-- Column 2: Item Details -->
             <div class="col-md-4 item-details">
                 <div>
-                    <h1 class="mb-2" id="item-title"><?php echo htmlspecialchars($product->title); ?></h1>
-                    <h4 class="text-muted mb-3" id="item-author"><?php echo htmlspecialchars($product->author_names); ?></h4>
+                    <h1 class="mb-2" id="item-title"><?php echo safeEcho($product->title); ?></h1>
+                    <h4 class="text-muted mb-3" id="item-author"><?php echo safeEcho($product->author_names); ?></h4>
                 </div>
                 
                 <ul class="list-unstyled">
-                    <li><strong><?php echo $strings['category']; ?>:</strong> <span id="item-category"><?php echo htmlspecialchars($product->category_name); ?></span></li>
-                    <li><strong><?php echo $strings['genre']; ?>:</strong> <span id="item-genre"><?php echo htmlspecialchars(implode(', ', $product->genre_names_array)); ?></span></li>
-                    <li><strong><?php echo $strings['condition']; ?>:</strong> <span id="item-condition"><?php echo htmlspecialchars($product->condition_name); ?></span></li>
-                    <li><strong><?php echo $strings['shelf']; ?>:</strong> <span id="item-shelf"><?php echo htmlspecialchars($product->shelf_name); ?></span></li>
+                    <li><strong><?php echo $strings['category']; ?>:</strong> <span id="item-category"><?php echo safeEcho($product->category_name); ?></span></li>
+                    <li><strong><?php echo $strings['genre']; ?>:</strong> <span id="item-genre"><?php echo safeEcho(implode(', ', $product->genre_names_array)); ?></span></li>
+                    <li><strong><?php echo $strings['condition']; ?>:</strong> <span id="item-condition"><?php echo safeEcho($product->condition_name); ?></span></li>
+                    <li><strong><?php echo $strings['shelf']; ?>:</strong> <span id="item-shelf"><?php echo safeEcho($product->shelf_name); ?></span></li>
                     
                     <?php if (!empty($product->language)): ?>
-                    <li><strong><?php echo $strings['language']; ?>:</strong> <span id="item-language"><?php echo htmlspecialchars($product->language); ?></span></li>
+                    <li><strong><?php echo $strings['language']; ?>:</strong> <span id="item-language"><?php echo safeEcho($product->language); ?></span></li>
                     <?php endif; ?>
                     
                     <?php if (!empty($product->year)): ?>
-                    <li><strong><?php echo $strings['year']; ?>:</strong> <span id="item-year"><?php echo htmlspecialchars($product->year); ?></span></li>
+                    <li><strong><?php echo $strings['year']; ?>:</strong> <span id="item-year"><?php echo safeEcho($product->year); ?></span></li>
                     <?php endif; ?>
                     
                     <?php if (!empty($product->publisher)): ?>
-                    <li><strong><?php echo $strings['publisher']; ?>:</strong> <span id="item-publisher"><?php echo htmlspecialchars($product->publisher); ?></span></li>
+                    <li><strong><?php echo $strings['publisher']; ?>:</strong> <span id="item-publisher"><?php echo safeEcho($product->publisher); ?></span></li>
                     <?php endif; ?>
                     
                     <li><strong><?php echo $strings['date_added']; ?>:</strong> <span id="item-date"><?php echo $formattedDate; ?></span></li>
@@ -281,7 +281,7 @@ include 'templates/header.php';
                 <?php if (!empty($product->notes)): ?>
                 <div class="item-description">
                     <h5><?php echo $strings['description']; ?></h5>
-                    <p id="item-notes"><?php echo nl2br(htmlspecialchars($product->notes)); ?></p>
+                    <p id="item-notes"><?php echo nl2br(safeEcho($product->notes)); ?></p>
                 </div>
                 <?php endif; ?>
             </div>
@@ -290,7 +290,7 @@ include 'templates/header.php';
             <div class="col-md-4 item-price-status">
 
                 <div class="price-container">
-                    <span class="badge <?php echo $statusClass; ?> fs-6" id="item-status"><?php echo htmlspecialchars($product->status_name); ?></span>
+                    <span class="badge <?php echo $statusClass; ?> fs-6" id="item-status"><?php echo safeEcho($product->status_name); ?></span>
                     
                     <?php if ($product->special_price): ?>
                         <span class="badge bg-danger fs-6 ms-2"><?php echo $strings['special_price']; ?></span>
@@ -344,15 +344,15 @@ include 'templates/header.php';
                                 $relatedDefaultImage = 'assets/images/src-book.webp'; // Default related image
                                 $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                                 ?>
-                                <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo htmlspecialchars($relatedProduct->title); ?>">
+                                <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($relatedProduct->title); ?>">
                             </div>
                             <div class="col-6">
                                 <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title"><?php echo htmlspecialchars($relatedProduct->title); ?></h5>
+                                    <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                                     <p class="card-text text-muted flex-grow-1">
                                         <?php
                                         if (!empty($relatedProduct->first_names) || !empty($relatedProduct->last_names)) {
-                                            echo htmlspecialchars(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names));
+                                            echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names));
                                         } else {
                                             echo $strings['unknown_author'];
                                         }
@@ -372,13 +372,13 @@ include 'templates/header.php';
                         $relatedDefaultImage = 'assets/images/src-book.webp'; // Default related image
                         $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                         ?>
-                        <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo htmlspecialchars($relatedProduct->title); ?>">
+                        <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($relatedProduct->title); ?>">
                         <div class="card-body">
-                            <h5 class="card-title"><?php echo htmlspecialchars($relatedProduct->title); ?></h5>
+                            <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                             <p class="card-text text-muted">
                                 <?php
                                 if (!empty($relatedProduct->first_names) || !empty($relatedProduct->last_names)) {
-                                    echo htmlspecialchars(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names));
+                                    echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names));
                                 } else {
                                     echo $strings['unknown_author'];
                                 }
