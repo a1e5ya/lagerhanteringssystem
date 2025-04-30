@@ -10,6 +10,7 @@
 ?>
 
 <!-- Footer for Public Pages -->
+
 <footer class="footer text-white py-4 mt-5">
     <div class="container">
         <div class="row">

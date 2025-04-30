@@ -10,12 +10,145 @@
  * - renderProducts()
  * - changeProductSaleStatus()
  */
-require_once '../config/config.php'; // Adjust the path as necessary
+
+?>
+<?php
+
+/*Hämtar alla kategorier från databasen och returnerar dem som en lista i sidans dropdown.*/
+function getCategories($pdo) {
+// Förbereder en SQL-fråga för att hämta kategori-ID och namn från tabellen "category"
+    $stmt = $pdo->prepare("SELECT category_id, category_name FROM category ORDER BY category_name ASC");
+// Kör SQL-frågan
+    $stmt->execute();
+// Hämtar och returnerar alla kategorier som en associerad array
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+/*Söker produkter baserat på användarens sökparametrar (t.ex. titel, författare eller kategori).*/
+function searchProducts(?array $searchParams = null): array
+{
+    global $pdo; //Används för att tillgång till den globala PDO-instansen (databasanslutningen).
+// Kontrollera om PDO-objektet är korrekt instansierat
+    if (!is_object($pdo)) {
+        echo '<p>PDO-objektet är inte korrekt instansierat!</p>';
+        return [];
+    }
+
+// Rensar och förbereder söksträngen
+    $trimmedSearch = trim($searchParams['search'] ?? '');
+    $searchTerm = '%' . $trimmedSearch . '%';
+
+// Hämta kategori om det finns som filter
+    $categoryFilter = !empty($searchParams['category']) && $searchParams['category'] !== 'all' ? $searchParams['category'] : null;
+
+// Skapa SQL-frågan för att söka produkter
+    $sql = "SELECT
+                p.prod_id,
+                p.title,
+                GROUP_CONCAT(DISTINCT a.first_name SEPARATOR ', ') AS first_names,
+                GROUP_CONCAT(DISTINCT a.last_name SEPARATOR ', ') AS last_names,                
+                cat.category_name,
+                GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genre_names,
+                con.condition_name,
+                p.price
+            FROM product p
+            LEFT JOIN
+                product_author pa ON p.prod_id = pa.product_id
+            LEFT JOIN
+                author a ON pa.author_id = a.author_id
+            JOIN
+                category cat ON p.category_id = cat.category_id
+            JOIN
+                product_genre pg ON p.prod_id = pg.product_id
+            JOIN
+                genre g ON pg.genre_id = g.genre_id
+            JOIN
+                `condition` con ON p.condition_id = con.condition_id
+            WHERE
+                (p.title LIKE :searchTerm1 OR
+                a.first_name LIKE :searchTerm2 OR
+                a.last_name LIKE :searchTerm3 OR
+                cat.category_name LIKE :searchTerm4)";
+
+    // Lägg till kategori-filter om det finns
+    if ($categoryFilter) {
+        $sql .= " AND p.category_id = :categoryId";
+    }
+
+// Avsluta SQL-satsen med gruppning av produkter
+    $sql .= " GROUP BY p.prod_id";
+
+    
+// Försök att köra SQL-frågan och hämta resultatet
+    try {
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':searchTerm1', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':searchTerm2', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':searchTerm3', $searchTerm, PDO::PARAM_STR);
+        $stmt->bindParam(':searchTerm4', $searchTerm, PDO::PARAM_STR);
+
+        // Bind kategori-parametern om det finns
+        if ($categoryFilter) {
+            $stmt->bindParam(':categoryId', $categoryFilter, PDO::PARAM_INT);
+        }
+        
+        $stmt->execute();
+        
+// Returnera alla matchande produkter som objekt
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    } catch (PDOException $e) {
+        error_log("Databasfel vid sökning: " . $e->getMessage());
+        echo '<p>Databasfel: ' . htmlspecialchars($e->getMessage()) . '</p>';
+        return [];
+    }
+}
+
+function renderIndexProducts(array $products): string
+{
+    ob_start();
+
+    if (!empty($products)) {
+        foreach ($products as $product) {
+            ?>
+            <tr class="clickable-row" data-href="singleproduct.php?id=<?= htmlspecialchars($product->prod_id) ?>">
+                <td data-label="Titel"><?= htmlspecialchars($product->title) ?></td>
+                <td data-label="Författare/Artist">
+                    <?php
+                    if (!empty($product->first_names) && !empty($product->last_names)) {
+                        echo htmlspecialchars($product->first_names . ' ' . $product->last_names);
+                    } elseif (!empty($product->first_names)) {
+                        echo htmlspecialchars($product->first_names);
+                    } elseif (!empty($product->last_names)) {
+                        echo htmlspecialchars($product->last_names);
+                    } else {
+                        echo 'Okänd författare';
+                    }
+                    ?>
+                </td>
+                <td data-label="Kategori"><?= htmlspecialchars($product->category_name) ?></td>
+                <td data-label="Genre"><?= htmlspecialchars($product->genre_names) ?></td>
+                <td data-label="Skick"><?= htmlspecialchars($product->condition_name) ?></td>
+                <td data-label="Pris"><?= htmlspecialchars(number_format($product->price, 2, ',', ' ')) . ' €' ?></td>
+                <td><a class="btn btn-success d-block d-md-none" href="singleproduct.php?id=<?= htmlspecialchars($product->prod_id) ?>">Visa detaljer</a></td>
+            </tr>
+            <?php
+        }
+    } else {
+        if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')) {
+            echo '<tr><td colspan="7">Inga produkter hittades som matchar din sökning.</td></tr>';
+        } else {
+            echo '<tr><td colspan="7">Använd sökfältet ovan för att söka efter produkter.</td></tr>';
+        }
+    }
+
+    return ob_get_clean();
+}
+
+
 ?>
 
 
-
- <!-- Search Tab -->
+ <!-- Search Tab
  <div class="tab-pane fade show active" id="search">
      <div class="row mb-3">
          <div class="col-12 mb-3">
@@ -28,7 +161,7 @@ require_once '../config/config.php'; // Adjust the path as necessary
              <label for="category-filter" class="form-label">Kategorifilter</label>
              <select class="form-select" id="category-filter">
                  <option value="any">Alla</option>
-                 <!-- Categories will be populated dynamically -->
+                 <!-- Categories will be populated dynamically
              </select>
          </div>
          <div class="col-md-6 d-flex align-items-end">
@@ -136,8 +269,8 @@ require_once '../config/config.php'; // Adjust the path as necessary
                  }
                  */
                  ?>
-                 -->
+                 
              </tbody>
          </table>
      </div>
- </div>
+ </div>-->

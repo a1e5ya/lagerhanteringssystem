@@ -12,8 +12,12 @@ require_once 'config/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/db_functions.php';
 require_once 'includes/ui.php';
+require_once 'admin/search.php';
 
 $categories = getCategories($pdo);
+$specialProducts = getSpecialPriceProducts($pdo, 3); // 3 produkter på rea
+
+
 
 // Load language settings if multilingual support is enabled
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
@@ -137,102 +141,66 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
             </tr>
         </thead>
         <tbody id="public-inventory-body">
-            <?php if (!empty($searchResults)): ?>
-                <?php foreach ($searchResults as $product): ?>
-                    <tr class="clickable-row" data-href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>">
-                        <td data-label="Titel"><?php echo htmlspecialchars($product->title); ?></td>
-                        <td data-label="Författare/Artist">
-                            <?php
-                            if (!empty($product->first_names) && !empty($product->last_names)) {
-                                echo htmlspecialchars($product->first_names . ' ' . $product->last_names);
-                            } elseif (!empty($product->first_names)) {
-                                echo htmlspecialchars($product->first_names);
-                            } elseif (!empty($product->last_names)) {
-                                echo htmlspecialchars($product->last_names);
-                            } else {
-                                echo 'Okänd författare'; // Fallback om inga namn finns
-                            }
-                            ?>
-                        </td>
-                        <td data-label="Kategori"><?php echo htmlspecialchars($product->category_name); ?></td>
-                        <td data-label="Genre"><?php echo htmlspecialchars($product->genre_names); ?></td>
-                        <td data-label="Skick"><?php echo htmlspecialchars($product->condition_name); ?></td>
-                        <td data-label="Pris"><?php echo htmlspecialchars(number_format($product->price, 2, ',', ' ')) . ' €'; ?></td>
-                        <td><a class="btn btn-success" href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>">Visa detaljer</a></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <?php if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')): ?>
-
-                    <tr><td colspan="5">Inga produkter hittades som matchar din sökning.</td></tr>
-                <?php else: ?>
-                    <tr><td colspan="5">Använd sökfältet ovan för att söka efter produkter.</td></tr>
-                <?php endif; ?>
-            <?php endif; ?>
+<!--Anropar fuktionen renderIndexProducts -->            
+            <?= renderIndexProducts($searchResults) ?>
         </tbody>
     </table>
 </div>
         </section>
 
-
         <section class="my-5">
-            <h2 class="mb-4">På rea</h2>
-            <div class="row g-4 row-cols-1 row-cols-md-3" id="featured-items">
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="row g-0 h-100">
-                            <div class="col-6">
-                                <img src="assets/images/src-book.webp" class="card-img-top h-100 object-fit-cover" alt="Trollvinter">
-                            </div>
-                            <div class="col-6">
-                                <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title">Trollvinter</h5>
-                                    <p class="card-text text-muted flex-grow-1">Tove Jansson</p>
-                                    <p class="text-success fw-bold mb-2">€24.95</p>
-                                    <a href="singleproduct.php?id=1" class="stretched-link"></a>
-                                </div>
+    <h2 class="mb-4"></h2>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="featured-items">
+        <?php foreach ($specialProducts as $product): ?>
+        <div class="col">
+            <div class="card h-100">
+                <!-- For mobile: horizontal layout -->
+                <div class="d-block d-md-none">
+                    <div class="row g-0 h-100">
+                        <div class="col-6">
+                            <?php
+                            // Check if product image exists
+                            $productImagePath = 'uploads/products/' . $product->prod_id . '.jpg';
+                            $productDefaultImage = 'assets/images/src-book.webp'; // Default image
+                            $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
+                            ?>
+                            <img src="<?php echo $productImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo htmlspecialchars($product->title); ?>">
+                        </div>
+                        <div class="col-6">
+                            <div class="card-body d-flex flex-column h-100">
+                                <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
+                                <p class="card-text text-muted flex-grow-1"><?php echo htmlspecialchars($product->author_name); ?></p>
+                                <p class="text-success fw-bold mb-2"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
                             </div>
                         </div>
                     </div>
                 </div>
-
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="row g-0 h-100">
-                            <div class="col-6">
-                                <img src="assets/images/src-cd.webp" class="card-img-top h-100 object-fit-cover" alt="Sibelius Symphony No. 2">
-                            </div>
-                            <div class="col-6">
-                                <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title">Sibelius Symphony No. 2</h5>
-                                    <p class="card-text text-muted flex-grow-1">Helsinki Philharmonic</p>
-                                    <p class="text-success fw-bold mb-2">€22.50</p>
-                                    <a href="singleproduct.php?id=6" class="stretched-link"></a>
-                                </div>
-                            </div>
-                        </div>
+               
+                <!-- For laptop/desktop: vertical layout -->
+                <div class="d-none d-md-block">
+                    <?php
+                    // Check if product image exists
+                    $productImagePath = 'uploads/products/' . $product->prod_id . '.jpg';
+                    $productDefaultImage = 'assets/images/src-book.webp'; // Default image
+                    $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
+                    ?>
+                    <img src="<?php echo $productImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo htmlspecialchars($product->title); ?>">
+                    <div class="card-body">
+                        <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
+                        <p class="card-text text-muted"><?php echo htmlspecialchars($product->author_name); ?></p>
+                        <p class="text-success fw-bold"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
                     </div>
                 </div>
-
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="row g-0 h-100">
-                            <div class="col-6">
-                                <img src="assets/images/src-magazine.webp" class="card-img-top h-100 object-fit-cover" alt="Åbo - En historisk resa">
-                            </div>
-                            <div class="col-6">
-                                <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title">Åbo - En historisk resa</h5>
-                                    <p class="card-text text-muted flex-grow-1">Zacharias Topelius</p>
-                                    <p class="text-success fw-bold mb-2">€34.95</p>
-                                    <a href="singleproduct.php?id=7" class="stretched-link"></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+               
+                <a href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>" class="stretched-link"></a>
             </div>
-        </section>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
+
+
+        
     </div>
 </div>
 
