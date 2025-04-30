@@ -27,7 +27,7 @@ $username = isset($currentUser['user_username']) ? $currentUser['user_username']
     <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/styles.css">
     <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/admin.css">
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <!-- Header/Navigation for Admin Pages -->
     <header class="site-header sticky-top">
         <nav class="navbar navbar-expand-lg navbar-dark">

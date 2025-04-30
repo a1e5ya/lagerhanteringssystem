@@ -1,3 +1,4 @@
+
 <?php
 /**
  * User Management
@@ -23,19 +24,18 @@ function searchUser($searchTerm = null) {
     global $pdo;
     
     try {
-        $query = "SELECT u.*, r.r_name 
-                 FROM users u
-                 JOIN roles r ON u.u_role_fk = r.r_id";
+        // Updated query to match your actual database schema
+        $query = "SELECT * FROM `user`";
         
         $params = [];
         
         if (!empty($searchTerm)) {
-            $query .= " WHERE u.u_name LIKE ? OR u.u_fname LIKE ? OR u.u_lname LIKE ? OR u.u_email LIKE ?";
+            $query .= " WHERE user_username LIKE ? OR user_email LIKE ?";
             $searchParam = "%$searchTerm%";
-            $params = [$searchParam, $searchParam, $searchParam, $searchParam];
+            $params = [$searchParam, $searchParam];
         }
         
-        $query .= " ORDER BY u.u_name ASC";
+        $query .= " ORDER BY user_username ASC";
         
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
@@ -54,15 +54,27 @@ function renderUser($users) {
     }
     
     foreach ($users as $user) {
-        $statusClass = $user['u_isactive'] ? 'text-success' : 'text-danger';
-        $statusText = $user['u_isactive'] ? 'Aktiv' : 'Inaktiv';
-        $lastLogin = !empty($user['u_lastlogin']) ? date('Y-m-d H:i', strtotime($user['u_lastlogin'])) : 'Aldrig';
+        $statusClass = $user['user_is_active'] ? 'text-success' : 'text-danger';
+        $statusText = $user['user_is_active'] ? 'Aktiv' : 'Inaktiv';
+        $lastLogin = !empty($user['user_last_login']) ? date('Y-m-d H:i', strtotime($user['user_last_login'])) : 'Aldrig';
         
-        echo '<tr class="clickable-row" data-href="usermanagement.php?tab=edit&user_id=' . $user['u_id'] . '">';
-        echo '<td>' . htmlspecialchars($user['u_name']) . '</td>';
-        echo '<td>' . htmlspecialchars($user['u_fname'] . ' ' . $user['u_lname']) . '</td>';
-        echo '<td>' . htmlspecialchars($user['u_email']) . '</td>';
-        echo '<td>' . htmlspecialchars($user['r_name']) . '</td>';
+        // Map role numbers to names
+        $roleName = 'Gäst';
+        switch ($user['user_role']) {
+            case 1:
+                $roleName = 'Admin';
+                break;
+            case 2:
+                $roleName = 'Redaktör';
+                break;
+        }
+        
+        echo '<tr class="clickable-row" data-href="usermanagement.php?tab=edit&user_id=' . $user['user_id'] . '">';
+        echo '<td>' . htmlspecialchars($user['user_username']) . '</td>';
+        // Since we don't have first/last name in the schema, just show username
+        echo '<td>' . htmlspecialchars($user['user_username']) . '</td>';
+        echo '<td>' . htmlspecialchars($user['user_email']) . '</td>';
+        echo '<td>' . htmlspecialchars($roleName) . '</td>';
         echo '<td class="' . $statusClass . '">' . $statusText . '</td>';
         echo '<td>' . $lastLogin . '</td>';
         echo '</tr>';
@@ -73,40 +85,37 @@ function createUser($userData) {
     global $pdo;
     
     // Validate input data
-    if (empty($userData['uname']) || empty($userData['ufname']) || 
-        empty($userData['ulname']) || empty($userData['umail']) || 
-        empty($userData['upass']) || empty($userData['upassrpt'])) {
+    if (empty($userData['username']) || empty($userData['email']) || 
+        empty($userData['password']) || empty($userData['password_confirm'])) {
         return ['success' => false, 'error' => 'Alla fält måste fyllas i.'];
     }
     
-    if ($userData['upass'] !== $userData['upassrpt']) {
+    if ($userData['password'] !== $userData['password_confirm']) {
         return ['success' => false, 'error' => 'Lösenorden matchar inte.'];
     }
     
     // Check if username or email already exists
     try {
-        $stmt = $pdo->prepare("SELECT u_id FROM users WHERE u_name = ? OR u_email = ?");
-        $stmt->execute([$userData['uname'], $userData['umail']]);
+        $stmt = $pdo->prepare("SELECT user_id FROM user WHERE user_username = ? OR user_email = ?");
+        $stmt->execute([$userData['username'], $userData['email']]);
         
         if ($stmt->rowCount() > 0) {
             return ['success' => false, 'error' => 'Användarnamn eller e-post finns redan.'];
         }
         
         // Hash password
-        $passwordHash = password_hash($userData['upass'], PASSWORD_DEFAULT);
+        $passwordHash = password_hash($userData['password'], PASSWORD_DEFAULT);
         
         // Insert user
         $stmt = $pdo->prepare("
-            INSERT INTO users (u_name, u_fname, u_lname, u_email, u_password, u_role_fk, u_isactive, u_created_at) 
-            VALUES (?, ?, ?, ?, ?, ?, 1, NOW())
+            INSERT INTO user (user_username, user_password_hash, user_email, user_role, user_is_active, user_created_at) 
+            VALUES (?, ?, ?, ?, 1, NOW())
         ");
         
         $stmt->execute([
-            $userData['uname'],
-            $userData['ufname'],
-            $userData['ulname'],
-            $userData['umail'],
+            $userData['username'],
             $passwordHash,
+            $userData['email'],
             $userData['role']
         ]);
         
@@ -126,50 +135,45 @@ function editUser($userId, $userData) {
     global $pdo;
     
     // Validate input data
-    if (empty($userData['uname']) || empty($userData['ufname']) || 
-        empty($userData['ulname']) || empty($userData['umail'])) {
+    if (empty($userData['username']) || empty($userData['email'])) {
         return ['success' => false, 'error' => 'Alla obligatoriska fält måste fyllas i.'];
     }
     
     try {
         // Check if username or email already exists for another user
-        $stmt = $pdo->prepare("SELECT u_id FROM users WHERE (u_name = ? OR u_email = ?) AND u_id != ?");
-        $stmt->execute([$userData['uname'], $userData['umail'], $userId]);
+        $stmt = $pdo->prepare("SELECT user_id FROM user WHERE (user_username = ? OR user_email = ?) AND user_id != ?");
+        $stmt->execute([$userData['username'], $userData['email'], $userId]);
         
         if ($stmt->rowCount() > 0) {
             return ['success' => false, 'error' => 'Användarnamn eller e-post används redan av en annan användare.'];
         }
         
         // Update user basic info
-        $query = "UPDATE users SET 
-                  u_name = ?, 
-                  u_fname = ?, 
-                  u_lname = ?, 
-                  u_email = ?, 
-                  u_role_fk = ?, 
-                  u_isactive = ?";
+        $query = "UPDATE user SET 
+                  user_username = ?, 
+                  user_email = ?, 
+                  user_role = ?, 
+                  user_is_active = ?";
         
         $params = [
-            $userData['uname'],
-            $userData['ufname'],
-            $userData['ulname'],
-            $userData['umail'],
+            $userData['username'],
+            $userData['email'],
             $userData['role'],
-            isset($userData['active']) ? 1 : 0
+            (isset($userData['active']) && $userData['active'] == 1) ? 1 : 0
         ];
         
         // If password is provided, update it too
-        if (!empty($userData['upass']) && !empty($userData['upassrpt'])) {
-            if ($userData['upass'] !== $userData['upassrpt']) {
+        if (!empty($userData['password']) && !empty($userData['password_confirm'])) {
+            if ($userData['password'] !== $userData['password_confirm']) {
                 return ['success' => false, 'error' => 'Lösenorden matchar inte.'];
             }
             
-            $passwordHash = password_hash($userData['upass'], PASSWORD_DEFAULT);
-            $query .= ", u_password = ?";
+            $passwordHash = password_hash($userData['password'], PASSWORD_DEFAULT);
+            $query .= ", user_password_hash = ?";
             $params[] = $passwordHash;
         }
         
-        $query .= " WHERE u_id = ?";
+        $query .= " WHERE user_id = ?";
         $params[] = $userId;
         
         $stmt = $pdo->prepare($query);
@@ -187,7 +191,7 @@ function changeUserStatus($userId, $status) {
     global $pdo;
     
     try {
-        $stmt = $pdo->prepare("UPDATE users SET u_isactive = ? WHERE u_id = ?");
+        $stmt = $pdo->prepare("UPDATE user SET user_is_active = ? WHERE user_id = ?");
         $stmt->execute([$status, $userId]);
         
         return [
@@ -208,18 +212,18 @@ function removeUser($userId) {
         // First, check if this is the last admin user
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as admin_count 
-            FROM users 
-            WHERE u_role_fk = 1 AND u_isactive = 1
+            FROM user 
+            WHERE user_role = 1 AND user_is_active = 1
         ");
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $stmt = $pdo->prepare("SELECT u_role_fk FROM users WHERE u_id = ?");
+        $stmt = $pdo->prepare("SELECT user_role FROM user WHERE user_id = ?");
         $stmt->execute([$userId]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
         // If this is the last admin, don't allow deletion
-        if ($result['admin_count'] <= 1 && $user['u_role_fk'] == 1) {
+        if ($result['admin_count'] <= 1 && $user['user_role'] == 1) {
             return [
                 'success' => false, 
                 'error' => 'Kan inte ta bort den sista administratören.'
@@ -227,7 +231,7 @@ function removeUser($userId) {
         }
         
         // Delete the user
-        $stmt = $pdo->prepare("DELETE FROM users WHERE u_id = ?");
+        $stmt = $pdo->prepare("DELETE FROM user WHERE user_id = ?");
         $stmt->execute([$userId]);
         
         return [
@@ -252,40 +256,29 @@ function renderEditUserForm($userId = null) {
     if ($userId) {
         // Fetch user data if editing
         try {
-            $stmt = $pdo->prepare("
-                SELECT u.*, r.r_name 
-                FROM users u
-                JOIN roles r ON u.u_role_fk = r.r_id
-                WHERE u.u_id = ?
-            ");
+            $stmt = $pdo->prepare("SELECT * FROM user WHERE user_id = ?");
             $stmt->execute([$userId]);
             $userData = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($userData) {
                 $formAction = "?tab=edit&user_id=" . $userId;
                 $submitButtonText = "Spara ändringar";
-                $formTitle = "Redigera användare: " . htmlspecialchars($userData['u_name']);
+                $formTitle = "Redigera användare: " . htmlspecialchars($userData['user_username']);
             }
         } catch (PDOException $e) {
             error_log("Error fetching user data: " . $e->getMessage());
         }
     }
     
-    // Fetch all available roles
-    $roles = [];
-    try {
-        $stmt = $pdo->query("SELECT r_id, r_name FROM roles ORDER BY r_level ASC");
-        $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log("Error fetching roles: " . $e->getMessage());
-    }
+    // Define available roles
+    $roles = [
+        ['r_id' => 1, 'r_name' => 'Admin'],
+        ['r_id' => 2, 'r_name' => 'Redaktör'],
+        ['r_id' => 3, 'r_name' => 'Gäst']
+    ];
     
     // Render the form
     ?>
-    <div class="card shadow-sm">
-        <div class="card-header">
-            <h4 class="mb-0"><i class="fas fa-user-<?php echo $userId ? 'edit' : 'plus'; ?> me-2"></i><?php echo $formTitle; ?></h4>
-        </div>
         <div class="card-body">
             <form action="<?php echo $formAction; ?>" method="POST">
                 <?php if ($userId): ?>
@@ -298,7 +291,7 @@ function renderEditUserForm($userId = null) {
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-user"></i></span>
                             <input type="text" class="form-control" id="uname" name="uname" 
-                                value="<?php echo htmlspecialchars($userData['u_name'] ?? ''); ?>" required>
+                                value="<?php echo htmlspecialchars($userData['user_username'] ?? ''); ?>" required>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -308,30 +301,11 @@ function renderEditUserForm($userId = null) {
                             <select id="role" name="role" class="form-select">
                                 <?php foreach ($roles as $role): ?>
                                     <option value="<?php echo $role['r_id']; ?>" 
-                                        <?php echo (isset($userData['u_role_fk']) && $userData['u_role_fk'] == $role['r_id']) ? 'selected' : ''; ?>>
+                                        <?php echo (isset($userData['user_role']) && $userData['user_role'] == $role['r_id']) ? 'selected' : ''; ?>>
                                         <?php echo htmlspecialchars($role['r_name']); ?>
                                     </option>
                                 <?php endforeach; ?>
                             </select>
-                        </div>
-                    </div>
-                </div>
-                
-                <div class="row mb-3">
-                    <div class="col-md-6">
-                        <label for="ufname" class="form-label">Förnamn</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                            <input type="text" class="form-control" id="ufname" name="ufname" 
-                                value="<?php echo htmlspecialchars($userData['u_fname'] ?? ''); ?>" required>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <label for="ulname" class="form-label">Efternamn</label>
-                        <div class="input-group">
-                            <span class="input-group-text"><i class="fas fa-id-card"></i></span>
-                            <input type="text" class="form-control" id="ulname" name="ulname" 
-                                value="<?php echo htmlspecialchars($userData['u_lname'] ?? ''); ?>" required>
                         </div>
                     </div>
                 </div>
@@ -342,19 +316,21 @@ function renderEditUserForm($userId = null) {
                         <div class="input-group">
                             <span class="input-group-text"><i class="fas fa-envelope"></i></span>
                             <input type="email" class="form-control" id="umail" name="umail" 
-                                value="<?php echo htmlspecialchars($userData['u_email'] ?? ''); ?>" required>
+                                value="<?php echo htmlspecialchars($userData['user_email'] ?? ''); ?>" required>
                         </div>
                     </div>
-                    <?php if ($userId): ?>
+                    
                     <div class="col-md-4">
+                    <?php if ($userId): ?>
                         <label class="form-label">Status</label>
                         <div class="form-check mt-2">
                             <input class="form-check-input" type="checkbox" id="active" name="active" 
-                                <?php echo (isset($userData['u_isactive']) && $userData['u_isactive'] == 1) ? 'checked' : ''; ?>>
+                                <?php echo (isset($userData['user_is_active']) && $userData['user_is_active'] == 1) ? 'checked' : ''; ?>>
                             <label class="form-check-label" for="active">Aktivt konto</label>
                         </div>
+                        <?php endif; ?>
                     </div>
-                    <?php endif; ?>
+                    
                 </div>
                 
                 <hr>
@@ -395,7 +371,6 @@ function renderEditUserForm($userId = null) {
                     </button>
                 </div>
             </form>
-        </div>
     </div>
     
     <?php if ($userId): ?>
@@ -408,7 +383,7 @@ function renderEditUserForm($userId = null) {
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <p>Är du säker på att du vill ta bort användaren <strong><?php echo htmlspecialchars($userData['u_name'] ?? ''); ?></strong>?</p>
+                    <p>Är du säker på att du vill ta bort användaren <strong><?php echo htmlspecialchars($userData['user_username'] ?? ''); ?></strong>?</p>
                     <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Denna åtgärd kan inte ångras!</p>
                 </div>
                 <div class="modal-footer">
@@ -441,13 +416,12 @@ $success = null;
 // Handle user creation
 if (isset($_POST['create_user'])) {
     $userData = [
-        'uname' => filter_input(INPUT_POST, 'uname', FILTER_SANITIZE_SPECIAL_CHARS),
-        'ufname' => filter_input(INPUT_POST, 'ufname', FILTER_SANITIZE_SPECIAL_CHARS),
-        'ulname' => filter_input(INPUT_POST, 'ulname', FILTER_SANITIZE_SPECIAL_CHARS),
-        'umail' => filter_input(INPUT_POST, 'umail', FILTER_SANITIZE_EMAIL),
-        'upass' => $_POST['upass'] ?? '',
-        'upassrpt' => $_POST['upassrpt'] ?? '',
+        'username' => filter_input(INPUT_POST, 'uname', FILTER_SANITIZE_SPECIAL_CHARS),
+        'email' => filter_input(INPUT_POST, 'umail', FILTER_SANITIZE_EMAIL),
+        'password' => $_POST['upass'] ?? '',
+        'password_confirm' => $_POST['upassrpt'] ?? '',
         'role' => filter_input(INPUT_POST, 'role', FILTER_VALIDATE_INT) ?: 3 // Default to role 3 if invalid
+    
     ];
     
     $result = createUser($userData);
@@ -468,12 +442,10 @@ if (isset($_POST['update_user']) && isset($_POST['edit_user_id'])) {
     
     if ($userId) {
         $userData = [
-            'uname' => filter_input(INPUT_POST, 'uname', FILTER_SANITIZE_SPECIAL_CHARS),
-            'ufname' => filter_input(INPUT_POST, 'ufname', FILTER_SANITIZE_SPECIAL_CHARS),
-            'ulname' => filter_input(INPUT_POST, 'ulname', FILTER_SANITIZE_SPECIAL_CHARS),
-            'umail' => filter_input(INPUT_POST, 'umail', FILTER_SANITIZE_EMAIL),
-            'upass' => $_POST['upass'] ?? '',
-            'upassrpt' => $_POST['upassrpt'] ?? '',
+            'username' => filter_input(INPUT_POST, 'uname', FILTER_SANITIZE_SPECIAL_CHARS),
+            'email' => filter_input(INPUT_POST, 'umail', FILTER_SANITIZE_EMAIL),
+            'password' => $_POST['upass'] ?? '',
+            'password_confirm' => $_POST['upassrpt'] ?? '',
             'role' => filter_input(INPUT_POST, 'role', FILTER_VALIDATE_INT) ?: 3,
             'active' => isset($_POST['active']) ? 1 : 0
         ];

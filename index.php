@@ -228,6 +228,8 @@ include 'templates/header.php';
 include 'templates/footer.php';
 ?>
 
+<script src="newsletter.js"></script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         // Make rows clickable

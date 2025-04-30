@@ -9,7 +9,7 @@
 ?>
 
 <!-- Footer for Admin Pages -->
-<footer class="footer text-white py-4 mt-5">
+<footer class="footer text-white py-4 mt-auto">
     <div class="container">
         <div class="text-center">
             <p class="mb-0">&copy; <?php echo date('Y'); ?> Axxell. Alla rättigheter förbehållna.</p>

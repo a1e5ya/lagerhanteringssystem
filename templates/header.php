@@ -34,9 +34,9 @@ if (!isset($strings)) {
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/styles.css">
 </head>
-<body>
+<body class="d-flex flex-column min-vh-100">
     <!-- Header/Navigation for Public Pages -->
-    <header class="site-header sticky-top">
+    <header class="site-header">
         <nav class="navbar navbar-expand-lg navbar-dark">
             <div class="container">
                 <a class="navbar-brand" href="index.php"><i class="fas fa-book-open me-2"></i>Karis Antikvariat</a>
