@@ -5,6 +5,7 @@
  * Contains:
  * - Feature items display
  * - Search functionality
+ * - Language switching
  */
 
 // Include necessary files
@@ -13,19 +14,26 @@ require_once 'includes/functions.php';
 require_once 'includes/db_functions.php';
 require_once 'includes/ui.php';
 
-$categories = getCategories($pdo);
+// Check if language change is requested
+if (isset($_GET['lang'])) {
+    changeLanguage($_GET['lang']);
+}
 
-// Load language settings if multilingual support is enabled
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Get current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
 
-// Page title
-$pageTitle = "Karis Antikvariat";
+// Load language strings
+$strings = loadLanguageStrings($language);
 
-// Include header
-include 'templates/header.php';
-?>
-<?php
-// Hantera sökformuläret
+// Get categories for the search dropdown
+$categories = getCategories($pdo);
+
+// Handle search form
 $searchResults = [];
 if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')) {
     $searchResults = searchProducts([
@@ -33,32 +41,43 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
         'category' => $_GET['category'] ?? 'all'
     ]);
 }
+
+// Page title
+$pageTitle = "Karis Antikvariat";
+
+// Include header
+include 'templates/header.php';
 ?>
 
+<!-- Hero Banner with Full Width Image -->
 <div class="hero-container position-relative">
     <img src="assets/images/hero.webp" alt="Karis Antikvariat" class="hero-image w-100">
     <div class="container">
         <div class="hero-content position-absolute">
             <div class="hero-text-container p-5 rounded text-center">
-                <h1>Välkommen till Karis Antikvariat</h1>
-                <p class="lead">Din lokala antikvariat med ett brett utbud av böcker, musik och samlarobjekt</p>
-                <a href="#browse" class="btn btn-primary btn-lg mt-3">Bläddra i vårt sortiment</a>
+                <h1><?php echo $strings['welcome']; ?></h1>
+                <p class="lead"><?php echo $strings['subtitle']; ?></p>
+                <a href="#browse" class="btn btn-primary btn-lg mt-3 border-light"><?php echo $strings['browse_button']; ?></a>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Main Content Container -->
 <div class="container my-4">
+    <!-- Homepage Content -->
     <div id="homepage" class="mb-5">
+        <!-- About Section -->
         <section id="about" class="my-5">
             <div class="row">
                 <div class="col-lg-6">
-                    <h2>Om vår butik</h2>
-                    <p>Karis Antikvariat har ett mycket brett utbud av böcker, men vi har specialiserat oss på finlandssvenska författare, lokalhistoria och sjöfart.</p>
-                    <p>Vi har dessutom barn- och ungdomsböcker, serietidningar, seriealbum, DVD-filmer, CD- och vinylskivor samt samlarobjekt.</p>
-                    <p>Välkommen att besöka oss och upptäck vårt unika utbud!</p>
+                    <h2><?php echo $strings['about_heading']; ?></h2>
+                    <p><?php echo $strings['about_p1']; ?></p>
+                    <p><?php echo $strings['about_p2']; ?></p>
+                    <p><?php echo $strings['about_p3']; ?></p>
                 </div>
                 <div class="col-lg-6">
+                    <!-- Image Carousel -->
                     <div id="storeCarousel" class="carousel slide" data-bs-ride="carousel">
                         <div class="carousel-indicators">
                             <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
@@ -82,157 +101,148 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
                         </div>
                         <button class="carousel-control-prev" type="button" data-bs-target="#storeCarousel" data-bs-slide="prev">
                             <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Föregående</span>
+                            <span class="visually-hidden"><?php echo $strings['previous']; ?></span>
                         </button>
                         <button class="carousel-control-next" type="button" data-bs-target="#storeCarousel" data-bs-slide="next">
                             <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden">Nästa</span>
+                            <span class="visually-hidden"><?php echo $strings['next']; ?></span>
                         </button>
                     </div>
                 </div>
             </div>
         </section>
 
-
+        <!-- Browse Section -->
         <section id="browse" class="my-5">
-            <h2 class="mb-4">Bläddra i vårt sortiment</h2>
-
+            <h2 class="mb-4"><?php echo $strings['browse_heading']; ?></h2>
+            
             <div class="search-bar mb-4">
                 <form method="get" action="" id="search-form">
                     <div class="row">
                         <div class="col-md-6 mb-3 mb-md-0">
                             <input type="text" class="form-control" id="public-search" name="search" 
-                                placeholder="Sök efter titel, författare eller kategori" 
+                                placeholder="<?php echo $strings['search_placeholder']; ?>" 
                                 value="<?= htmlspecialchars($_GET['search'] ?? '') ?>">
                         </div>
                         <div class="col-md-4 mb-3 mb-md-0">
                             <select class="form-select" id="public-category" name="category">
-                                <option value="all">Alla kategorier</option>
-                                    <?php foreach ($categories as $category): ?>
-                                    <option value="<?= htmlspecialchars($category['category_id']) ?>" 
-                                    <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
+                                <option value="all"><?php echo $strings['all_categories']; ?></option>
+                                <?php foreach ($categories as $category): ?>
+                                <option value="<?= htmlspecialchars($category['category_id']) ?>" 
+                                <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
                                     <?= htmlspecialchars($category['category_name']) ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                         <div class="col-md-2">
-                            <button type="submit" class="btn btn-primary w-100" id="public-search-btn">Sök</button>
+                            <button type="submit" class="btn btn-primary w-100" id="public-search-btn"><?php echo $strings['search_button']; ?></button>
                         </div>
                     </div>
                 </form>
             </div>
-
+            
             <div class="table-responsive">
-    <table class="table table-hover" id="public-inventory-table">
-        <thead class="table-light">
-            <tr>
-                <th>Titel</th>
-                <th>Författare/Artist</th>
-                <th>Kategori</th>
-                <th>Genre</th>
-                <th>Skick</th>
-                <th>Pris (€)</th>
-                <th></th>
-            </tr>
-        </thead>
-        <tbody id="public-inventory-body">
-            <?php if (!empty($searchResults)): ?>
-                <?php foreach ($searchResults as $product): ?>
-                    <tr class="clickable-row" data-href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>">
-                        <td data-label="Titel"><?php echo htmlspecialchars($product->title); ?></td>
-                        <td data-label="Författare/Artist">
-                            <?php
-                            if (!empty($product->first_names) && !empty($product->last_names)) {
-                                echo htmlspecialchars($product->first_names . ' ' . $product->last_names);
-                            } elseif (!empty($product->first_names)) {
-                                echo htmlspecialchars($product->first_names);
-                            } elseif (!empty($product->last_names)) {
-                                echo htmlspecialchars($product->last_names);
-                            } else {
-                                echo 'Okänd författare'; // Fallback om inga namn finns
-                            }
-                            ?>
-                        </td>
-                        <td data-label="Kategori"><?php echo htmlspecialchars($product->category_name); ?></td>
-                        <td data-label="Genre"><?php echo htmlspecialchars($product->genre_names); ?></td>
-                        <td data-label="Skick"><?php echo htmlspecialchars($product->condition_name); ?></td>
-                        <td data-label="Pris"><?php echo htmlspecialchars(number_format($product->price, 2, ',', ' ')) . ' €'; ?></td>
-                        <td><a class="btn btn-success" href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>">Visa detaljer</a></td>
-                    </tr>
-                <?php endforeach; ?>
-            <?php else: ?>
-                <?php if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')): ?>
-
-                    <tr><td colspan="5">Inga produkter hittades som matchar din sökning.</td></tr>
-                <?php else: ?>
-                    <tr><td colspan="5">Använd sökfältet ovan för att söka efter produkter.</td></tr>
-                <?php endif; ?>
-            <?php endif; ?>
-        </tbody>
-    </table>
-</div>
-        </section>
-
-
-        <section class="my-5">
-            <h2 class="mb-4">På rea</h2>
-            <div class="row g-4 row-cols-1 row-cols-md-3" id="featured-items">
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="row g-0 h-100">
-                            <div class="col-6">
-                                <img src="assets/images/src-book.webp" class="card-img-top h-100 object-fit-cover" alt="Trollvinter">
-                            </div>
-                            <div class="col-6">
-                                <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title">Trollvinter</h5>
-                                    <p class="card-text text-muted flex-grow-1">Tove Jansson</p>
-                                    <p class="text-success fw-bold mb-2">€24.95</p>
-                                    <a href="singleproduct.php?id=1" class="stretched-link"></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="row g-0 h-100">
-                            <div class="col-6">
-                                <img src="assets/images/src-cd.webp" class="card-img-top h-100 object-fit-cover" alt="Sibelius Symphony No. 2">
-                            </div>
-                            <div class="col-6">
-                                <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title">Sibelius Symphony No. 2</h5>
-                                    <p class="card-text text-muted flex-grow-1">Helsinki Philharmonic</p>
-                                    <p class="text-success fw-bold mb-2">€22.50</p>
-                                    <a href="singleproduct.php?id=6" class="stretched-link"></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="col">
-                    <div class="card h-100">
-                        <div class="row g-0 h-100">
-                            <div class="col-6">
-                                <img src="assets/images/src-magazine.webp" class="card-img-top h-100 object-fit-cover" alt="Åbo - En historisk resa">
-                            </div>
-                            <div class="col-6">
-                                <div class="card-body d-flex flex-column h-100">
-                                    <h5 class="card-title">Åbo - En historisk resa</h5>
-                                    <p class="card-text text-muted flex-grow-1">Zacharias Topelius</p>
-                                    <p class="text-success fw-bold mb-2">€34.95</p>
-                                    <a href="singleproduct.php?id=7" class="stretched-link"></a>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div>
+                <table class="table table-hover" id="public-inventory-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th><?php echo $strings['title']; ?></th>
+                            <th><?php echo $strings['author_artist']; ?></th>
+                            <th><?php echo $strings['category']; ?></th>
+                            <th><?php echo $strings['genre']; ?></th>
+                            <th><?php echo $strings['condition']; ?></th>
+                            <th><?php echo $strings['price']; ?></th>
+                            <th></th>
+                        </tr>
+                    </thead>
+                    <tbody id="public-inventory-body">
+                        <?php if (!empty($searchResults)): ?>
+                            <?php foreach ($searchResults as $product): ?>
+                                <tr class="clickable-row" data-href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>">
+                                    <td data-label="<?php echo $strings['title']; ?>"><?php echo htmlspecialchars($product->title); ?></td>
+                                    <td data-label="<?php echo $strings['author_artist']; ?>">
+                                        <?php
+                                        if (!empty($product->first_names) && !empty($product->last_names)) {
+                                            echo htmlspecialchars($product->first_names . ' ' . $product->last_names);
+                                        } elseif (!empty($product->first_names)) {
+                                            echo htmlspecialchars($product->first_names);
+                                        } elseif (!empty($product->last_names)) {
+                                            echo htmlspecialchars($product->last_names);
+                                        } else {
+                                            echo $strings['unknown_author'];
+                                        }
+                                        ?>
+                                    </td>
+                                    <td data-label="<?php echo $strings['category']; ?>"><?php echo htmlspecialchars($product->category_name); ?></td>
+                                    <td data-label="<?php echo $strings['genre']; ?>"><?php echo htmlspecialchars($product->genre_names); ?></td>
+                                    <td data-label="<?php echo $strings['condition']; ?>"><?php echo htmlspecialchars($product->condition_name); ?></td>
+                                    <td data-label="<?php echo $strings['price']; ?>"><?php echo htmlspecialchars(number_format($product->price, 2, ',', ' ')) . ' €'; ?></td>
+                                    <td><a class="btn btn-success" href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>"><?php echo $strings['view_details']; ?></a></td>
+                                </tr>
+                            <?php endforeach; ?>
+                        <?php else: ?>
+                            <?php if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')): ?>
+                                <tr><td colspan="7" class="text-center"><?php echo $strings['no_results']; ?></td></tr>
+                            <?php else: ?>
+                                <tr><td colspan="7" class="text-center"><?php echo $strings['use_search']; ?></td></tr>
+                            <?php endif; ?>
+                        <?php endif; ?>
+                    </tbody>
+                </table>
             </div>
         </section>
+
+        <!-- Featured Items -->
+        <section class="my-5">
+    <h2 class="mb-4"><?php echo $strings['on_sale']; ?></h2>
+    <div class="row row-cols-1 row-cols-md-2 row-cols-lg-3 g-4" id="featured-items">
+        <?php foreach ($specialProducts as $product): ?>
+        <div class="col">
+            <div class="card h-100">
+                <!-- For mobile: horizontal layout -->
+                <div class="d-block d-md-none">
+                    <div class="row g-0 h-100">
+                        <div class="col-6">
+                            <?php
+                            // Check if product image exists
+                            $productImagePath = 'uploads/products/' . $product->prod_id . '.jpg';
+                            $productDefaultImage = 'assets/images/src-book.webp'; // Default image
+                            $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
+                            ?>
+                            <img src="<?php echo $productImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo htmlspecialchars($product->title); ?>">
+                        </div>
+                        <div class="col-6">
+                            <div class="card-body d-flex flex-column h-100">
+                                <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
+                                <p class="card-text text-muted flex-grow-1"><?php echo htmlspecialchars($product->author_name); ?></p>
+                                <p class="text-success fw-bold mb-2"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- For laptop/desktop: vertical layout -->
+                <div class="d-none d-md-block">
+                    <?php
+                    // Check if product image exists
+                    $productImagePath = 'uploads/products/' . $product->prod_id . '.jpg';
+                    $productDefaultImage = 'assets/images/src-book.webp'; // Default image
+                    $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
+                    ?>
+                    <img src="<?php echo $productImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo htmlspecialchars($product->title); ?>">
+                    <div class="card-body">
+                        <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
+                        <p class="card-text text-muted"><?php echo htmlspecialchars($product->author_name); ?></p>
+                        <p class="text-success fw-bold"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
+                    </div>
+                </div>
+                
+                <a href="singleproduct.php?id=<?php echo htmlspecialchars($product->prod_id); ?>" class="stretched-link"></a>
+            </div>
+        </div>
+        <?php endforeach; ?>
+    </div>
+</section>
     </div>
 </div>
 
@@ -243,7 +253,7 @@ include 'templates/footer.php';
 
 <script>
     document.addEventListener('DOMContentLoaded', function () {
-        // Gör raderna klickbara
+        // Make rows clickable
         const clickableRows = document.querySelectorAll('#public-inventory-body .clickable-row');
         clickableRows.forEach(row => {
             row.addEventListener('click', function(event) {
@@ -253,7 +263,7 @@ include 'templates/footer.php';
             });
         });
 
-        // Scrolla automatiskt till sökresultaten om en sökning har gjorts
+        // Auto scroll to search results if a search has been performed
         const urlParams = new URLSearchParams(window.location.search);
         if (urlParams.has('search') || (urlParams.has('category') && urlParams.get('category') !== 'all')) {
             const browseSection = document.getElementById('browse');
