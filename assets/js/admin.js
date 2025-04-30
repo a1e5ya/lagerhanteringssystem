@@ -21,6 +21,9 @@ $(document).ready(function() {
             case 'addproduct':
                 url = 'addproduct.php';
                 break;
+            case 'addauthor':
+                url = 'addauthor.php';
+                break;
             case 'tabledatamanagement':
                 url = 'tabledatamanagement.php';
                 break;
@@ -46,7 +49,7 @@ $(document).ready(function() {
         window.history.pushState(null, '', `?tab=${tab}`);
     }
 
-// Handle form submission via AJAX
+//  form submission via AJAX for add product
 $(document).off('submit', '#add-item-form').on('submit', '#add-item-form', function(e) {
     e.preventDefault();
     e.stopPropagation(); // Stop the event from bubbling up
@@ -225,6 +228,53 @@ $(document).on('click', '#save-edit', function() {
         error: function(xhr) {
             console.error('Error:', xhr.responseText);
             alert('An error occurred. Please try again.');
+        }
+    });
+});
+
+
+// author form submission via AJAX
+$(document).off('submit', '#add-author-form').on('submit', '#add-author-form', function(e) {
+    e.preventDefault();
+    e.stopPropagation(); 
+    const form = $(this);
+    
+    $.ajax({
+        type: 'POST',
+        url: '/prog23/lagerhanteringssystem/admin/addauthor.php', 
+        data: form.serialize(),
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        success: function(response) {
+            try {
+                // Check if response is already an object
+                const data = typeof response === 'object' ? response : JSON.parse(response);
+                
+                if (data.success) {
+                    // Display success message
+                    $('#message-container').html(`<div class='alert alert-success'>${data.message}</div>`);
+                    $('#message-container').show();
+                    
+                    // Clear the form
+                    form[0].reset();
+                } else {
+                    // Display error message
+                    $('#message-container').html(`<div class='alert alert-danger'>${data.message}</div>`);
+                    $('#message-container').show();
+                }
+            } catch (e) {
+                console.error("Error parsing response:", e);
+                console.error("Raw response:", response);
+                $('#message-container').html(`<div class='alert alert-danger'>Error processing the server response. Check console for details.</div>`);
+                $('#message-container').show();
+            }
+        },
+        error: function(xhr, status, error) {
+            console.error("AJAX Error:", status, error);
+            console.error("Response Text:", xhr.responseText);
+            $('#message-container').html(`<div class='alert alert-danger'>An error occurred. Please try again.</div>`);
+            $('#message-container').show();
         }
     });
 });
