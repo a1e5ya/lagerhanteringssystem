@@ -49,8 +49,32 @@ if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !==
 // Page title
 $pageTitle = "Karis Antikvariat";
 
+// For the homepage, we always want to show the non-logged in view
+// Store the original login state
+$originalLoggedIn = isset($_SESSION['logged_in']) ? $_SESSION['logged_in'] : false;
+$originalUserId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
+$originalUsername = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : null;
+$originalUserRole = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : null;
+$originalUserEmail = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : null;
+
+// Temporarily unset login information for the header display
+unset($_SESSION['logged_in']);
+unset($_SESSION['user_id']);
+unset($_SESSION['user_username']);
+unset($_SESSION['user_role']);
+unset($_SESSION['user_email']);
+
 // Include header
 include 'templates/header.php';
+
+// Restore the original login state after header is rendered
+if ($originalLoggedIn) {
+    $_SESSION['logged_in'] = $originalLoggedIn;
+    $_SESSION['user_id'] = $originalUserId;
+    $_SESSION['user_username'] = $originalUsername;
+    $_SESSION['user_role'] = $originalUserRole;
+    $_SESSION['user_email'] = $originalUserEmail;
+}
 ?>
 
 <!-- Hero Banner with Full Width Image -->
@@ -224,8 +248,24 @@ include 'templates/header.php';
 </div>
 
 <?php
+// Temporarily unset login info again for the footer
+unset($_SESSION['logged_in']);
+unset($_SESSION['user_id']);
+unset($_SESSION['user_username']);
+unset($_SESSION['user_role']);
+unset($_SESSION['user_email']);
+
 // Include footer
 include 'templates/footer.php';
+
+// Restore the original login state after footer is rendered
+if ($originalLoggedIn) {
+    $_SESSION['logged_in'] = $originalLoggedIn;
+    $_SESSION['user_id'] = $originalUserId;
+    $_SESSION['user_username'] = $originalUsername;
+    $_SESSION['user_role'] = $originalUserRole;
+    $_SESSION['user_email'] = $originalUserEmail;
+}
 ?>
 
 <script src="newsletter.js"></script>

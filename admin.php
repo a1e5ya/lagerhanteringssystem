@@ -15,73 +15,8 @@ require_once 'includes/db_functions.php';
 require_once 'includes/auth.php';
 require_once 'includes/ui.php';
 
-
-// Temporary function placeholders until the real ones are implemented
-if (!function_exists('checkAuth')) {
-    function checkAuth($role = null)
-    {
-        // Placeholder function - no authentication check for now
-        return true;
-    }
-}
-
-if (!function_exists('getSessionUser')) {
-    function getSessionUser()
-    {
-        // Placeholder function - return a default user
-        return ['user_role' => 1, 'user_username' => 'admin'];
-    }
-}
-
-if (!function_exists('searchProducts')) {
-    function searchProducts($params = [])
-    {
-        // Placeholder function - return an empty array for now
-        return [];
-    }
-}
-
-if (!function_exists('getProductAuthors')) {
-    function getProductAuthors($productId)
-    {
-        // Placeholder function
-        return [];
-    }
-}
-
-if (!function_exists('getCategoryName')) {
-    function getCategoryName($categoryId)
-    {
-        // Placeholder function
-        return 'Kategori';
-    }
-}
-
-if (!function_exists('getShelfName')) {
-    function getShelfName($shelfId)
-    {
-        // Placeholder function
-        return 'Hylla';
-    }
-}
-
-if (!function_exists('getStatusName')) {
-    function getStatusName($statusId)
-    {
-        // Placeholder function
-        return 'Status';
-    }
-}
-
-if (!function_exists('selectTableData')) {
-    function selectTableData($tablename, $whereClause = null)
-    {
-        // Placeholder function - return an empty array for now
-        return [];
-    }
-}
-
-// Check if user is authenticated and has admin permissions
+// Check if user is authenticated and has admin or editor permissions
+// Only Admin (1) or Editor (2) roles can access this page
 checkAuth(2); // 2 or lower (Admin or Editor) role required
 
 // Get current user info

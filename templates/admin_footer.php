@@ -22,8 +22,8 @@
 <!-- jQuery (needed for some admin functionality) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Custom Admin JS -->
-<script src="assets/js/admin.js"></script>
-<script src="assets/js/validation.js"></script>
+<script src="<?php echo getBasePath(); ?>assets/js/admin.js"></script>
+<script src="<?php echo getBasePath(); ?>assets/js/validation.js"></script>
 
 </body>
 </html>

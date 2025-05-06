@@ -1,4 +1,0 @@
-<?php
-/**
- * Category Form Template
- */

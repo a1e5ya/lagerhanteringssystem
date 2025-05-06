@@ -21,6 +21,16 @@ if (!isset($language)) {
 if (!isset($strings)) {
     $strings = loadLanguageStrings($language);
 }
+
+// Check if user is logged in
+$isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+
+// Check for login error
+$hasLoginError = isset($_GET['error']);
+$loginError = $hasLoginError ? $_GET['error'] : '';
+
+// If there was a login error, we'll show the modal automatically
+$showLoginModal = $hasLoginError;
 ?><!DOCTYPE html>
 <html lang="<?php echo $language; ?>">
 <head>
@@ -33,6 +43,7 @@ if (!isset($strings)) {
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="assets/css/styles.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
 </head>
 <body class="d-flex flex-column min-vh-100">
     <!-- Header/Navigation for Public Pages -->
@@ -61,16 +72,23 @@ if (!isset($strings)) {
                             <a href="?lang=sv" class="btn btn-sm btn-outline-light <?php echo ($language == 'sv') ? 'active' : ''; ?> square-btn">SV</a>
                             <a href="?lang=fi" class="btn btn-sm btn-outline-light <?php echo ($language == 'fi') ? 'active' : ''; ?> square-btn">FI</a>
                         </div>
-                        <!-- Login Button -->
-                        <a href="#" class="btn btn-outline-light login-btn" id="login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">
-                            <i class="fas fa-user me-1"></i> <?php echo $strings['login']; ?>
-                        </a>
+                        <!-- Login/Logout Button -->
+                        <?php if ($isLoggedIn): ?>
+                            <a href="?logout=1" class="btn btn-outline-light">
+                                <i class="fas fa-sign-out-alt me-1"></i> Logga ut
+                            </a>
+                        <?php else: ?>
+                            <a href="#" class="btn btn-outline-light login-btn" id="login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">
+                                <i class="fas fa-user me-1"></i> <?php echo $strings['login']; ?>
+                            </a>
+                        <?php endif; ?>
                     </div>
                 </div>
             </div>
         </nav>
     </header>
 
+    <?php if (!$isLoggedIn): ?>
     <!-- Login Modal -->
     <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
         <div class="modal-dialog">
@@ -80,9 +98,11 @@ if (!isset($strings)) {
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
-                    <div id="login-error" class="alert alert-danger <?php echo isset($_GET['error']) ? '' : 'd-none'; ?>" role="alert">
-                        <?php echo isset($_GET['error']) ? htmlspecialchars($_GET['error']) : $strings['invalid_credentials']; ?>
+                    <?php if ($hasLoginError): ?>
+                    <div id="login-error" class="alert alert-danger" role="alert">
+                        <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($loginError); ?>
                     </div>
+                    <?php endif; ?>
                     <form id="login-form" method="post" action="includes/login_process.php">
                         <div class="mb-3">
                             <label for="username" class="form-label"><?php echo $strings['username']; ?></label>
@@ -94,10 +114,7 @@ if (!isset($strings)) {
                         </div>
                         <div class="d-flex justify-content-between align-items-center mb-3">
                             <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="remember-me" name="remember">
-                                <label class="form-check-label" for="remember-me">
-                                    <?php echo $strings['remember_me']; ?>
-                                </label>
+
                             </div>
                             <a href="#" id="forgot-password" class="text-decoration-none"><?php echo $strings['forgot_password']; ?></a>
                         </div>
@@ -133,3 +150,15 @@ if (!isset($strings)) {
             </div>
         </div>
     </div>
+    
+    <?php if ($showLoginModal): ?>
+    <!-- Script to show login modal on page load if there's an error -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            var loginModal = new bootstrap.Modal(document.getElementById('loginModal'));
+            loginModal.show();
+        });
+    </script>
+    <?php endif; ?>
+    
+    <?php endif; ?>

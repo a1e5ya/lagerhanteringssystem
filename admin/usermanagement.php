@@ -1,4 +1,3 @@
-
 <?php
 /**
  * User Management
@@ -16,8 +15,25 @@
  * - renderEditUserForm()
  */
 
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+
+// Set page title
+$pageTitle = "Användarhantering - Karis Antikvariat";
+
+
 // Include configuration file
 require_once '../config/config.php';
+require_once '../includes/db_functions.php';
+require_once '../includes/auth.php';
+require_once '../templates/admin_header.php';
+
+// Check if user is authenticated and has admin permissions
+// Only Admin (1) role can access this page
+checkAuth(1); // 1 or lower (Admin only) role required
 
 // Function definitions
 function searchUser($searchTerm = null) {
@@ -119,10 +135,23 @@ function createUser($userData) {
             $userData['role']
         ]);
         
+        // Log the creation in event_log
+        $userId = $pdo->lastInsertId();
+        $currentUser = getSessionUser();
+        
+        $logStmt = $pdo->prepare("
+            INSERT INTO event_log (user_id, event_type, event_description)
+            VALUES (?, 'create_user', ?)
+        ");
+        $logStmt->execute([
+            $currentUser['user_id'],
+            'User created: ' . $userData['username']
+        ]);
+        
         return [
             'success' => true, 
             'message' => 'Användaren skapades framgångsrikt.',
-            'user_id' => $pdo->lastInsertId()
+            'user_id' => $userId
         ];
         
     } catch (PDOException $e) {
@@ -147,6 +176,11 @@ function editUser($userId, $userData) {
         if ($stmt->rowCount() > 0) {
             return ['success' => false, 'error' => 'Användarnamn eller e-post används redan av en annan användare.'];
         }
+        
+        // Get original user data for logging changes
+        $getOriginalStmt = $pdo->prepare("SELECT user_username, user_role, user_is_active FROM user WHERE user_id = ?");
+        $getOriginalStmt->execute([$userId]);
+        $originalUser = $getOriginalStmt->fetch(PDO::FETCH_ASSOC);
         
         // Update user basic info
         $query = "UPDATE user SET 
@@ -179,6 +213,42 @@ function editUser($userId, $userData) {
         $stmt = $pdo->prepare($query);
         $stmt->execute($params);
         
+        // Log the change
+        $currentUser = getSessionUser();
+        $changesDesc = [];
+        
+        if ($originalUser['user_username'] != $userData['username']) {
+            $changesDesc[] = "username changed from '{$originalUser['user_username']}' to '{$userData['username']}'";
+        }
+        
+        if ($originalUser['user_role'] != $userData['role']) {
+            $roleBefore = ($originalUser['user_role'] == 1) ? 'Admin' : (($originalUser['user_role'] == 2) ? 'Redaktör' : 'Gäst');
+            $roleAfter = ($userData['role'] == 1) ? 'Admin' : (($userData['role'] == 2) ? 'Redaktör' : 'Gäst');
+            $changesDesc[] = "role changed from '{$roleBefore}' to '{$roleAfter}'";
+        }
+        
+        $isActive = (isset($userData['active']) && $userData['active'] == 1) ? 1 : 0;
+        if ($originalUser['user_is_active'] != $isActive) {
+            $statusBefore = $originalUser['user_is_active'] ? 'active' : 'inactive';
+            $statusAfter = $isActive ? 'active' : 'inactive';
+            $changesDesc[] = "status changed from '{$statusBefore}' to '{$statusAfter}'";
+        }
+        
+        if (!empty($userData['password'])) {
+            $changesDesc[] = "password was updated";
+        }
+        
+        $changesText = !empty($changesDesc) ? implode(', ', $changesDesc) : 'no changes made';
+        
+        $logStmt = $pdo->prepare("
+            INSERT INTO event_log (user_id, event_type, event_description)
+            VALUES (?, 'update_user', ?)
+        ");
+        $logStmt->execute([
+            $currentUser['user_id'],
+            "User updated: {$userData['username']} - $changesText"
+        ]);
+        
         return ['success' => true, 'message' => 'Användaren uppdaterades framgångsrikt.'];
         
     } catch (PDOException $e) {
@@ -191,8 +261,26 @@ function changeUserStatus($userId, $status) {
     global $pdo;
     
     try {
+        // Get original user data for logging
+        $getOriginalStmt = $pdo->prepare("SELECT user_username FROM user WHERE user_id = ?");
+        $getOriginalStmt->execute([$userId]);
+        $username = $getOriginalStmt->fetchColumn();
+        
         $stmt = $pdo->prepare("UPDATE user SET user_is_active = ? WHERE user_id = ?");
         $stmt->execute([$status, $userId]);
+        
+        // Log the status change
+        $currentUser = getSessionUser();
+        $statusText = $status ? 'activated' : 'deactivated';
+        
+        $logStmt = $pdo->prepare("
+            INSERT INTO event_log (user_id, event_type, event_description)
+            VALUES (?, 'update_user_status', ?)
+        ");
+        $logStmt->execute([
+            $currentUser['user_id'],
+            "User $statusText: $username"
+        ]);
         
         return [
             'success' => true, 
@@ -209,7 +297,16 @@ function removeUser($userId) {
     global $pdo;
     
     try {
-        // First, check if this is the last admin user
+        // First, get username for logging
+        $getUserStmt = $pdo->prepare("SELECT user_username, user_role FROM user WHERE user_id = ?");
+        $getUserStmt->execute([$userId]);
+        $userData = $getUserStmt->fetch(PDO::FETCH_ASSOC);
+        
+        if (!$userData) {
+            return ['success' => false, 'error' => 'Användaren kunde inte hittas.'];
+        }
+        
+        // Check if this is the last admin user
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as admin_count 
             FROM user 
@@ -218,17 +315,24 @@ function removeUser($userId) {
         $stmt->execute();
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        $stmt = $pdo->prepare("SELECT user_role FROM user WHERE user_id = ?");
-        $stmt->execute([$userId]);
-        $user = $stmt->fetch(PDO::FETCH_ASSOC);
-        
         // If this is the last admin, don't allow deletion
-        if ($result['admin_count'] <= 1 && $user['user_role'] == 1) {
+        if ($result['admin_count'] <= 1 && $userData['user_role'] == 1) {
             return [
                 'success' => false, 
                 'error' => 'Kan inte ta bort den sista administratören.'
             ];
         }
+        
+        // Log the deletion before actually deleting
+        $currentUser = getSessionUser();
+        $logStmt = $pdo->prepare("
+            INSERT INTO event_log (user_id, event_type, event_description)
+            VALUES (?, 'delete_user', ?)
+        ");
+        $logStmt->execute([
+            $currentUser['user_id'],
+            "User deleted: {$userData['user_username']}"
+        ]);
         
         // Delete the user
         $stmt = $pdo->prepare("DELETE FROM user WHERE user_id = ?");
@@ -399,16 +503,6 @@ function renderEditUserForm($userId = null) {
     <?php endif;
 }
 
-// Simple authentication placeholder
-function checkAuth($role = null) {
-    // Placeholder implementation until real auth check is implemented
-    return true;
-}
-
-// Check if user is authenticated and has admin permissions
-$requireRole = 1; // Admin role
-checkAuth($requireRole);
-
 // Process form submissions
 $error = null;
 $success = null;
@@ -513,20 +607,20 @@ require_once '../templates/admin_header.php';
     </div>
     <?php endif; ?>
     
-    <!-- Tab Navigation -->
-    <ul class="nav nav-tabs" id="userManagementTabs">
-        <li class="nav-item">
-            <a class="nav-link <?php echo $tab === 'list' ? 'active' : ''; ?>" href="?tab=list">Användarlista</a>
-        </li>
-        <li class="nav-item">
-            <a class="nav-link <?php echo $tab === 'add' ? 'active' : ''; ?>" href="?tab=add">Lägg till användare</a>
-        </li>
-        <?php if ($tab === 'edit' && $userId): ?>
-        <li class="nav-item">
-            <a class="nav-link active" href="#">Redigera användare</a>
-        </li>
-        <?php endif; ?>
-    </ul>
+<!-- Tab Navigation -->
+<ul class="nav nav-tabs" id="userManagementTabs">
+    <li class="nav-item">
+        <a class="user-nav-link <?php echo $tab === 'list' ? 'active' : ''; ?>" href="?tab=list">Användarlista</a>
+    </li>
+    <li class="nav-item">
+        <a class="user-nav-link <?php echo $tab === 'add' ? 'active' : ''; ?>" href="?tab=add">Lägg till användare</a>
+    </li>
+    <?php if ($tab === 'edit' && $userId): ?>
+    <li class="nav-item">
+        <a class="user-nav-link active" href="#">Redigera användare</a>
+    </li>
+    <?php endif; ?>
+</ul>
     
     <!-- Tab Content -->
     <div class="tab-content border border-top-0 p-4 bg-white">

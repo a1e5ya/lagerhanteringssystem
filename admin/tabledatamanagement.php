@@ -80,8 +80,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body">
             <form id="category-form" action="admin/tabledatamanagement.php" method="POST">
                 <div class="d-flex mb-3">
-                    <input type="text" class="form-control me-2" name="category_name" placeholder="Ny kategori" required>
-                    <button class="btn btn-primary" type="submit" name="action" value="add_category">Lägg till</button>
+                    <input type="text" class="form-control me-2 flex-grow-1" name="category_name" placeholder="Ny kategori" required>
+                    <button class="btn btn-primary w-25" type="submit" name="action" value="add_category">Lägg till</button>
                 </div>
             </form>
             <div class="table-responsive">
@@ -103,11 +103,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <td>{$row['category_id']}</td>
                                 <td>{$row['category_name']}</td>
                                 <td>
-                                    <a href=\"#\" class=\"edit-item btn btn-warning btn-sm\" 
+                                    <a href=\"#\" class=\"edit-item btn btn-outline-primary btn-sm\" 
                                        data-id=\"" . $row['category_id'] . "\" data-type=\"category\" 
                                        data-name=\"" . htmlspecialchars($row['category_name']) . "\">Redigera</a>
 
-                                            <a href='javascript:void(0);' class='btn btn-danger btn-sm delete-item' 
+                                            <a href='javascript:void(0);' class='btn btn-outline-danger btn-sm delete-item' 
                                             data-id=\"" . $row['category_id'] . "\" 
                                             data-type=\"category\">Ta bort</a>
                                         </td>
@@ -132,8 +132,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body">
         <form id="shelf-form" action="admin/tabledatamanagement.php" method="POST">
                 <div class="d-flex mb-3">
-                    <input type="text" class="form-control me-2" name="shelf_name" placeholder="Ny hyllplats" required>
-                    <button class="btn btn-primary" type="submit" name="action" value="add_shelf">Lägg till</button>
+                    <input type="text" class="form-control me-2 flex-grow-1" name="shelf_name" placeholder="Ny hyllplats" required>
+                    <button class="btn btn-primary w-25" type="submit" name="action" value="add_shelf">Lägg till</button>
                 </div>
             </form>
             <div class="table-responsive">
@@ -155,11 +155,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <td>{$row['shelf_id']}</td>
                                         <td>{$row['shelf_name']}</td>
                                         <td>
-                                            <a href=\"#\" class=\"edit-item btn btn-warning btn-sm\" 
+                                            <a href=\"#\" class=\"edit-item btn btn-outline-primary btn-sm\" 
                                        data-id=\"" . $row['shelf_id'] . "\" data-type=\"shelf\" 
                                        data-name=\"" . htmlspecialchars($row['shelf_name']) . "\">Redigera</a>
 
-                                            <a href='javascript:void(0);' class='btn btn-danger btn-sm delete-item' 
+                                            <a href='javascript:void(0);' class='btn btn-outline-danger btn-sm delete-item' 
                                             data-id=\"" . $row['shelf_id'] . "\" 
                                             data-type=\"shelf\">Ta bort</a>
                                         </td>
@@ -183,8 +183,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <div class="card-body">
         <form id="genre-form" action="admin/tabledatamanagement.php" method="POST">
                 <div class="d-flex mb-3">
-                    <input type="text" class="form-control me-2" name="genre_name" placeholder="Ny genre" required>
-                    <button class="btn btn-primary" type="submit" name="action" value="add_genre">Lägg till</button>
+                    <input type="text" class="form-control me-2 flex-grow-1" name="genre_name" placeholder="Ny genre" required>
+                    <button class="btn btn-primary w-25" type="submit" name="action" value="add_genre">Lägg till</button>
                 </div>
             </form>
             <div class="table-responsive">
@@ -206,11 +206,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         <td>{$row['genre_id']}</td>
                                         <td>{$row['genre_name']}</td>
                                         <td>
-                                        <a href=\"#\" class=\"edit-item btn btn-warning btn-sm\" 
+                                        <a href=\"#\" class=\"edit-item btn btn-outline-primary btn-sm\" 
                                        data-id=\"" . $row['genre_id'] . "\" data-type=\"genre\" 
                                        data-name=\"" . htmlspecialchars($row['genre_name']) . "\">Redigera</a>
 
-                                            <a href='javascript:void(0);' class='btn btn-danger btn-sm delete-item' 
+                                            <a href='javascript:void(0);' class='btn btn-outline-danger btn-sm delete-item' 
                                             data-id=\"" . $row['genre_id'] . "\" 
                                             data-type=\"genre\">Ta bort</a>
                                         </td>

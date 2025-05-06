@@ -11,8 +11,20 @@
 $currentPage = basename($_SERVER['PHP_SELF']);
 
 // Get current user info if available
-$currentUser = function_exists('getSessionUser') ? getSessionUser() : ['user_username' => 'Admin'];
-$username = isset($currentUser['user_username']) ? $currentUser['user_username'] : 'Admin';
+$currentUser = function_exists('getSessionUser') ? getSessionUser() : null;
+
+// If user is not logged in or doesn't have proper permissions, redirect
+if (!$currentUser || ($currentUser['user_role'] > 2)) {
+    // Redirect to home with error
+    header("Location: index.php?auth_error=1");
+    exit;
+}
+
+$username = $currentUser['user_username'];
+$userRole = $currentUser['user_role'];
+
+// Session check URL - using absolute path
+$sessionCheckUrl = "/prog23/lagerhanteringssystem/includes/session_check.php";
 ?><!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -26,6 +38,35 @@ $username = isset($currentUser['user_username']) ? $currentUser['user_username']
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/styles.css">
     <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/admin.css">
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Session check script -->
+    <script>
+        // Function to check session status
+        function checkSession() {
+            fetch('<?php echo $sessionCheckUrl; ?>')
+                .then(response => response.json())
+                .then(data => {
+                    if (!data.valid) {
+                        // If session is not valid, redirect to login page
+                        window.location.href = '/prog23/lagerhanteringssystem/index.php?auth_error=2';
+                    }
+                })
+                .catch(error => {
+                    console.error('Session check error:', error);
+                });
+        }
+        
+        // Check session every 30 seconds
+        setInterval(checkSession, 30000);
+        
+        // Also check when page gains focus (user switches back to this tab)
+        document.addEventListener('visibilitychange', function() {
+            if (document.visibilityState === 'visible') {
+                checkSession();
+            }
+        });
+    </script>
 </head>
 <body class="d-flex flex-column min-vh-100">
     <!-- Header/Navigation for Admin Pages -->
@@ -37,81 +78,36 @@ $username = isset($currentUser['user_username']) ? $currentUser['user_username']
                     <span class="navbar-toggler-icon"></span>
                 </button>
                 <div class="collapse navbar-collapse" id="navbarMain">
-                    <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
+                <ul class="navbar-nav mx-auto mb-2 mb-lg-0">
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($currentPage == 'admin.php') ? 'active' : ''; ?>" href="/prog23/lagerhanteringssystem/admin.php">Lager</a>
+                            <a class="nav-item-link <?php echo ($currentPage == 'admin.php') ? 'active' : ''; ?>" href="/prog23/lagerhanteringssystem/admin.php">Lager</a>
                         </li>
-                        <?php if (isset($currentUser['user_role']) && $currentUser['user_role'] == 1): // Admin only ?>
+                        <?php if ($userRole == 1): // Admin only ?>
                         <li class="nav-item">
-                            <a class="nav-link <?php echo ($currentPage == '/prog23/lagerhanteringssystem/admin/usermanagement.php') ? 'active' : ''; ?>" href="/prog23/lagerhanteringssystem/admin/usermanagement.php">Användare</a>
+                            <a class="nav-item-link <?php echo ($currentPage == 'usermanagement.php') ? 'active' : ''; ?>" href="/prog23/lagerhanteringssystem/admin/usermanagement.php">Användare</a>
                         </li>
                         <?php endif; ?>
                     </ul>
-                    <div class="d-flex">
-                        <div class="dropdown">
-                            <button class="btn btn-outline-light dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
-                                <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($username); ?>
-                            </button>
-                            <ul class="dropdown-menu dropdown-menu-end">
-                                <li><a class="dropdown-item" href="#"><i class="fas fa-user-cog me-1"></i>Profil</a></li>
-                                <li><hr class="dropdown-divider"></li>
-                                <li>
-                                    <a class="dropdown-item text-danger" href="?logout=1">
-                                        <i class="fas fa-sign-out-alt me-1"></i>Logga ut
-                                    </a>
-                                </li>
-                            </ul>
-                        </div>
+                    </ul>
+                    <div class="d-flex align-items-center">
+                        <!-- User info and logout button -->
+                        <span class="text-light me-3">
+                            <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($username); ?>
+                        </span>
+                        <a class="btn btn-outline-light" href="/prog23/lagerhanteringssystem/index.php?logout=1">
+                            <i class="fas fa-sign-out-alt me-1"></i>Logga ut
+                        </a>
                     </div>
                 </div>
             </div>
         </nav>
     </header>
-
-    <!-- Login Modal (included but normally shouldn't show for logged-in users) -->
-    <div class="modal fade" id="loginModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog">
-            <div class="modal-content">
-                <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title">Personalinloggning</h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-                </div>
-                <div class="modal-body">
-                    <div id="login-error" class="alert alert-danger d-none" role="alert">
-                        Ogiltigt användarnamn eller lösenord. Försök igen.
-                    </div>
-                    <form id="login-form" method="post" action="includes/login_process.php">
-                        <div class="mb-3">
-                            <label for="username" class="form-label">Användarnamn</label>
-                            <input type="text" class="form-control" id="username" name="username" required autocomplete="username">
-                        </div>
-                        <div class="mb-3">
-                            <label for="password" class="form-label">Lösenord</label>
-                            <input type="password" class="form-control" id="password" name="password" required autocomplete="current-password">
-                        </div>
-                        <div class="d-flex justify-content-between align-items-center mb-3">
-                            <div class="form-check">
-                                <input class="form-check-input" type="checkbox" id="remember-me" name="remember">
-                                <label class="form-check-label" for="remember-me">
-                                    Kom ihåg mig
-                                </label>
-                            </div>
-                            <a href="#" id="forgot-password" class="text-decoration-none">Glömt lösenord?</a>
-                        </div>
-                        <div class="d-grid">
-                            <button type="submit" class="btn btn-primary">Logga in</button>
-                        </div>
-                    </form>
-                </div>
-            </div>
-        </div>
-    </div>
     
     <?php if (isset($pageTitle) && $currentPage == 'admin.php'): ?>
     <!-- Admin Page Title -->
     <div class="container mt-4">
         <div class="d-flex justify-content-between align-items-center mb-4">
-            <h1 class="mb-0">Lagerhanteringssystem</h1>
+            <h2 class="mb-0">Lagerhanteringssystem</h2>
             <div>
                 <span class="badge bg-secondary">
                     <i class="fas fa-calendar me-1"></i><?php echo date('Y-m-d'); ?>
