@@ -1,6 +1,5 @@
 <?php
 require_once '../config/config.php';
-
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -10,10 +9,8 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 
 $id = isset($_POST['id']) ? intval($_POST['id']) : 0;
 $type = isset($_POST['type']) ? $_POST['type'] : '';
-$name = isset($_POST['name']) ? trim($_POST['name']) : '';
 
-// Validate input
-if ($id <= 0 || empty($type) || empty($name)) {
+if ($id <= 0 || empty($type)) {
     echo json_encode(['success' => false, 'message' => 'Invalid parameters']);
     exit;
 }
@@ -21,57 +18,78 @@ if ($id <= 0 || empty($type) || empty($name)) {
 try {
     switch ($type) {
         case 'category':
-            // check if the item exists
-            $checkStmt = $pdo->prepare("SELECT category_id FROM category WHERE category_id = ?");
-            $checkStmt->execute([$id]);
-            if ($checkStmt->rowCount() == 0) {
-                echo json_encode(['success' => false, 'message' => 'Category not found']);
-                exit;
-            }
-            
-            $stmt = $pdo->prepare("UPDATE category SET category_name = ? WHERE category_id = ?");
-            break;
-            
         case 'shelf':
-           
-            $checkStmt = $pdo->prepare("SELECT shelf_id FROM shelf WHERE shelf_id = ?");
-            $checkStmt->execute([$id]);
-            if ($checkStmt->rowCount() == 0) {
-                echo json_encode(['success' => false, 'message' => 'Shelf not found']);
-                exit;
-            }
-            
-            $stmt = $pdo->prepare("UPDATE shelf SET shelf_name = ? WHERE shelf_id = ?");
-            break;
-            
         case 'genre':
-        
-            $checkStmt = $pdo->prepare("SELECT genre_id FROM genre WHERE genre_id = ?");
-            $checkStmt->execute([$id]);
-            if ($checkStmt->rowCount() == 0) {
-                echo json_encode(['success' => false, 'message' => 'Genre not found']);
+            $name = isset($_POST['name']) ? trim($_POST['name']) : '';
+            if ($name === '') {
+                echo json_encode(['success' => false, 'message' => 'Name cannot be empty']);
                 exit;
             }
-            
-            $stmt = $pdo->prepare("UPDATE genre SET genre_name = ? WHERE genre_id = ?");
+
+            // Check if the item exists
+            $tableMap = [
+                'category' => ['category_id', 'category_name'],
+                'shelf' => ['shelf_id', 'shelf_name'],
+                'genre' => ['genre_id', 'genre_name'],
+            ];
+            [$idField, $nameField] = $tableMap[$type];
+
+            $checkStmt = $pdo->prepare("SELECT $idField FROM $type WHERE $idField = ?");
+            $checkStmt->execute([$id]);
+            if ($checkStmt->rowCount() === 0) {
+                echo json_encode(['success' => false, 'message' => ucfirst($type) . ' not found']);
+                exit;
+            }
+
+            $stmt = $pdo->prepare("UPDATE $type SET $nameField = ? WHERE $idField = ?");
+            $stmt->execute([$name, $id]);
+
+            echo json_encode([
+                'success' => true,
+                'message' => ucfirst($type) . ' updated successfully',
+                'id' => $id,
+                'name' => $name,
+                'type' => $type
+            ]);
             break;
-            
+
+        case 'author':
+            $first_name = isset($_POST['first_name']) ? trim($_POST['first_name']) : '';
+            $last_name = isset($_POST['last_name']) ? trim($_POST['last_name']) : '';
+
+            if ($first_name === '' && $last_name === '') {
+                echo json_encode(['success' => false, 'message' => 'Förnamn eller efternamn krävs']);
+                exit;
+            }
+
+            $checkStmt = $pdo->prepare("SELECT * FROM author WHERE author_id = ?");
+            $checkStmt->execute([$id]);
+            if ($checkStmt->rowCount() === 0) {
+                echo json_encode(['success' => false, 'message' => 'Författaren hittades inte']);
+                exit;
+            }
+
+            $current = $checkStmt->fetch();
+            if ($first_name === '') $first_name = $current['first_name'];
+            if ($last_name === '') $last_name = $current['last_name'];
+
+            $stmt = $pdo->prepare("UPDATE author SET first_name = ?, last_name = ? WHERE author_id = ?");
+            $stmt->execute([$first_name, $last_name, $id]);
+
+            echo json_encode([
+                'success' => true,
+                'message' => 'Författare uppdaterad',
+                'id' => $id,
+                'first_name' => $first_name,
+                'last_name' => $last_name,
+                'type' => $type
+            ]);
+            break;
+
         default:
             echo json_encode(['success' => false, 'message' => 'Invalid item type']);
-            exit;
+            break;
     }
-    
-    // Execute the update statement
-    $stmt->execute([$name, $id]);
-    
-    echo json_encode([
-        'success' => true, 
-        'message' => ucfirst($type) . ' updated successfully',
-        'id' => $id,
-        'name' => $name,
-        'type' => $type
-    ]);
-    
 } catch (PDOException $e) {
     echo json_encode(['success' => false, 'message' => 'Database error: ' . $e->getMessage()]);
 }

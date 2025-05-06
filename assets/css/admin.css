@@ -2,5 +2,26 @@
  * Admin Interface Styles
  */
 
+ /* CSS for autocomplete suggestion */
+#suggest-author-first,
+#suggest-author-last,
+#suggest-publisher {
+    position: absolute;
+    z-index: 1050;
+    max-height: 200px;
+    overflow-y: auto;
+    width: 100%;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.15);
+    border: 1px solid #dee2e6;
+    background-color: #ffffff;
+}
 
- 
+.list-group-item-action:hover {
+    background-color: #f8f9fa;
+    cursor: pointer;
+}
+
+/* Make sure the suggestion boxes appear below the input fields */
+.position-relative {
+    position: relative !important;
+}

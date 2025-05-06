@@ -52,6 +52,9 @@ include_once 'templates/admin_header.php';
                     <a class="nav-link" data-tab="addproduct">Lägg till produkt</a>
                 </li>
                 <li class="nav-item">
+                    <a class="nav-link" data-tab="addauthor">Lägg till författare</a>
+                </li>
+                <li class="nav-item">
                     <a class="nav-link" data-tab="tabledatamanagement">Redigera databas</a>
                 </li>
                 <li class="nav-item">
