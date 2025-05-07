@@ -8,6 +8,8 @@
  * - Tab navigation  !! CURRENTLY IN admin.js !!
  */
 session_start();
+
+define('BASE_PATH', __DIR__);
 // Include necessary files
 require_once 'config/config.php';
 require_once 'includes/functions.php';
@@ -67,6 +69,7 @@ include_once 'templates/admin_header.php';
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="assets/js/admin.js"></script>
+    <script src="assets/js/main.js"></script>
     
     <?php
     // Include admin footer
