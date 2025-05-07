@@ -133,6 +133,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 }
             }
 
+             // Process genres
+             if (!empty($genres)) {
+                foreach ($genres as $genre) {
+                    $genre_id = $genre['genre_id'] ?? null;
+                    
+                    if (empty($genre_id)) {
+                        continue; // Skip empty genres
+                    }
+
+                    // Create product_genre relationship
+                    $stmt = $pdo->prepare("INSERT INTO product_genre (product_id, genre_id) VALUES (?, ?)");
+                    $stmt->execute([$product_id, $genre_id]);
+                }
+            }
+
             // Commit transaction
             $pdo->commit();
 
