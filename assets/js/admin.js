@@ -1106,67 +1106,7 @@ function refreshTableContent() {
   `;
   document.head.appendChild(style);
 
-  // Function to handle exportable data (CSV, PDF, Excel)
-  function exportData(format, type) {
-    // Get current search parameters
-    const searchTerm = document.getElementById(type === 'lists' ? 'lists-search-term' : 'search-term')?.value || '';
-    const category = document.getElementById(type === 'lists' ? 'lists-category' : 'category-filter')?.value || 'all';
-    
-    // Create export URL
-    const exportUrl = `admin/export.php?format=${format}&type=${type}&search=${encodeURIComponent(searchTerm)}&category=${encodeURIComponent(category)}`;
-    
-    // Create and trigger download
-    const link = document.createElement('a');
-    link.href = exportUrl;
-    link.target = '_blank';
-    link.download = `export-${type}-${format}-${new Date().toISOString().slice(0, 10)}.${format}`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-  }
-
-  // Additional utility functions
-  // Function to format currency
-  function formatCurrency(amount) {
-    return new Intl.NumberFormat('sv-SE', {
-      style: 'currency',
-      currency: 'SEK',
-      minimumFractionDigits: 2
-    }).format(amount);
-  }
-
-  // Function to validate ISBN
-  function validateISBN(isbn) {
-    // Remove hyphens and spaces
-    isbn = isbn.replace(/[-\s]/g, '');
-    
-    // ISBN-10 validation
-    if (isbn.length === 10) {
-      let sum = 0;
-      for (let i = 0; i < 9; i++) {
-        sum += parseInt(isbn[i]) * (10 - i);
-      }
-      
-      // Check digit can be 'X' (representing 10)
-      const checkDigit = isbn[9].toUpperCase() === 'X' ? 10 : parseInt(isbn[9]);
-      sum += checkDigit;
-      
-      return sum % 11 === 0;
-    }
-    
-    // ISBN-13 validation
-    if (isbn.length === 13) {
-      let sum = 0;
-      for (let i = 0; i < 12; i++) {
-        sum += parseInt(isbn[i]) * (i % 2 === 0 ? 1 : 3);
-      }
-      
-      return (10 - (sum % 10)) % 10 === parseInt(isbn[12]);
-    }
-    
-    return false;
-  }
-
+ 
 
   // Main document ready event handlers
   document.addEventListener('DOMContentLoaded', function() {

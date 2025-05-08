@@ -118,7 +118,7 @@ function getProductById($productId) {
                     $authorNames[] = trim($firstName . ' ' . $lastName);
                 }
             }
-            $product->author_names = !empty($authorNames) ? implode(', ', $authorNames) : 'Okänd författare';
+            $product->author_names = !empty($authorNames) ? implode(', ', $authorNames) : '';
         }
         
         return $product;
@@ -350,13 +350,7 @@ include 'templates/header.php';
                                 <div class="card-body d-flex flex-column h-100">
                                     <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                                     <p class="card-text text-muted flex-grow-1">
-                                        <?php
-                                        if (!empty($relatedProduct->first_names) || !empty($relatedProduct->last_names)) {
-                                            echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names));
-                                        } else {
-                                            echo $strings['unknown_author'];
-                                        }
-                                        ?>
+                                        <?php echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names)); ?>
                                     </p>
                                     <p class="text-success fw-bold mb-2"><?php echo number_format($relatedProduct->price, 2, ',', ' ') . ' €'; ?></p>
                                 </div>
@@ -376,13 +370,7 @@ include 'templates/header.php';
                         <div class="card-body">
                             <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                             <p class="card-text text-muted">
-                                <?php
-                                if (!empty($relatedProduct->first_names) || !empty($relatedProduct->last_names)) {
-                                    echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names));
-                                } else {
-                                    echo $strings['unknown_author'];
-                                }
-                                ?>
+                                <?php echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names)); ?>
                             </p>
                             <p class="text-success fw-bold"><?php echo number_format($relatedProduct->price, 2, ',', ' ') . ' €'; ?></p>
                         </div>

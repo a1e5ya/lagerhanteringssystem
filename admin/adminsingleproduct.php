@@ -756,7 +756,7 @@ function getProductTransactions($productId) {
                                 </select>
                             </div>
                             <div class="col-md-4">
-                                <label for="edit-shelf" class="form-label">Hyllplats</label>
+                                <label for="edit-shelf" class="form-label">Hylla</label>
                                 <select class="form-select" id="edit-shelf" name="edit-shelf">
                                     <option value="">Välj hylla</option>
                                     <?php foreach ($shelves as $shelf): ?>
@@ -773,23 +773,23 @@ function getProductTransactions($productId) {
                                 <label for="edit-language" class="form-label">Språk</label>
                                 <input type="text" class="form-control" id="edit-language" name="edit-language" value="<?php echo htmlspecialchars($product->language ?? ''); ?>">
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <label for="edit-year" class="form-label">År</label>
                                 <input type="number" class="form-control" id="edit-year" name="edit-year" value="<?php echo htmlspecialchars($product->year ?? ''); ?>" min="1400" max="<?php echo date('Y'); ?>">
                             </div>
-                            <div class="col-md-5">
+                            <div class="col-md-4">
                                 <label for="edit-publisher" class="form-label">Förlag</label>
                                 <input type="text" class="form-control" id="edit-publisher" name="edit-publisher" value="<?php echo htmlspecialchars($product->publisher ?? ''); ?>">
                             </div>
                         </div>
 
                         <div class="mb-4">
-                            <label for="edit-notes" class="form-label">Anteckningar (synlig för kunder)</label>
+                            <label for="edit-notes" class="form-label">Produktbeskrivning (synlig för kunder)</label>
                             <textarea class="form-control" id="edit-notes" name="edit-notes" rows="3"><?php echo htmlspecialchars($product->notes ?? ''); ?></textarea>
                         </div>
 
                         <div class="mb-3">
-                            <label for="edit-internal-notes" class="form-label">Interna anteckningar (endast för personal)</label>
+                            <label for="edit-internal-notes" class="form-label">Intern beskrivning (endast för personal)</label>
                             <textarea class="form-control" id="edit-internal-notes" name="edit-internal-notes" rows="2"><?php echo htmlspecialchars($product->internal_notes ?? ''); ?></textarea>
                         </div>
 

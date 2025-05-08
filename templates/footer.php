@@ -23,13 +23,13 @@ if (!isset($strings)) {
             <div class="col-md-4 mb-3 mb-md-0">
                 <h5>Karis Antikvariat</h5>
                 <address class="mb-0">
-                    <i class="fas fa-map-marker-alt me-2"></i> <?php echo $strings['address']; ?><br>
-                    <i class="fas fa-phone-alt me-2"></i> 040-8719706<br>
-                    <i class="fas fa-envelope me-2"></i> karisantikvariat@gmail.com<br>
+                    <i class="fas fa-map-marker-alt me-2"></i><?php echo $strings['address']; ?><br>
+                    <i class="fas fa-phone-alt me-2"></i>+358 40 871 9706<br>
+                    <i class="fas fa-envelope me-2"></i>karisantikvariat@gmail.com<br>
                     <a href="https://www.facebook.com/antikvariatkaris" class="text-white me-3" target="_blank">
                         <i class="fab fa-facebook-f fa-lg me-2"></i>@antikvariatkaris
                     </a><br>
-                    <i class="fas fa-building me-2"></i> FO: 3302825-3
+                    <i class="fas fa-building me-2"></i>FO: 3302825-3
                 </address>
             </div>
             <div class="col-md-4 mb-3 mb-md-0">

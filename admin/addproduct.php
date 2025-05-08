@@ -326,8 +326,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <label for="item-publisher" class="form-label">Förlag</label>
                                 <input type="text" class="form-control" id="item-publisher" name="publisher"
                                     autocomplete="off">
-                                <div id="suggest-publisher" class="list-group position-absolute w-100 zindex-dropdown">
-                                </div>
+                                <div id="suggest-publisher" class="list-group position-absolute w-100 zindex-dropdown"></div>
                             </div>
                         </div>
 
