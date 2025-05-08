@@ -388,7 +388,7 @@ include 'templates/header.php';
                         </div>
                     </div>
                     
-                    <a href="singleproduct.php?id=<?php echo $relatedProduct->prod_id; ?>" class="stretched-link"></a>
+                    <a href="singleproduct.php?id=<?php echo safeEcho($relatedProduct->prod_id); ?>" class="stretched-link"></a>
                 </div>
             </div>
             <?php endforeach; ?>

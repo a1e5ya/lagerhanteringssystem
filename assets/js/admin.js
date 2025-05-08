@@ -1167,17 +1167,6 @@ function refreshTableContent() {
     return false;
   }
 
-  // Function to generate product slug for URLs
-  function generateSlug(text) {
-    return text
-      .toLowerCase()
-      .replace(/å/g, 'a')
-      .replace(/ä/g, 'a')
-      .replace(/ö/g, 'o')
-      .replace(/[^\w\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-  }
 
   // Main document ready event handlers
   document.addEventListener('DOMContentLoaded', function() {
