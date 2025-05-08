@@ -5,7 +5,6 @@
  * Contains:
  * - Main admin dashboard
  * - Authentication check
- * - Tab navigation  !! CURRENTLY IN admin.js !!
  */
 session_start();
 
@@ -70,9 +69,12 @@ include_once 'templates/admin_header.php';
         </div>
     </div>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="assets/js/admin.js"></script>
-    <script src="assets/js/main.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="assets/js/ui-components.js"></script>
+<script src="assets/js/forms.js"></script>
+<script src="assets/js/ajax.js"></script>
+<script src="assets/js/data-operations.js"></script>
+<script src="assets/js/admin.js"></script>
     
     <?php
     // Include admin footer
