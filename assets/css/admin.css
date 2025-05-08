@@ -15,6 +15,12 @@
     border: 1px solid #dee2e6;
     background-color: #ffffff;
 }
+#suggest-author-first:empty,
+#suggest-author-last:empty,
+#suggest-publisher:empty {
+    display: none;
+}
+
 
 .list-group-item-action:hover {
     background-color: #f8f9fa;
