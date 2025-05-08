@@ -12,160 +12,242 @@ $(document).ready(function() {
   });
 
   function loadTabContent(tab) {
-      let url = "";
+    let url = "";
 
-      switch (tab) {
-          case "search":
-              url = "search.php";
-              break;
-          case "addproduct":
-              url = "addproduct.php";
-              break;
-          case "addauthor":
-              url = "addauthor.php";
-              break;
-          case "tabledatamanagement":
-              url = "tabledatamanagement.php";
-              break;
-          case "lists":
-              url = "lists.php";
-              break;
-          default:
-              return; // Exit if no valid tab
+    switch (tab) {
+        case "search":
+            url = "search.php";
+            break;
+        case "addproduct":
+            url = "addproduct.php";
+            break;
+        case "addauthor":
+            url = "addauthor.php";
+            break;
+        case "tabledatamanagement":
+            url = "tabledatamanagement.php";
+            break;
+        case "lists":
+            url = "lists.php";
+            break;
+        default:
+            return; // Exit if no valid tab
+    }
+
+    // Load the content via AJAX
+    $("#tabs-content").load(
+      "/prog23/lagerhanteringssystem/admin/" + url,
+      function(response, status, xhr) {
+          if (status == "error") {
+              console.log("Error loading content: " + xhr.status + " " + xhr.statusText);
+          } else {
+              // After content is loaded, initialize specific functionality
+              if (tab === "search") {
+                  // Only attach event handlers to the search form, don't reinitialize the entire search
+                  attachSearchEventHandlers();
+                  attachActionListeners();
+                  makeRowsClickable();
+              } else if (tab === "addproduct") {
+                  // Your existing code for addproduct tab
+                  setupAutocomplete("author-first", "suggest-author-first", "authorFirst");
+                  setupAutocomplete("author-last", "suggest-author-last", "authorLast");
+                  setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
+                  // Set up image preview
+                  setupImagePreview();
+              } else if (tab === "lists") {
+                  // Your existing code for lists tab
+                  initializeLists();
+              } else if (tab === "tabledatamanagement") {
+                  // Any initialization for table data management
+              } else if (tab === "addauthor") {
+                  // Any initialization for add author
+              }
+          }
       }
-
-      // Load the content via AJAX
-      $("#tabs-content").load(
-        "/prog23/lagerhanteringssystem/admin/" + url,
-        function(response, status, xhr) {
-            if (status == "error") {
-                console.log("Error loading content: " + xhr.status + " " + xhr.statusText);
-            } else {
-                // Initialize tab-specific functionality
-                if (tab === "search") {
-                    initializeAdminSearch();
-                    makeRowsClickable(); 
-                } else if (tab === "addproduct") {
-                    initializeAddProduct();
-                } else if (tab === "lists") {
-                    initializeLists();
-                }
-            }
-        }
     );
 
-      // Update active class for tabs
-      $(".nav-link").removeClass("active");
-      $('.nav-link[data-tab="' + tab + '"]').addClass("active");
+    // Update active class for tabs
+    $(".nav-link").removeClass("active");
+    $('.nav-link[data-tab="' + tab + '"]').addClass("active");
 
-      // Update the URL to reflect the current tab
-      updateUrlParams({ tab: tab });
-  }
+    // Update the URL to reflect the current tab
+    window.history.pushState(null, "", `?tab=${tab}`);
+}
 
-  // Initialize admin search functionality
-function initializeAdminSearch() {
+// This function only attaches event handlers, doesn't reinitialize the whole search
+function attachSearchEventHandlers() {
   const adminSearchForm = document.getElementById('admin-search-form');
-  const searchTermInput = document.getElementById('search-term');
   const categoryFilterSelect = document.getElementById('category-filter');
   
-  // Skip if elements don't exist
-  if (!adminSearchForm || !searchTermInput || !categoryFilterSelect) return;
-  
-  // Handle search form submission
-  adminSearchForm.addEventListener('submit', function(e) {
-      e.preventDefault();
-      performAdminSearch();
-  });
-  
-  // Add change event listener to category dropdown
-  categoryFilterSelect.addEventListener('change', function() {
-      performAdminSearch();
-  });
-  
-  // Attach action listeners to buttons
-  attachActionListeners();
-  
-  // Load all products by default (if no search params are set)
-  if (!searchTermInput.value && (categoryFilterSelect.value === 'all' || !categoryFilterSelect.value)) {
-    // Get all products with pagination
-    const searchParams = {
-        search: '',
-        category: 'all',
-        page: 1,
-        limit: 20
-    };
-    
-    // Fix the URL path here
-    ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'admin', searchParams, document.getElementById('inventory-body'), function() {
-        attachActionListeners();
-        makeRowsClickable();
-    });
-  } else if (searchTermInput.value || categoryFilterSelect.value !== 'all') {
-      // If search parameters exist, perform search
-      performAdminSearch();
+  // First, remove any existing event listeners to prevent duplicates
+  if (adminSearchForm) {
+      const newForm = adminSearchForm.cloneNode(true);
+      adminSearchForm.parentNode.replaceChild(newForm, adminSearchForm);
+      
+      newForm.addEventListener('submit', function(e) {
+          e.preventDefault();
+          performAdminSearch();
+      });
   }
+  
+  // Handle category dropdown change
+  if (categoryFilterSelect) {
+      // Replace with a clone to remove all existing event listeners
+      const newSelect = categoryFilterSelect.cloneNode(true);
+      categoryFilterSelect.parentNode.replaceChild(newSelect, categoryFilterSelect);
+      
+      // Add change event that performs search immediately
+      newSelect.addEventListener('change', function(e) {
+          e.preventDefault();
+          // Perform search immediately when dropdown value changes
+          performAdminSearch();
+      });
+  }
+}
+
+// Function to set up image preview
+function setupImagePreview() {
+  const imageUpload = document.getElementById('item-image-upload');
+  const imagePreview = document.getElementById('new-item-image');
+  
+  if (imageUpload && imagePreview) {
+      imageUpload.addEventListener('change', function() {
+          if (this.files && this.files[0]) {
+              const reader = new FileReader();
+              reader.onload = function(e) {
+                  imagePreview.src = e.target.result;
+              };
+              reader.readAsDataURL(this.files[0]);
+          }
+      });
+  }
+}
+
+  // Initialize admin search functionality
+  function initializeAdminSearch() {
+    const adminSearchForm = document.getElementById('admin-search-form');
+    const searchTermInput = document.getElementById('search-term');
+    const categoryFilterSelect = document.getElementById('category-filter');
+    
+    // Skip if elements don't exist
+    if (!adminSearchForm || !searchTermInput || !categoryFilterSelect) return;
+    
+    // Handle search form submission
+    adminSearchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        performAdminSearch();
+    });
+    
+    // Add this new section: Add change event listener to category dropdown 
+    // to make it trigger search immediately
+    categoryFilterSelect.addEventListener('change', function() {
+        performAdminSearch();
+    });
+    
+    // Function to perform search - this remains mostly the same
+    function performAdminSearch() {
+        const targetElem = document.getElementById('inventory-body');
+        const searchParams = {
+            search: searchTermInput.value,
+            category: categoryFilterSelect.value
+        };
+        
+        // Perform AJAX search
+        ajaxSearch('../admin/search.php', 'admin', searchParams, targetElem, function() {
+            // Success callback
+            attachActionListeners();
+            makeRowsClickable(); // Make sure this line exists to make rows clickable after search
+            
+            // Update URL without reloading (for bookmark/history purposes)
+            updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
+        });
+    }
 }
 
   // Perform admin search
 function performAdminSearch() {
   const targetElem = document.getElementById('inventory-body');
+  if (!targetElem) {
+      console.error('Target element not found');
+      return;
+  }
   
-  // Get the current page from URL or default to 1
-  const urlParams = new URLSearchParams(window.location.search);
-  const currentPage = urlParams.get('page') || 1;
+  const searchTermInput = document.getElementById('search-term');
+  const categoryFilterSelect = document.getElementById('category-filter');
+  
+  if (!searchTermInput || !categoryFilterSelect) {
+      console.error('Search form elements not found');
+      return;
+  }
   
   const searchParams = {
-      search: document.getElementById('search-term').value,
-      category: document.getElementById('category-filter').value,
-      page: currentPage,
-      limit: 20 // Always limit to 20 items per page
+      search: searchTermInput.value,
+      category: categoryFilterSelect.value,
+      ajax: 'admin' // Specify that this is an admin search
   };
   
-  ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'admin', searchParams, targetElem, function() {
-      // Success callback
-      attachActionListeners();
-      makeRowsClickable();
-      
-      // Update pagination UI after search
-      updatePaginationUI(currentPage);
-      
-      // Update URL without reloading
-      updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
-  });
+  // Show loading spinner
+  targetElem.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+  
+  // Perform the AJAX request
+  fetch(`/prog23/lagerhanteringssystem/admin/search.php?${new URLSearchParams(searchParams)}`)
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.text();
+      })
+      .then(html => {
+          // Update the table contents
+          targetElem.innerHTML = html;
+          
+          // Explicitly make rows clickable first (important order)
+          makeRowsClickable();
+          
+          // Then attach action listeners to buttons
+          attachActionListeners();
+          
+          // Update URL without reloading
+          updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          targetElem.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>';
+      });
 }
 
-// Add this function to update the pagination links after AJAX load
-function updatePaginationUI(currentPage) {
-  // Find all pagination links and update their click events
-  document.querySelectorAll('#pagination .page-link').forEach(link => {
-      link.addEventListener('click', function(e) {
-          e.preventDefault();
-          
-          // Get page number from the link
-          const hrefParams = new URLSearchParams(this.getAttribute('href').split('?')[1]);
-          const pageNum = hrefParams.get('page');
-          
-          // Perform search with new page number
-          const searchParams = {
-              search: document.getElementById('search-term').value,
-              category: document.getElementById('category-filter').value,
-              page: pageNum,
-              limit: 20
-          };
-          
-          // Update URL
-          updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
-          
-          // Execute search with the new page
-          ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'admin', searchParams, 
-              document.getElementById('inventory-body'), function() {
-                  attachActionListeners();
-                  makeRowsClickable();
-                  updatePaginationUI(pageNum);
-              });
-      });
-  });
-}
+  // Add this function to update the pagination links after AJAX load
+  function updatePaginationUI(currentPage) {
+    // Find all pagination links and update their click events
+    document.querySelectorAll('#pagination .page-link').forEach(link => {
+        link.addEventListener('click', function(e) {
+            e.preventDefault();
+            
+            // Get page number from the link
+            const hrefParams = new URLSearchParams(this.getAttribute('href').split('?')[1]);
+            const pageNum = hrefParams.get('page');
+            
+            // Perform search with new page number
+            const searchParams = {
+                search: document.getElementById('search-term').value,
+                category: document.getElementById('category-filter').value,
+                page: pageNum,
+                limit: 20
+            };
+            
+            // Update URL
+            updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
+            
+            // Execute search with the new page
+            ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'admin', searchParams, 
+                document.getElementById('inventory-body'), function() {
+                    attachActionListeners();
+                    makeRowsClickable();
+                    updatePaginationUI(pageNum);
+                });
+        });
+    });
+  }
 
   // Initialize lists tab
   function initializeLists() {
@@ -230,37 +312,153 @@ function updatePaginationUI(currentPage) {
               }
           });
       }
+      
+      // Initialize authors management
+      initializeAuthorsManagement();
+  }
+
+  // Initialize add author page
+  function initializeAddAuthor() {
+      // Set up author form submission
+      const authorForm = document.getElementById('add-author-form');
+      if (authorForm) {
+          $(authorForm).off('submit').on('submit', function(e) {
+              e.preventDefault();
+              e.stopPropagation();
+              const form = $(this);
+              
+              $.ajax({
+                  type: 'POST',
+                  url: '/prog23/lagerhanteringssystem/admin/addauthor.php',
+                  data: form.serialize(),
+                  headers: {
+                      'X-Requested-With': 'XMLHttpRequest'
+                  },
+                  success: function(response) {
+                      try {
+                          const data = typeof response === 'object' ? response : JSON.parse(response);
+                          
+                          if (data.success) {
+                              $('#author-message-container').html(`<div class='alert alert-success'>${data.message}</div>`);
+                              $('#author-message-container').show();
+                              form[0].reset();
+                          } else {
+                              $('#author-message-container').html(`<div class='alert alert-danger'>${data.message}</div>`);
+                              $('#author-message-container').show();
+                          }
+                      } catch (e) {
+                          console.error('Error:', e);
+                          $('#author-message-container').html(`<div class='alert alert-danger'>Error processing the response.</div>`);
+                          $('#author-message-container').show();
+                      }
+                  },
+                  error: function(xhr, status, error) {
+                      console.error('AJAX Error:', status, error);
+                      $('#author-message-container').html(`<div class='alert alert-danger'>An error occurred.</div>`);
+                      $('#author-message-container').show();
+                  }
+              });
+          });
+      }
+  }
+
+  // Initialize authors management for add product
+  function initializeAuthorsManagement() {
+      // Store for multiple authors
+      window.authors = [];
+      
+      // Add author to the list
+      $(document).on('click', '#add-author-to-list', function(e) {
+          e.preventDefault();
+          
+          const firstName = $('#author-first').val().trim();
+          const lastName = $('#author-last').val().trim();
+          
+          // Basic validation
+          if (!firstName && !lastName) {
+              alert('Please enter at least first or last name for the author');
+              return;
+          }
+          
+          // Add to array
+          window.authors.push({
+              first_name: firstName,
+              last_name: lastName
+          });
+          
+          // Add to visual list
+          const authorElement = $(`
+              <div class="author-item mb-2 d-flex align-items-center">
+                  <span class="me-2">${firstName} ${lastName}</span>
+                  <button type="button" class="btn btn-sm btn-outline-danger remove-author" data-index="${window.authors.length - 1}">
+                      <i class="bi bi-trash"></i> Remove
+                  </button>
+              </div>
+          `);
+          
+          $('#authors-list').append(authorElement);
+          
+          // Clear inputs
+          $('#author-first').val('');
+          $('#author-last').val('');
+          
+          // Update hidden field with JSON data
+          $('#authors-json').val(JSON.stringify(window.authors));
+      });
+      
+      // Remove author from the list
+      $(document).on('click', '.remove-author', function() {
+          const index = $(this).data('index');
+          
+          // Remove from array
+          window.authors.splice(index, 1);
+          
+          // Re-render entire list (to handle indices correctly)
+          $('#authors-list').empty();
+          window.authors.forEach((author, idx) => {
+              const authorElement = $(`
+                  <div class="author-item mb-2 d-flex align-items-center">
+                      <span class="me-2">${author.first_name} ${author.last_name}</span>
+                      <button type="button" class="btn btn-sm btn-outline-danger remove-author" data-index="${idx}">
+                          <i class="bi bi-trash"></i> Remove
+                      </button>
+                  </div>
+              `);
+              $('#authors-list').append(authorElement);
+          });
+          
+          // Update hidden field with JSON data
+          $('#authors-json').val(JSON.stringify(window.authors));
+      });
   }
 
   // Attach action listeners to buttons in admin search results
-function attachActionListeners() {
-  // Quick sell button click
-  document.querySelectorAll('.quick-sell').forEach(button => {
-      button.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          const productId = this.getAttribute('data-id');
-          
-          // Remove confirmation - just proceed with sale
-          changeProductStatus(productId, 2, function(success) {
-              if (success) performAdminSearch();
-          }); // 2 = Sold
-      });
-  });
-  
-  // Quick return button click
-  document.querySelectorAll('.quick-return').forEach(button => {
-      button.addEventListener('click', function(e) {
-          e.preventDefault();
-          e.stopPropagation();
-          const productId = this.getAttribute('data-id');
-          
-          // Remove confirmation - just proceed with return
-          changeProductStatus(productId, 1, function(success) {
-              if (success) performAdminSearch();
-          }); // 1 = Available
-      });
-  });
+  function attachActionListeners() {
+    // Quick sell button click
+    document.querySelectorAll('.quick-sell').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent row click event from firing
+            const productId = this.getAttribute('data-id');
+            
+            changeProductStatus(productId, 2, function(success) {
+                if (success) performAdminSearch();
+            }); // 2 = Sold
+        });
+    });
+    
+    // Quick return button click
+    document.querySelectorAll('.quick-return').forEach(button => {
+        button.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation(); // Prevent row click event from firing
+            const productId = this.getAttribute('data-id');
+            
+            changeProductStatus(productId, 1, function(success) {
+                if (success) performAdminSearch();
+            }); // 1 = Available
+        });
+    });
 }
 
   // Attach action listeners for lists tab
@@ -293,6 +491,23 @@ function attachActionListeners() {
           e.preventDefault();
           e.stopPropagation();
           const form = $(this);
+          
+          // If we have a single author in the input fields and none in our list
+          // add the current author to the list
+          if (window.authors && window.authors.length === 0) {
+              const firstName = $('#author-first').val().trim();
+              const lastName = $('#author-last').val().trim();
+              
+              if (firstName || lastName) {
+                  window.authors.push({
+                      first_name: firstName,
+                      last_name: lastName
+                  });
+                  
+                  // Update hidden field with JSON data
+                  $('#authors-json').val(JSON.stringify(window.authors));
+              }
+          }
 
           $.ajax({
               type: 'POST',
@@ -318,6 +533,13 @@ function attachActionListeners() {
                           // Reset image preview if it exists
                           if ($('#new-item-image').length) {
                               $('#new-item-image').attr('src', 'assets/images/src-book.webp');
+                          }
+                          
+                          // Clear authors list
+                          if (window.authors) {
+                              window.authors = [];
+                              $('#authors-list').empty();
+                              $('#authors-json').val('');
                           }
                       } else {
                           // Display error message
@@ -391,70 +613,103 @@ function attachActionListeners() {
           }
       });
 
-  // Modal edit functionality
+  // Modal edit functionality for both single field and author
   $(document).on('click', '.edit-item', function(e) {
       e.preventDefault();
-
-      // Get data from data attributes
+      
       const id = $(this).data('id');
       const type = $(this).data('type');
-      const name = $(this).data('name');
-
-      // Set modal title
-      $('#editItemModalLabel').text('Edit ' + type.charAt(0).toUpperCase() + type.slice(1));
-
-      // Fill form fields
+      
       $('#edit-item-id').val(id);
       $('#edit-item-type').val(type);
-      $('#edit-item-name').val(name);
-
-      // Show the modal
+      
+      if (type === 'author') {
+          const firstName = $(this).data('first-name');
+          const lastName = $(this).data('last-name');
+          
+          // Show only author fields
+          $('#edit-single-name-field').hide();
+          $('#edit-author-fields').show();
+          
+          $('#edit-first-name').val(firstName);
+          $('#edit-last-name').val(lastName);
+          
+          $('#editItemModalLabel').text('Redigera författare');
+      } else {
+          const name = $(this).data('name');
+          
+          // Show only single name field
+          $('#edit-single-name-field').show();
+          $('#edit-author-fields').hide();
+          
+          $('#edit-item-name').val(name);
+          
+          // Capitalize the first letter of the type (category, publisher, etc.)
+          $('#editItemModalLabel').text('Redigera ' + type.charAt(0).toUpperCase() + type.slice(1));
+      }
+      
       $('#editItemModal').modal('show');
   });
 
-  // Handle save button click
+  // Handle save button click for both single field and author
   $(document).on('click', '#save-edit', function() {
-      // Get form data
       const id = $('#edit-item-id').val();
       const type = $('#edit-item-type').val();
-      const name = $('#edit-item-name').val();
-
-      // Validate form
-      if (!name.trim()) {
-          alert('Please enter a name');
-          return;
+      
+      let postData = { id, type };
+      
+      if (type === 'author') {
+          const firstName = $('#edit-first-name').val().trim();
+          const lastName = $('#edit-last-name').val().trim();
+          
+          if (!firstName || !lastName) {
+              alert('Både förnamn och efternamn krävs.');
+              return;
+          }
+          
+          postData.first_name = firstName;
+          postData.last_name = lastName;
+      } else {
+          const name = $('#edit-item-name').val().trim();
+          if (!name) {
+              alert('Ange ett namn.');
+              return;
+          }
+          
+          postData.name = name;
       }
-
-      // Send AJAX request
+      
       $.ajax({
           type: 'POST',
           url: '/prog23/lagerhanteringssystem/admin/edit_item.php',
-          data: {
-              id: id,
-              type: type,
-              name: name
-          },
+          data: postData,
           dataType: 'json',
           success: function(response) {
               if (response.success) {
-                  // Show success message
                   showMessage(response.message, 'success');
-
-                  // Update the row in the table
-                  const rowSelector = `a.edit-item[data-id="${id}"][data-type="${type}"]`;
-                  $(rowSelector).closest('tr').find('td:nth-child(2)').text(name);
-                  $(rowSelector).data('name', name);
-
-                  // Close the modal
                   $('#editItemModal').modal('hide');
+                  
+                  // Update the table row
+                  const rowSelector = `a.edit-item[data-id="${id}"][data-type="${type}"]`;
+                  const row = $(rowSelector).closest('tr');
+                  
+                  if (type === 'author') {
+                      row.find('td:nth-child(2)').text(postData.first_name);
+                      row.find('td:nth-child(3)').text(postData.last_name);
+                      $(rowSelector)
+                          .data('first-name', postData.first_name)
+                          .data('last-name', postData.last_name);
+                  } else {
+                      row.find('td:nth-child(2)').text(postData.name);
+                      $(rowSelector).data('name', postData.name);
+                  }
               } else {
-                  // Show error message in the modal
-                  alert(`Error: ${response.message}`);
+                  alert(`Fel: ${response.message}`);
               }
           },
           error: function(xhr) {
               console.error('Error:', xhr.responseText);
-              alert('An error occurred. Please try again.');
+              alert('Ett fel inträffade. Försök igen.');
           }
       });
   });
@@ -586,4 +841,419 @@ function attachActionListeners() {
           showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
       });
   }
+
+  // Helper function to show messages
+  function showMessage(message, type) {
+      // First try specific message containers
+      let container = $('#message-container');
+      
+      // If not found, try author message container
+      if (container.length === 0) {
+          container = $('#author-message-container');
+      }
+      
+      // If still not found, create a general message container
+      if (container.length === 0) {
+          container = $('<div id="message-container"></div>');
+          container.prependTo('#tabs-content');
+      }
+      
+      container.html(`<div class="alert alert-${type}">${message}</div>`);
+      container.show();
+      
+      // Scroll to message
+      $('html, body').animate({
+          scrollTop: container.offset().top - 100
+      }, 200);
+      
+      // Auto hide after 5 seconds
+      setTimeout(function() {
+          container.fadeOut(500);
+      }, 5000);
+  }
+
+  // Update URL parameters without page reload
+  function updateUrlParams(params) {
+      const url = new URL(window.location);
+      
+      // Remove all existing parameters
+      [...url.searchParams.keys()].forEach(key => {
+          url.searchParams.delete(key);
+      });
+      
+      // Add new parameters
+      Object.keys(params).forEach(key => {
+          if (params[key]) url.searchParams.set(key, params[key]);
+      });
+      
+      // Update URL without reload
+      window.history.pushState({}, '', url);
+  }
+
+  // AJAX search function
+  function ajaxSearch(url, type, params, targetElement, callback) {
+      // Show loading indicator
+      $(targetElement).html('<tr><td colspan="100%" class="text-center"><div class="spinner-border text-primary"></div></td></tr>');
+      
+      // Create form data
+      const formData = new FormData();
+      formData.append('action', 'search');
+      formData.append('type', type);
+      
+      // Add all params
+      Object.keys(params).forEach(key => {
+          formData.append(key, params[key]);
+      });
+      
+      // Send request
+      fetch(url, {
+          method: 'POST',
+          body: formData
+      })
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.text();
+      })
+      .then(html => {
+          // Update the target element with the response HTML
+          $(targetElement).html(html);
+          
+          // Call the callback function if provided
+          if (typeof callback === 'function') {
+              callback();
+          }
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          $(targetElement).html(`<tr><td colspan="100%" class="text-center text-danger">Ett fel inträffade vid sökning. Försök igen senare.</td></tr>`);
+      });
+  }
+
+  // Change product status (for quick actions)
+function changeProductStatus(productId, newStatus, callback) {
+  // Create form data for the request
+  const formData = new FormData();
+  formData.append('action', 'change_status');
+  formData.append('product_id', productId);
+  formData.append('status', newStatus);
+  
+  // Show a loading indicator for the specific row
+  const row = document.querySelector(`tr.clickable-row [data-id="${productId}"]`).closest('tr');
+  if (row) {
+      row.style.opacity = '0.5';
+  }
+  
+  // Send request
+  fetch('/prog23/lagerhanteringssystem/admin/search.php', {
+      method: 'POST',
+      body: formData,
+      headers: {
+          'X-Requested-With': 'XMLHttpRequest' // Mark as AJAX request
+      }
+  })
+  .then(response => {
+      if (!response.ok) {
+          throw new Error('Network response was not ok');
+      }
+      return response.json();
+  })
+  .then(data => {
+      if (data.success) {
+          // Don't show success message anymore
+          
+          // Just refresh the table content
+          refreshTableContent();
+          
+          // Call the callback function if provided
+          if (typeof callback === 'function') {
+              callback(true);
+          }
+      } else {
+          // Still show error message if there's a problem
+          if (data.message) {
+              showMessage('Error: ' + data.message, 'danger');
+          }
+          
+          // Reset opacity of the row
+          if (row) {
+              row.style.opacity = '1';
+          }
+          
+          // Call the callback function with false if provided
+          if (typeof callback === 'function') {
+              callback(false);
+          }
+      }
+  })
+  .catch(error => {
+      console.error('Error:', error);
+      showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
+      
+      // Reset opacity of the row
+      if (row) {
+          row.style.opacity = '1';
+      }
+      
+      // Call the callback function with false if provided
+      if (typeof callback === 'function') {
+          callback(false);
+      }
+  });
+}
+
+// Update refreshTableContent to ensure rows are clickable after refresh
+function refreshTableContent() {
+  const targetElem = document.getElementById('inventory-body');
+  if (!targetElem) {
+      console.error('Target element not found');
+      return;
+  }
+  
+  const searchTermInput = document.getElementById('search-term');
+  const categoryFilterSelect = document.getElementById('category-filter');
+  
+  if (!searchTermInput || !categoryFilterSelect) {
+      console.error('Search form elements not found');
+      return;
+  }
+  
+  const searchParams = {
+      search: searchTermInput.value,
+      category: categoryFilterSelect.value,
+      ajax: 'admin',
+      table_only: 'true' // Request only the table content
+  };
+  
+  // Show loading spinner
+  targetElem.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
+  
+  // Perform the AJAX request
+  fetch(`/prog23/lagerhanteringssystem/admin/search.php?${new URLSearchParams(searchParams)}`)
+      .then(response => {
+          if (!response.ok) {
+              throw new Error('Network response was not ok');
+          }
+          return response.text();
+      })
+      .then(html => {
+          // Only update the table contents, not the form
+          targetElem.innerHTML = html;
+          
+          // Explicitly make rows clickable first
+          makeRowsClickable();
+          
+          // Then attach action listeners to buttons
+          attachActionListeners();
+      })
+      .catch(error => {
+          console.error('Error:', error);
+          targetElem.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>';
+      });
+}
+
+  // Make rows clickable to view product details
+  function makeRowsClickable() {
+    // This selects all clickable rows
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.addEventListener('click', function(event) {
+            if (!event.target.closest('a') && !event.target.closest('button')) {
+                window.location.href = this.dataset.href;
+            }
+        });
+    });
+    
+    // Add this new section to handle admin product rows too
+    const productRows = document.querySelectorAll('.product-row');
+    productRows.forEach(row => {
+        row.addEventListener('click', function(event) {
+            if (!event.target.closest('a') && !event.target.closest('button')) {
+                const productId = this.dataset.id;
+                window.location.href = `admin/adminsingleproduct.php?id=${productId}`;
+            }
+        });
+    });
+}
+
+  // Add custom CSS for clickable rows
+  const style = document.createElement('style');
+  style.textContent = `
+    .clickable-row {
+      cursor: pointer;
+      transition: background-color 0.2s;
+    }
+    .clickable-row:hover {
+      background-color: rgba(0, 123, 255, 0.1);
+    }
+    .suggest-box {
+      position: absolute;
+      background: white;
+      border: 1px solid #ced4da;
+      border-radius: 0.25rem;
+      z-index: 1000;
+      width: 100%;
+      max-height: 200px;
+      overflow-y: auto;
+      box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+    }
+    .author-item {
+      padding: 0.5rem;
+      background-color: #f8f9fa;
+      border-radius: 0.25rem;
+    }
+  `;
+  document.head.appendChild(style);
+
+  // Function to handle exportable data (CSV, PDF, Excel)
+  function exportData(format, type) {
+    // Get current search parameters
+    const searchTerm = document.getElementById(type === 'lists' ? 'lists-search-term' : 'search-term')?.value || '';
+    const category = document.getElementById(type === 'lists' ? 'lists-category' : 'category-filter')?.value || 'all';
+    
+    // Create export URL
+    const exportUrl = `admin/export.php?format=${format}&type=${type}&search=${encodeURIComponent(searchTerm)}&category=${encodeURIComponent(category)}`;
+    
+    // Create and trigger download
+    const link = document.createElement('a');
+    link.href = exportUrl;
+    link.target = '_blank';
+    link.download = `export-${type}-${format}-${new Date().toISOString().slice(0, 10)}.${format}`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  }
+
+  // Additional utility functions
+  // Function to format currency
+  function formatCurrency(amount) {
+    return new Intl.NumberFormat('sv-SE', {
+      style: 'currency',
+      currency: 'SEK',
+      minimumFractionDigits: 2
+    }).format(amount);
+  }
+
+  // Function to validate ISBN
+  function validateISBN(isbn) {
+    // Remove hyphens and spaces
+    isbn = isbn.replace(/[-\s]/g, '');
+    
+    // ISBN-10 validation
+    if (isbn.length === 10) {
+      let sum = 0;
+      for (let i = 0; i < 9; i++) {
+        sum += parseInt(isbn[i]) * (10 - i);
+      }
+      
+      // Check digit can be 'X' (representing 10)
+      const checkDigit = isbn[9].toUpperCase() === 'X' ? 10 : parseInt(isbn[9]);
+      sum += checkDigit;
+      
+      return sum % 11 === 0;
+    }
+    
+    // ISBN-13 validation
+    if (isbn.length === 13) {
+      let sum = 0;
+      for (let i = 0; i < 12; i++) {
+        sum += parseInt(isbn[i]) * (i % 2 === 0 ? 1 : 3);
+      }
+      
+      return (10 - (sum % 10)) % 10 === parseInt(isbn[12]);
+    }
+    
+    return false;
+  }
+
+  // Function to generate product slug for URLs
+  function generateSlug(text) {
+    return text
+      .toLowerCase()
+      .replace(/å/g, 'a')
+      .replace(/ä/g, 'a')
+      .replace(/ö/g, 'o')
+      .replace(/[^\w\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-');
+  }
+
+  // Main document ready event handlers
+  document.addEventListener('DOMContentLoaded', function() {
+    // Check if we're on the addproduct tab
+    const addProductForm = document.getElementById('add-item-form');
+    if (addProductForm) {
+      console.log('Add product form detected, setting up autocomplete');
+      setupAutocomplete('author-first', 'suggest-author-first', 'authorFirst');
+      setupAutocomplete('author-last', 'suggest-author-last', 'authorLast');
+      setupAutocomplete('item-publisher', 'suggest-publisher', 'publisher');
+      
+      // Initialize authors management
+      initializeAuthorsManagement();
+    }
+    
+    // Check if we're on the search tab
+    const searchForm = document.getElementById('admin-search-form');
+    if (searchForm) {
+      initializeAdminSearch();
+      makeRowsClickable();
+    }
+    
+    // Check if we're on the lists tab
+    const listsForm = document.getElementById('lists-search-form');
+    if (listsForm) {
+      initializeLists();
+    }
+    
+    // Handle tab navigation with keyboard shortcuts
+    document.addEventListener('keydown', function(e) {
+      // Only handle keyboard shortcuts when not in input fields
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA' || e.target.tagName === 'SELECT') {
+        return;
+      }
+      
+      // Ctrl+1 to Ctrl+5 for tabs
+      if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
+        e.preventDefault();
+        const tabIndex = parseInt(e.key) - 1;
+        const tabs = document.querySelectorAll('.nav-link');
+        
+        if (tabs[tabIndex]) {
+          tabs[tabIndex].click();
+        }
+      }
+    });
+    
+    // Set up global error handler for AJAX requests
+    $(document).ajaxError(function(event, jqXHR, settings, thrownError) {
+      console.error('Global AJAX error:', thrownError || jqXHR.statusText);
+      
+      // Check if error is due to session timeout
+      if (jqXHR.status === 401) {
+        alert('Din session har gått ut. Du kommer att omdirigeras till inloggningssidan.');
+        window.location.href = '/prog23/lagerhanteringssystem/login.php';
+      }
+    });
+    
+    // Handle image upload preview for all image upload fields
+    document.querySelectorAll('input[type="file"][accept*="image"]').forEach(input => {
+      input.addEventListener('change', function() {
+        // Find the associated preview element
+        const previewId = this.getAttribute('data-preview');
+        if (!previewId) return;
+        
+        const preview = document.getElementById(previewId);
+        if (!preview) return;
+        
+        if (this.files && this.files[0]) {
+          const reader = new FileReader();
+          reader.onload = function(e) {
+            preview.src = e.target.result;
+          };
+          reader.readAsDataURL(this.files[0]);
+        }
+      });
+    });
+  });
 });

@@ -9,7 +9,9 @@ document.addEventListener('DOMContentLoaded', function() {
     initializeSearch();
     
     // Make clickable rows work
-    makeRowsClickable();
+    $(document).on('change', '#category-filter', function() {
+        $('#admin-search-form').submit();
+    });
 });
 
 /**
@@ -77,8 +79,7 @@ function performPublicSearch(page = 1) {
     
     // Perform AJAX search
     ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
-        // Success callback
-        makeRowsClickable();
+
         
         // Update pagination UI
         updatePublicPaginationUI(page);
@@ -142,18 +143,24 @@ function updatePublicPaginationUI(currentPage) {
     paginationContainer.innerHTML = paginationHTML;
 }
 
-/**
- * Make rows clickable (for public and admin inventory tables)
- */
 function makeRowsClickable() {
     const clickableRows = document.querySelectorAll('.clickable-row');
+    
     clickableRows.forEach(row => {
-        row.addEventListener('click', function(event) {
-            if (!event.target.closest('a') && !event.target.closest('button')) {
-                window.location.href = this.dataset.href;
-            }
-        });
+        // Remove any existing click event listeners first to prevent duplicates
+        row.removeEventListener('click', rowClickHandler);
+        
+        // Add the click event listener
+        row.addEventListener('click', rowClickHandler);
     });
+}
+
+// Separate the handler function to avoid duplicating anonymous functions
+function rowClickHandler(event) {
+    // Only navigate if click wasn't on a button or link
+    if (!event.target.closest('a') && !event.target.closest('button')) {
+        window.location.href = this.dataset.href;
+    }
 }
 
 /**
@@ -165,17 +172,12 @@ function makeRowsClickable() {
  * @param {HTMLElement} targetElem - Element to update with results
  * @param {Function} successCallback - Callback to run on success
  */
+// Revised AJAX search function in main.js
 function ajaxSearch(url, type, params, targetElem, successCallback) {
     // Check if we have a valid target element
     if (!targetElem) {
         console.error('Target element not found');
         return;
-    }
-    
-    // Ensure URL is absolute and correct (add this code)
-    if (!url.startsWith('http') && !url.startsWith('/')) {
-        // Convert relative path to absolute
-        url = '/prog23/lagerhanteringssystem/' + url;
     }
     
     // Show loading indicator
@@ -196,33 +198,15 @@ function ajaxSearch(url, type, params, targetElem, successCallback) {
     
     xhr.onload = function() {
         if (xhr.status === 200) {
-            // Extract meta information if available
-            const responseText = xhr.responseText;
-            let totalItems = 0;
+            targetElem.innerHTML = xhr.responseText;
             
-            // Check for meta information in the response
-            const tempDiv = document.createElement('div');
-            tempDiv.innerHTML = responseText;
-            const metaElement = tempDiv.querySelector('#search-meta');
-            
-            if (metaElement) {
-                totalItems = parseInt(metaElement.getAttribute('data-total') || 0);
-                
-                // Update pagination container with total items
-                const paginationContainer = document.getElementById(type === 'public' ? 'public-pagination' : 'pagination');
-                if (paginationContainer) {
-                    paginationContainer.setAttribute('data-total', totalItems);
-                }
-                
-                // Remove meta element from the response
-                tempDiv.removeChild(metaElement);
-                targetElem.innerHTML = tempDiv.innerHTML;
-            } else {
-                targetElem.innerHTML = responseText;
+            // Make rows clickable for public search results
+            if (type === 'public') {
+                makeRowsClickable(); // Ensure clickable rows are initialized after content update
             }
             
             if (typeof successCallback === 'function') {
-                successCallback(totalItems);
+                successCallback();
             }
         } else {
             targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Försök igen senare. Status: ${xhr.status}</td></tr>`;
@@ -458,8 +442,6 @@ $(document).on('click', '.public-pagination-link', function(e) {
             // Update pagination
             updatePublicPagination(searchParams);
             
-            // Make rows clickable again
-            makeRowsClickable();
             
             // Update URL without reloading
             updateUrlParams(searchParams);
@@ -487,3 +469,36 @@ function updatePublicPagination(searchParams) {
         }
     });
 }
+
+// Admin page product rows
+$(document).off('click', '.product-row');
+$(document).on('click', '.product-row', function(event) {
+    // Only navigate if we didn't click on a link or button
+    if (!$(event.target).closest('a, button, .btn, input, select').length) {
+        const productId = $(this).data('id');
+        window.location.href = 'admin/adminsingleproduct.php?id=' + productId;
+    }
+});
+
+// Public page clickable rows 
+$(document).off('click', '.clickable-row');
+$(document).on('click', '.clickable-row', function(event) {
+    // Only navigate if we didn't click on a link or button
+    if (!$(event.target).closest('a, button, .btn, input, select').length) {
+        window.location.href = $(this).data('href');
+    }
+});
+
+// 3. Ensure category dropdown triggers immediate search on the public page too
+
+// Make public category dropdown trigger search immediately (same as admin)
+$(document).on('change', '#public-category', function() {
+    // If using a form submit approach:
+    $('#search-form').submit();
+    
+    // If using a direct function call approach:
+    // This is needed only if your public page uses a different approach
+    if (typeof performPublicSearch === 'function') {
+        performPublicSearch();
+    }
+});

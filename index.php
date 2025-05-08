@@ -399,8 +399,6 @@ if ($originalLoggedIn) {
                             url.searchParams.set('limit', limit);
                             window.history.pushState({}, '', url);
                             
-                            // Make rows clickable again
-                            makeRowsClickable();
                             
                             // Scroll to results
                             document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
@@ -422,9 +420,6 @@ if ($originalLoggedIn) {
             $('#public-category').val(urlParams.get('category') || 'all');
             $('#current-page').val(urlParams.get('page') || '1');
             
-            // Don't automatically perform search as the page already loaded with results
-            // Just make rows clickable
-            makeRowsClickable();
             
             // Scroll to results section
             const browseSection = document.getElementById('browse');

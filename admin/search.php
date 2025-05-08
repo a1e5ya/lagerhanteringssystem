@@ -55,23 +55,21 @@ function processAjaxRequest() {
             exit;
         }
         
-        // Change product status
-        $result = changeProductSaleStatus($productId, $newStatus);
-        
-        if ($result) {
-            $statusText = ($newStatus == 1) ? 'tillgänglig' : 'såld';
-            echo json_encode([
-                'success' => true, 
-                'message' => 'Produkten har markerats som ' . $statusText
-            ]);
-        } else {
-            echo json_encode([
-                'success' => false, 
-                'message' => 'Ett fel inträffade. Kunde inte ändra produktstatus.'
-            ]);
-        }
-        exit;
-    }
+// Change product status
+$result = changeProductSaleStatus($productId, $newStatus);
+
+if ($result) {
+    echo json_encode([
+        'success' => true
+        // No message field
+    ]);
+} else {
+    echo json_encode([
+        'success' => false,
+        'message' => 'Ett fel inträffade. Kunde inte ändra produktstatus.' // Keep error message for debugging
+    ]);
+}
+exit; }
     
     // Public pagination specific request
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax']) && $_GET['ajax'] === 'public_pagination') {
@@ -621,15 +619,19 @@ function renderAdminProducts(array $products): string
                 <td><?= safeEcho($formattedPrice) ?></td>
                 <td class="<?= $statusClass ?>"><?= safeEcho($statusName) ?></td>
                 <td>
-                    <?php if (($product->status ?? 1) == 1): // If Available, show Sell button ?>
-                        <button class="btn btn-outline-success btn-sm quick-sell" data-id="<?= safeEcho($product->prod_id) ?>" title="Markera som såld">
-                            Sälj
-                        </button>
-                    <?php elseif (($product->status ?? 0) == 2): // If Sold, show Return button ?>
-                        <button class="btn btn-outline-warning btn-sm quick-return" data-id="<?= safeEcho($product->prod_id) ?>" title="Återställ till tillgänglig">
-                            Återställ
-                        </button>
-                    <?php endif; ?>
+                    <div class="btn-group btn-group-sm">
+
+                        
+                        <?php if (($product->status ?? 1) == 1): // If Available, show Sell button ?>
+                            <button class="btn btn-outline-success quick-sell" data-id="<?= safeEcho($product->prod_id) ?>" title="Markera som såld">
+                                <i class="fas fa-shopping-cart"></i>
+                            </button>
+                        <?php elseif (($product->status ?? 0) == 2): // If Sold, show Return button ?>
+                            <button class="btn btn-outline-warning quick-return" data-id="<?= safeEcho($product->prod_id) ?>" title="Återställ till tillgänglig">
+                                <i class="fas fa-undo"></i>
+                            </button>
+                        <?php endif; ?>
+                    </div>
                 </td>
             </tr>
             <?php
@@ -997,3 +999,10 @@ function attachActionListeners() {
     }
     </script>
 <?php } ?>
+
+<?php
+// Only show the admin search form on AJAX requests or when explicitly requested
+if (isset($_GET['ajax']) || (basename($_SERVER['PHP_SELF']) === 'admin.php' && !isset($_GET['include_only']))):
+?>
+<!-- Search form HTML here -->
+<?php endif; ?>
