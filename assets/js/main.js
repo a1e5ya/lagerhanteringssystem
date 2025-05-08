@@ -1,6 +1,6 @@
 /**
  * main.js - Common JavaScript functionality for Karis Antikvariat
- * Contains AJAX search functionality for both public and admin pages
+ * Contains shared functionality used by both public and admin pages
  */
 
 // Initialize when DOM is loaded
@@ -19,43 +19,17 @@ function initializeSearch() {
     // Detect which page we're on
     const isAdminPage = (document.getElementById('inventory-tabs') !== null);
     const isIndexPage = (document.getElementById('public-search') !== null);
-    const isListPage = (document.querySelector('.tab-pane[id="lists"]') !== null);
     
     // Initialize the appropriate search functionality
     if (isIndexPage) {
         initializePublicSearch();
-    }
-    
-    if (isAdminPage) {
-        // Check which tab is active
-        const activeTab = document.querySelector('.nav-link.active');
-        if (activeTab) {
-            const tabName = activeTab.getAttribute('data-tab');
-            
-            if (tabName === 'search') {
-                initializeAdminSearch();
-            } else if (tabName === 'lists') {
-                initializeListsSearch();
-            }
-            
-            // Add tab change listener to initialize search when tabs change
-            document.querySelectorAll('.nav-link').forEach(tab => {
-                tab.addEventListener('click', function() {
-                    const newTabName = this.getAttribute('data-tab');
-                    if (newTabName === 'search') {
-                        setTimeout(initializeAdminSearch, 300); // Short delay to ensure content is loaded
-                    } else if (newTabName === 'lists') {
-                        setTimeout(initializeListsSearch, 300); // Short delay to ensure content is loaded
-                    }
-                });
-            });
-        }
     }
 }
 
 /**
  * Initialize public search on index.php
  */
+// Add this to main.js - Initialize public search with pagination
 function initializePublicSearch() {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('public-search');
@@ -67,119 +41,123 @@ function initializePublicSearch() {
     // Handle search form submission
     searchForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        performPublicSearch();
+        performPublicSearch(1); // Start with page 1 on new search
     });
     
     // Add change event listener to category dropdown
     categorySelect.addEventListener('change', function() {
-        performPublicSearch();
+        performPublicSearch(1); // Start with page 1 on category change
     });
     
-    // Function to perform search
-    function performPublicSearch() {
-        const targetElem = document.getElementById('public-inventory-body');
-        const searchParams = {
-            search: searchInput.value,
-            category: categorySelect.value
-        };
-        
-        // Perform AJAX search
-        ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
-            // Success callback
-            makeRowsClickable();
-            // Scroll to search results
-            document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
-            
-            // Update URL without reloading (for bookmark/history purposes)
-            updateUrlParams(searchParams);
-        });
+    // Initialize pagination links
+    initializePublicPagination();
+    
+    // Initial load of products
+    const urlParams = new URLSearchParams(window.location.search);
+    const currentPage = urlParams.get('page') || 1;
+    
+    if (!searchInput.value && categorySelect.value === 'all') {
+        // If no search filters, load default products with pagination
+        performPublicSearch(currentPage);
+    } else {
+        // If there are search filters, use them
+        performPublicSearch(currentPage);
     }
 }
 
+// Function to perform public search with pagination
+function performPublicSearch(page = 1) {
+    const targetElem = document.getElementById('public-inventory-body');
+    const searchParams = {
+        search: document.getElementById('public-search').value,
+        category: document.getElementById('public-category').value,
+        page: page,
+        limit: 20
+    };
+    
+    // Perform AJAX search
+    ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
+        // Success callback
+        makeRowsClickable();
+        
+        // Update pagination UI
+        updatePublicPaginationUI(page);
+        
+        // Scroll to search results
+        document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
+        
+        // Update URL without reloading (for bookmark/history purposes)
+        updateUrlParams(Object.assign({}, searchParams));
+    });
+}
+
+// Initialize pagination for public page
+function initializePublicPagination() {
+    document.addEventListener('click', function(e) {
+        // Check if clicked element is a pagination link
+        if (e.target.classList.contains('page-link') && e.target.closest('#public-pagination')) {
+            e.preventDefault();
+            
+            // Get page number from the link
+            const pageNum = e.target.getAttribute('data-page');
+            if (pageNum) {
+                performPublicSearch(pageNum);
+            }
+        }
+    });
+    updateUrlParams(searchParams);
+}
+
+// Update pagination UI on the public page
+function updatePublicPaginationUI(currentPage) {
+    const paginationContainer = document.getElementById('public-pagination');
+    if (!paginationContainer) return;
+    
+    // Get total from data attribute or API call
+    // For this example, we'll assume the server sends back total in a data attribute
+    const totalItems = parseInt(paginationContainer.getAttribute('data-total') || 0);
+    const totalPages = Math.ceil(totalItems / 20);
+    
+    // Create pagination HTML
+    let paginationHTML = '';
+    
+    // Previous button
+    paginationHTML += `<li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${parseInt(currentPage) - 1}" ${currentPage <= 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>&laquo;</a>
+    </li>`;
+    
+    // Page numbers
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, parseInt(currentPage) + 2); i++) {
+        paginationHTML += `<li class="page-item ${i == currentPage ? 'active' : ''}">
+            <a class="page-link" href="#" data-page="${i}">${i}</a>
+        </li>`;
+    }
+    
+    // Next button
+    paginationHTML += `<li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
+        <a class="page-link" href="#" data-page="${parseInt(currentPage) + 1}" ${currentPage >= totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>&raquo;</a>
+    </li>`;
+    
+    // Update pagination container
+    paginationContainer.innerHTML = paginationHTML;
+}
+
 /**
- * Initialize admin search on admin.php search tab
+ * Make rows clickable (for public and admin inventory tables)
  */
-function initializeAdminSearch() {
-    const adminSearchForm = document.getElementById('admin-search-form');
-    const searchTermInput = document.getElementById('search-term');
-    const categoryFilterSelect = document.getElementById('category-filter');
-    
-    // Skip if elements don't exist
-    if (!adminSearchForm || !searchTermInput || !categoryFilterSelect) return;
-    
-    // Handle search form submission
-    adminSearchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        performAdminSearch();
-    });
-    
-    // Add change event listener to category dropdown
-    categoryFilterSelect.addEventListener('change', function() {
-        performAdminSearch();
-    });
-    
-    // Function to perform search
-    function performAdminSearch() {
-        const targetElem = document.getElementById('inventory-body');
-        const searchParams = {
-            search: searchTermInput.value,
-            category: categoryFilterSelect.value
-        };
-        
-        // Perform AJAX search
-        ajaxSearch('../admin/search.php', 'admin', searchParams, targetElem, function() {
-            // Success callback
-            attachActionListeners();
-            
-            // Update URL without reloading (for bookmark/history purposes)
-            updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
+function makeRowsClickable() {
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.addEventListener('click', function(event) {
+            if (!event.target.closest('a') && !event.target.closest('button')) {
+                window.location.href = this.dataset.href;
+            }
         });
-    }
+    });
 }
 
 /**
- * Initialize lists search on admin.php lists tab
- */
-function initializeListsSearch() {
-    const listsSearchForm = document.getElementById('lists-search-form');
-    const listsSearchInput = document.getElementById('lists-search-term');
-    const listsCategorySelect = document.getElementById('lists-category');
-    
-    // Skip if elements don't exist
-    if (!listsSearchForm || !listsSearchInput || !listsCategorySelect) return;
-    
-    // Handle search form submission
-    listsSearchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        performListsSearch();
-    });
-    
-    // Add change event listener to category dropdown
-    listsCategorySelect.addEventListener('change', function() {
-        performListsSearch();
-    });
-    
-    // Function to perform search
-    function performListsSearch() {
-        const targetElem = document.getElementById('lists-body');
-        const searchParams = {
-            search: listsSearchInput.value,
-            category: listsCategorySelect.value
-        };
-        
-        // Perform AJAX search
-        ajaxSearch('admin/lists.php', 'lists', searchParams, targetElem, function() {
-            // Success callback
-            attachListsActionListeners();
-            
-            // Update URL without reloading (for bookmark/history purposes)
-            updateUrlParams(Object.assign({}, searchParams, { tab: 'lists' }));
-        });
-    }
-}
-
-/**
- * Generic AJAX search function
+ * Generic AJAX search function (used by both admin.js and main.js)
  * 
  * @param {string} url - URL to send the request to
  * @param {string} type - Type of search ('public', 'admin', 'lists')
@@ -192,6 +170,12 @@ function ajaxSearch(url, type, params, targetElem, successCallback) {
     if (!targetElem) {
         console.error('Target element not found');
         return;
+    }
+    
+    // Ensure URL is absolute and correct (add this code)
+    if (!url.startsWith('http') && !url.startsWith('/')) {
+        // Convert relative path to absolute
+        url = '/prog23/lagerhanteringssystem/' + url;
     }
     
     // Show loading indicator
@@ -212,9 +196,33 @@ function ajaxSearch(url, type, params, targetElem, successCallback) {
     
     xhr.onload = function() {
         if (xhr.status === 200) {
-            targetElem.innerHTML = xhr.responseText;
+            // Extract meta information if available
+            const responseText = xhr.responseText;
+            let totalItems = 0;
+            
+            // Check for meta information in the response
+            const tempDiv = document.createElement('div');
+            tempDiv.innerHTML = responseText;
+            const metaElement = tempDiv.querySelector('#search-meta');
+            
+            if (metaElement) {
+                totalItems = parseInt(metaElement.getAttribute('data-total') || 0);
+                
+                // Update pagination container with total items
+                const paginationContainer = document.getElementById(type === 'public' ? 'public-pagination' : 'pagination');
+                if (paginationContainer) {
+                    paginationContainer.setAttribute('data-total', totalItems);
+                }
+                
+                // Remove meta element from the response
+                tempDiv.removeChild(metaElement);
+                targetElem.innerHTML = tempDiv.innerHTML;
+            } else {
+                targetElem.innerHTML = responseText;
+            }
+            
             if (typeof successCallback === 'function') {
-                successCallback();
+                successCallback(totalItems);
             }
         } else {
             targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Försök igen senare. Status: ${xhr.status}</td></tr>`;
@@ -228,6 +236,62 @@ function ajaxSearch(url, type, params, targetElem, successCallback) {
     };
     
     xhr.send();
+}
+
+/**
+ * Change product status (sell/return) - shared function
+ * 
+ * @param {number} productId - Product ID
+ * @param {number} newStatus - New status (1=Available, 2=Sold)
+ * @param {Function} callback - Optional callback function
+ */
+function changeProductStatus(productId, newStatus) {
+    // Create form data
+    const formData = new FormData();
+    formData.append('action', 'change_status');
+    formData.append('product_id', productId);
+    formData.append('status', newStatus);
+    
+    // Send request
+    fetch('admin/search.php', {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Instead of submitting the form, manually get the search parameters
+            if (document.getElementById('search-term')) {
+                const searchTerm = document.getElementById('search-term').value;
+                const categoryFilter = document.getElementById('category-filter').value;
+                
+                // Use AJAX to refresh just the table without page reload
+                $.ajax({
+                    url: 'admin/search.php',
+                    data: {
+                        ajax: 'admin',
+                        search: searchTerm, 
+                        category: categoryFilter
+                    },
+                    type: 'GET',
+                    success: function(data) {
+                        // Replace table content
+                        $('#inventory-body').html(data);
+                        
+                        // Reattach event listeners
+                        attachActionListeners();
+                    }
+                });
+            }
+        } else {
+            // Show error message
+            showMessage('Error: ' + data.message, 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
+    });
 }
 
 /**
@@ -250,196 +314,23 @@ function updateUrlParams(params) {
 }
 
 /**
- * Make rows clickable (for public inventory table)
- */
-function makeRowsClickable() {
-    const clickableRows = document.querySelectorAll('.clickable-row');
-    clickableRows.forEach(row => {
-        row.addEventListener('click', function(event) {
-            if (!event.target.closest('a') && !event.target.closest('button')) {
-                window.location.href = this.dataset.href;
-            }
-        });
-    });
-}
-
-/**
- * Attach event listeners to action buttons in admin search
- */
-function attachActionListeners() {
-    // Quick sell button click
-    document.querySelectorAll('.quick-sell').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const productId = this.getAttribute('data-id');
-            if (confirm('Är du säker på att du vill markera denna produkt som såld?')) {
-                changeProductStatus(productId, 2); // 2 = Sold
-            }
-        });
-    });
-    
-    // Quick return button click
-    document.querySelectorAll('.quick-return').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const productId = this.getAttribute('data-id');
-            if (confirm('Är du säker på att du vill återställa denna produkt till tillgänglig?')) {
-                changeProductStatus(productId, 1); // 1 = Available
-            }
-        });
-    });
-}
-
-/**
- * Attach event listeners to action buttons in lists tab
- */
-function attachListsActionListeners() {
-    // Handle batch operations
-    document.querySelectorAll('.batch-action').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            const action = this.getAttribute('data-action');
-            performBatchAction(action);
-        });
-    });
-    
-    // Handle "select all" checkbox
-    const selectAllCheckbox = document.getElementById('select-all');
-    if (selectAllCheckbox) {
-        selectAllCheckbox.addEventListener('change', function() {
-            const isChecked = this.checked;
-            document.querySelectorAll('.item-checkbox').forEach(checkbox => {
-                checkbox.checked = isChecked;
-            });
-        });
-    }
-}
-
-/**
- * Change product status (sell/return)
- * 
- * @param {number} productId - Product ID
- * @param {number} newStatus - New status (1=Available, 2=Sold)
- */
-function changeProductStatus(productId, newStatus) {
-    // Create form data
-    const formData = new FormData();
-    formData.append('action', 'change_status');
-    formData.append('product_id', productId);
-    formData.append('status', newStatus);
-    
-    // Send request
-    fetch('admin/search.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            showMessage(data.message, 'success');
-            
-            // Reload search results
-            if (document.getElementById('search-term')) {
-                // We're on the admin search tab
-                document.getElementById('admin-search-form').dispatchEvent(new Event('submit'));
-            }
-        } else {
-            // Show error message
-            showMessage('Error: ' + data.message, 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
-    });
-}
-
-/**
- * Perform batch action on selected items in lists tab
- * 
- * @param {string} action - Action to perform
- */
-function performBatchAction(action) {
-    // Get all selected checkboxes
-    const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-    
-    if (checkboxes.length === 0) {
-        showMessage('Välj minst en produkt för att utföra denna åtgärd.', 'warning');
-        return;
-    }
-    
-    // Confirm action
-    let confirmMessage = 'Är du säker på att du vill utföra denna åtgärd på de valda produkterna?';
-    switch (action) {
-        case 'sell':
-            confirmMessage = 'Är du säker på att du vill markera de valda produkterna som sålda?';
-            break;
-        case 'return':
-            confirmMessage = 'Är du säker på att du vill återställa de valda produkterna till tillgängliga?';
-            break;
-        case 'delete':
-            confirmMessage = 'Är du säker på att du vill ta bort de valda produkterna? Denna åtgärd kan inte ångras!';
-            break;
-    }
-    
-    if (!confirm(confirmMessage)) {
-        return;
-    }
-    
-    // Get selected product IDs
-    const productIds = Array.from(checkboxes).map(checkbox => checkbox.value);
-    
-    // Create form data
-    const formData = new FormData();
-    formData.append('action', 'batch_action');
-    formData.append('batch_action', action);
-    formData.append('product_ids', JSON.stringify(productIds));
-    
-    // Send request
-    fetch('admin/lists.php', {
-        method: 'POST',
-        body: formData
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            // Show success message
-            showMessage(data.message, 'success');
-            
-            // Reload lists results
-            if (document.getElementById('lists-search-form')) {
-                document.getElementById('lists-search-form').dispatchEvent(new Event('submit'));
-            }
-        } else {
-            // Show error message
-            showMessage('Error: ' + data.message, 'danger');
-        }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
-    });
-}
-
-/**
  * Display message to user
  * 
  * @param {string} message - Message to display
  * @param {string} type - Message type ('success', 'danger', 'warning', 'info')
+ * @param {string} containerId - ID of message container
  */
-function showMessage(message, type) {
+function showMessage(message, type, containerId = 'message-container') {
     // Find message container or create it
-    let messageContainer = document.getElementById('message-container');
+    let messageContainer = document.getElementById(containerId);
     
     if (!messageContainer) {
         // Look for a good place to add the message container
         const possibleParents = [
             document.getElementById('admin-search-form'),
             document.getElementById('lists-search-form'),
-            document.getElementById('search-form')
+            document.getElementById('search-form'),
+            document.querySelector('.container')
         ];
         
         let parent = null;
@@ -451,18 +342,13 @@ function showMessage(message, type) {
         }
         
         if (!parent) {
-            // If no suitable parent, use the first container div
-            parent = document.querySelector('.container');
-        }
-        
-        if (!parent) {
             console.error('Cannot find suitable parent for message container');
             return;
         }
         
         // Create message container
         messageContainer = document.createElement('div');
-        messageContainer.id = 'message-container';
+        messageContainer.id = containerId;
         messageContainer.className = 'alert-container mt-3';
         parent.insertAdjacentElement('beforebegin', messageContainer);
     }
@@ -493,4 +379,111 @@ function showMessage(message, type) {
             }
         }, 150);
     }, 5000);
+}
+
+
+// Add event listener for pagination links in admin and lists views
+$(document).on('click', '.pagination-link', function(e) {
+    e.preventDefault();
+    
+    const page = $(this).data('page');
+    const searchForm = $('#admin-search-form, #lists-search-form').first();
+    const searchTerm = searchForm.find('input[name="search"]').val();
+    const category = searchForm.find('select').val();
+    
+    // Determine which tab we're on
+    const isListsTab = document.querySelector('.tab-pane[id="lists"]') !== null;
+    const type = isListsTab ? 'lists' : 'admin';
+    
+    // Find the target element to update
+    const targetElem = isListsTab ? $('#lists-body') : $('#inventory-body');
+    
+    // Construct search parameters
+    const searchParams = {
+        search: searchTerm,
+        category: category,
+        page: page
+    };
+    
+    // Perform AJAX search with pagination
+    ajaxSearch('admin/search.php', type, searchParams, targetElem, function() {
+        // Success callback
+        if (type === 'admin') {
+            attachActionListeners();
+        } else if (type === 'lists') {
+            attachListsActionListeners();
+        }
+        
+        // Update URL without reloading
+        updateUrlParams(Object.assign({}, searchParams, { tab: type }));
+    });
+});
+
+
+// Add to main.js - Event handler for pagination links on the homepage
+$(document).on('click', '.public-pagination-link', function(e) {
+    e.preventDefault();
+    
+    const page = $(this).data('page');
+    const searchForm = $('#search-form');
+    const searchTerm = searchForm.find('input[name="search"]').val();
+    const category = searchForm.find('select').val();
+    
+    // Find the target element to update
+    const targetElem = $('#public-inventory-body');
+    
+    // Construct search parameters
+    const searchParams = {
+        search: searchTerm,
+        category: category,
+        page: page,
+        limit: 10 // Always use 10 for public view
+    };
+    
+    // Show loading indicator
+    targetElem.html('<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+    
+    // Perform AJAX request
+    $.ajax({
+        url: 'admin/search.php',
+        data: {
+            ajax: 'public',
+            ...searchParams
+        },
+        method: 'GET',
+        success: function(response) {
+            // Update the table body with the new results
+            targetElem.html(response);
+            
+            // Update pagination
+            updatePublicPagination(searchParams);
+            
+            // Make rows clickable again
+            makeRowsClickable();
+            
+            // Update URL without reloading
+            updateUrlParams(searchParams);
+            
+            // Scroll to search results
+            document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
+        },
+        error: function() {
+            targetElem.html('<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
+        }
+    });
+});
+
+// Function to update pagination controls on the homepage
+function updatePublicPagination(searchParams) {
+    $.ajax({
+        url: 'admin/search.php',
+        data: {
+            ajax: 'public_pagination',
+            ...searchParams
+        },
+        method: 'GET',
+        success: function(response) {
+            $('#pagination-container').html(response);
+        }
+    });
 }
