@@ -31,3 +31,7 @@
 .position-relative {
     position: relative !important;
 }
+
+.nav-link {
+    cursor: pointer;
+}

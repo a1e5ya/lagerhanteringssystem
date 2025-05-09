@@ -66,6 +66,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         ];
     }
 
+    // Get genre information
+    $genre_id = isset($_POST['genre_id']) ? $_POST['genre_id'] : null;
+    $genres_json = isset($_POST['genres_json']) ? $_POST['genres_json'] : null;
+    $genres = [];
+
+    if (!empty($genres_json)) {
+        $genres = json_decode($genres_json, true);
+    }
+    // If no genres in JSON but genre_id is selected, use that
+    elseif (!empty($genre_id)) {
+        $genres[] = [
+            'genre_id' => $genre_id
+        ];
+    }
+
     // Check if the required field (title) is filled
     if ($title) {
         $imagePath = 'assets/images/product-image-placeholder.png'; // default path / placeholder image
@@ -262,6 +277,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     ?>
                                 </select>
                             </div>
+                            
                             <div class="col-md-6">
                                 <label for="item-genre" class="form-label">Genre</label>
                                 <select class="form-select" id="item-genre" name="genre_id">
@@ -275,6 +291,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 </select>
                             </div>
                         </div>
+
+                        
 
                         <div class="row mb-3">
                             <div class="col-md-4">
