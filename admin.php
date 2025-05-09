@@ -75,6 +75,9 @@ include_once 'templates/admin_header.php';
 <script src="assets/js/ajax.js"></script>
 <script src="assets/js/data-operations.js"></script>
 <script src="assets/js/admin.js"></script>
+<script src="assets/js/main.js"></script>
+<script src="assets/js/lists.js"></script>
+<script src="assets/js/batch-operations.js"></script>
     
     <?php
     // Include admin footer
