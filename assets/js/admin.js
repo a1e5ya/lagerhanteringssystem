@@ -34,6 +34,7 @@ $(document).ready(function() {
             break;
         case "lists":
             url = "lists.php";
+            initializeLists();
             break;
         default:
             return; // Exit if no valid tab
@@ -108,6 +109,327 @@ $(document).ready(function() {
       window.location.href = '/prog23/lagerhanteringssystem/login.php';
     }
   });
+
+  function initializeLists() {
+    console.log("Initializing lists functionality");
+  
+    // Attach handlers to quick filter buttons
+    $(document).on('click', '#list-no-price', function() {
+      console.log("No price filter button clicked");
+      
+      try {
+        // Direct AJAX for quick filter
+        $.ajax({
+          url: 'admin/list_ajax_handler.php',
+          type: 'POST',
+          data: {
+            action: 'get_filtered_products',
+            no_price: true,
+            page: 1,
+            limit: 15
+          },
+          dataType: 'json',
+          success: function(data) {
+            if (data.success) {
+              $('#lists-body').html(data.html);
+              
+              // Update pagination info
+              $('#current-page').text(data.pagination.currentPage);
+              $('#total-pages').text(data.pagination.totalPages);
+              $('#total-count').text(data.pagination.totalResults);
+              
+              // Enable/disable pagination buttons
+              $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+              $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+            }
+          }
+        });
+        
+        // Reset form fields
+        $('#list-categories').val('');
+        $('#list-genre').val('');
+        $('#list-condition').val('');
+        $('#list-status').val('all');
+        $('#price-min').val('');
+        $('#price-max').val('');
+        $('#date-min').val('');
+        $('#date-max').val('');
+        $('#list-search').val('');
+      } catch (error) {
+        console.error("Error handling no price filter:", error);
+      }
+    });
+    
+    $(document).on('click', '#list-poor-condition', function() {
+      console.log("Poor condition button clicked");
+      
+      try {
+        // Direct AJAX for quick filter
+        $.ajax({
+          url: 'admin/list_ajax_handler.php',
+          type: 'POST',
+          data: {
+            action: 'get_filtered_products',
+            poor_condition: true,
+            page: 1,
+            limit: 15
+          },
+          dataType: 'json',
+          success: function(data) {
+            if (data.success) {
+              $('#lists-body').html(data.html);
+              
+              // Update pagination info
+              $('#current-page').text(data.pagination.currentPage);
+              $('#total-pages').text(data.pagination.totalPages);
+              $('#total-count').text(data.pagination.totalResults);
+              
+              // Enable/disable pagination buttons
+              $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+              $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+            }
+          }
+        });
+        
+        // Reset form fields
+        $('#list-categories').val('');
+        $('#list-genre').val('');
+        $('#list-condition').val('');
+        $('#list-status').val('all');
+        $('#price-min').val('');
+        $('#price-max').val('');
+        $('#date-min').val('');
+        $('#date-max').val('');
+        $('#list-search').val('');
+      } catch (error) {
+        console.error("Error handling poor condition filter:", error);
+      }
+    });
+    
+    $(document).on('change', '#shelf-selector', function() {
+      console.log("Shelf selector changed");
+      const shelfName = $(this).val();
+      if (shelfName) {
+        try {
+          // Direct AJAX for shelf filter
+          $.ajax({
+            url: 'admin/list_ajax_handler.php',
+            type: 'POST',
+            data: {
+              action: 'get_filtered_products',
+              shelf: shelfName,
+              page: 1,
+              limit: 15
+            },
+            dataType: 'json',
+            success: function(data) {
+              if (data.success) {
+                $('#lists-body').html(data.html);
+                
+                // Update pagination info
+                $('#current-page').text(data.pagination.currentPage);
+                $('#total-pages').text(data.pagination.totalPages);
+                $('#total-count').text(data.pagination.totalResults);
+                
+                // Enable/disable pagination buttons
+                $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+                $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+              }
+            }
+          });
+          
+          // Reset form fields
+          $('#list-categories').val('');
+          $('#list-genre').val('');
+          $('#list-condition').val('');
+          $('#list-status').val('all');
+          $('#price-min').val('');
+          $('#price-max').val('');
+          $('#date-min').val('');
+          $('#date-max').val('');
+          $('#list-search').val('');
+        } catch (error) {
+          console.error("Error handling shelf filter:", error);
+        }
+      }
+    });
+    
+    $(document).on('change keyup', '#year-threshold', function(event) {
+      if (event.type === 'change' || event.keyCode === 13) {
+        console.log("Year threshold entered");
+        const yearThreshold = $(this).val();
+        if (yearThreshold) {
+          try {
+            // Direct AJAX for year threshold filter
+            $.ajax({
+              url: 'admin/list_ajax_handler.php',
+              type: 'POST',
+              data: {
+                action: 'get_filtered_products',
+                year_threshold: yearThreshold,
+                page: 1,
+                limit: 15
+              },
+              dataType: 'json',
+              success: function(data) {
+                if (data.success) {
+                  $('#lists-body').html(data.html);
+                  
+                  // Update pagination info
+                  $('#current-page').text(data.pagination.currentPage);
+                  $('#total-pages').text(data.pagination.totalPages);
+                  $('#total-count').text(data.pagination.totalResults);
+                  
+                  // Enable/disable pagination buttons
+                  $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+                  $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+                }
+              }
+            });
+            
+            // Reset form fields
+            $('#list-categories').val('');
+            $('#list-genre').val('');
+            $('#list-condition').val('');
+            $('#list-status').val('all');
+            $('#price-min').val('');
+            $('#price-max').val('');
+            $('#date-min').val('');
+            $('#date-max').val('');
+            $('#list-search').val('');
+          } catch (error) {
+            console.error("Error handling year threshold filter:", error);
+          }
+        }
+      }
+    });
+    
+    // Fix for advanced filter button - direct implementation instead of calling potentially problematic function
+    $(document).on('click', '#apply-filter-btn', function() {
+      console.log("Advanced filter button clicked");
+      
+      try {
+        // Get filter values directly from the form
+        const filters = {
+          category: $('#list-categories').val(),
+          genre: $('#list-genre').val(),
+          condition: $('#list-condition').val(),
+          status: $('#list-status').val() || 'all',
+          min_price: $('#price-min').val(),
+          max_price: $('#price-max').val(),
+          min_date: $('#date-min').val(),
+          max_date: $('#date-max').val(),
+          search: $('#list-search').val(),
+          page: 1,
+          limit: 15
+        };
+        
+        console.log("Advanced filters:", filters);
+        
+        // Make the AJAX request directly
+        $.ajax({
+          url: 'admin/list_ajax_handler.php',
+          type: 'POST',
+          data: {
+            action: 'get_filtered_products',
+            ...filters
+          },
+          dataType: 'json',
+          success: function(data) {
+            console.log("Advanced filter response:", data);
+            if (data.success) {
+              $('#lists-body').html(data.html);
+              
+              // Update pagination info
+              $('#current-page').text(data.pagination.currentPage);
+              $('#total-pages').text(data.pagination.totalPages);
+              $('#total-count').text(data.pagination.totalResults);
+              
+              // Enable/disable pagination buttons
+              $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+              $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+            }
+          },
+          error: function(xhr, status, error) {
+            console.error("Advanced filter AJAX error:", error);
+            console.error("Response:", xhr.responseText);
+          }
+        });
+      } catch (error) {
+        console.error("Error in advanced filtering:", error);
+      }
+    });
+    
+    // Add pagination handlers
+    $(document).on('click', '#prev-page-btn', function() {
+      if (!$(this).prop('disabled')) {
+        const currentPage = parseInt($('#current-page').text()) || 1;
+        if (currentPage > 1) {
+          // Make the AJAX request for previous page
+          $.ajax({
+            url: 'admin/list_ajax_handler.php',
+            type: 'POST',
+            data: {
+              action: 'get_filtered_products',
+              page: currentPage - 1,
+              limit: 15
+            },
+            dataType: 'json',
+            success: function(data) {
+              if (data.success) {
+                $('#lists-body').html(data.html);
+                
+                // Update pagination info
+                $('#current-page').text(data.pagination.currentPage);
+                $('#total-pages').text(data.pagination.totalPages);
+                $('#total-count').text(data.pagination.totalResults);
+                
+                // Enable/disable pagination buttons
+                $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+                $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+              }
+            }
+          });
+        }
+      }
+    });
+    
+    $(document).on('click', '#next-page-btn', function() {
+      if (!$(this).prop('disabled')) {
+        const currentPage = parseInt($('#current-page').text()) || 1;
+        const totalPages = parseInt($('#total-pages').text()) || 1;
+        if (currentPage < totalPages) {
+          // Make the AJAX request for next page
+          $.ajax({
+            url: 'admin/list_ajax_handler.php',
+            type: 'POST',
+            data: {
+              action: 'get_filtered_products',
+              page: currentPage + 1,
+              limit: 15
+            },
+            dataType: 'json',
+            success: function(data) {
+              if (data.success) {
+                $('#lists-body').html(data.html);
+                
+                // Update pagination info
+                $('#current-page').text(data.pagination.currentPage);
+                $('#total-pages').text(data.pagination.totalPages);
+                $('#total-count').text(data.pagination.totalResults);
+                
+                // Enable/disable pagination buttons
+                $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
+                $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
+              }
+            }
+          });
+        }
+      }
+    });
+    
+    console.log("Lists initialization complete");
+  }
 
   // Main document ready event handlers
   document.addEventListener('DOMContentLoaded', function() {
