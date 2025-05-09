@@ -309,4 +309,39 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
             $('head').append('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">');
         }
     });
+    $(document).ready(function() {
+    // Initialize the author form functionality
+    initializeAddAuthor();
+});
+// Function to refresh the table after successful submission
+function refreshAuthorsTable() {
+  // Get current sort parameters and page
+  const urlParams = new URLSearchParams(window.location.search);
+  const page = urlParams.get('page') || 1;
+  const sort = urlParams.get('sort') || 'author_id';
+  const order = urlParams.get('order') || 'asc';
+  
+  // Fetch the updated table content
+  $.ajax({
+    url: '/prog23/lagerhanteringssystem/admin/addauthor.php',
+    data: {
+      page: page,
+      sort: sort,
+      order: order
+    },
+    success: function(response) {
+      // Extract just the table content
+      const $tempDiv = $('<div>').html(response);
+      const tableContent = $tempDiv.find('#authors-list').html();
+      
+      // Update just the table body
+      $('#authors-list').html(tableContent);
+      
+      console.log('Authors table refreshed');
+    },
+    error: function() {
+      console.error('Failed to refresh table');
+    }
+  });
+}
 </script>

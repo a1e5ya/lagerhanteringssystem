@@ -147,59 +147,51 @@ function initializeAddProduct() {
 
 // Initialize add author page
 function initializeAddAuthor() {
-  // Set up author form submission
-  const authorForm = document.getElementById("add-author-form");
-  if (authorForm) {
-    $(authorForm)
-      .off("submit")
-      .on("submit", function (e) {
-        e.preventDefault();
-        e.stopPropagation();
-        const form = $(this);
-
-        $.ajax({
-          type: "POST",
-          url: "/prog23/lagerhanteringssystem/admin/addauthor.php",
-          data: form.serialize(),
-          headers: {
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          success: function (response) {
-            try {
-              const data =
-                typeof response === "object" ? response : JSON.parse(response);
-
-              if (data.success) {
-                $("#author-message-container").html(
-                  `<div class='alert alert-success'>${data.message}</div>`
-                );
-                $("#author-message-container").show();
-                form[0].reset();
-              } else {
-                $("#author-message-container").html(
-                  `<div class='alert alert-danger'>${data.message}</div>`
-                );
-                $("#author-message-container").show();
+    // Set up author form submission
+    const authorForm = document.getElementById("add-author-form");
+    if (authorForm) {
+      $(authorForm)
+        .off("submit")
+        .on("submit", function (e) {
+          e.preventDefault();
+          e.stopPropagation();
+          const form = $(this);
+  
+          $.ajax({
+            type: "POST",
+            url: "/prog23/lagerhanteringssystem/admin/addauthor.php",
+            data: form.serialize(),
+            headers: {
+              "X-Requested-With": "XMLHttpRequest",
+            },
+            success: function (response) {
+              try {
+                const data =
+                  typeof response === "object" ? response : JSON.parse(response);
+  
+                if (data.success) {
+                  $("#author-message-container").html(
+                    `<div class='alert alert-success'>${data.message}</div>`
+                  );
+                  $("#author-message-container").show();
+                  form[0].reset();
+                  
+                  // Refresh the table after successful submission
+                  refreshAuthorsTable();
+                } else {
+                  // Error handling...
+                }
+              } catch (e) {
+                // Error handling...
               }
-            } catch (e) {
-              console.error("Error:", e);
-              $("#author-message-container").html(
-                `<div class='alert alert-danger'>Error processing the response.</div>`
-              );
-              $("#author-message-container").show();
-            }
-          },
-          error: function (xhr, status, error) {
-            console.error("AJAX Error:", status, error);
-            $("#author-message-container").html(
-              `<div class='alert alert-danger'>An error occurred.</div>`
-            );
-            $("#author-message-container").show();
-          },
+            },
+            error: function (xhr, status, error) {
+              // Error handling...
+            },
+          });
         });
-      });
+    }
   }
-}
 
 // Helper function to show messages
 function showMessage(message, type) {
