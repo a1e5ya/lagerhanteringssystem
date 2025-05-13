@@ -265,6 +265,60 @@ $(document).ready(function() {
             loadProducts({ page: currentFilters.page + 1 });
         }
     });
+
+    // Clear All Filters button handler
+$('#clear-all-filters').on('click', function() {
+    console.log('Clear all filters button clicked');
+    
+    // Reset all form fields
+    $('#list-categories').val('');
+    $('#list-genre').val('');
+    $('#list-condition').val('');
+    $('#list-status').val('all');
+    $('#price-min').val('');
+    $('#price-max').val('');
+    $('#date-min').val('');
+    $('#date-max').val('');
+    $('#list-search').val('');
+    $('#year-threshold').val('');
+    $('#shelf-selector').val('');
+    
+    // Show loading indicator
+    $('#lists-body').html('<tr><td colspan="10" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+    
+    // Load products with no filters
+    loadProducts({
+        page: 1,
+        limit: 15,
+        // Clear all filter parameters
+        category: '',
+        genre: '',
+        condition: '',
+        status: 'all',
+        min_price: '',
+        max_price: '',
+        min_date: '',
+        max_date: '',
+        search: '',
+        no_price: null,
+        poor_condition: null,
+        year_threshold: null,
+        shelf: null
+    });
+    
+    // Show success message
+    if (typeof showMessage === 'function') {
+        showMessage('Alla filter har rensats', 'success');
+    } else {
+        // Fallback if showMessage function is not available
+        const messageContainer = $('#message-container');
+        if (messageContainer.length === 0) {
+            $('#lists').prepend('<div id="message-container" class="alert alert-success alert-dismissible fade show">Alla filter har rensats<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+        } else {
+            messageContainer.html('<div class="alert alert-success alert-dismissible fade show">Alla filter har rensats<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+        }
+    }
+});
     
     // Initialize the page
     updateSelectedItems();

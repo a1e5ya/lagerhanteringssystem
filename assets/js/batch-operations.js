@@ -21,51 +21,10 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set up batch operation buttons
         setupBatchButtons();
         
-        // Make rows clickable for product details
-        makeRowsClickable();
-        
-        // Log initial state
-        logElementsState();
+
     }
     
-    // Log the state of important elements
-    function logElementsState() {
-        console.log('🔍 Checking elements state:');
-        
-        // Check select all checkbox
-        const selectAllCheckbox = document.getElementById('select-all');
-        console.log('Select all checkbox:', selectAllCheckbox ? 'Found' : 'NOT FOUND');
-        
-        // Check individual checkboxes
-        const checkboxes = document.querySelectorAll('input[name="list-item"]');
-        console.log('Individual checkboxes:', checkboxes.length, 'found');
-        
-        // Check batch buttons
-        const batchUpdatePriceBtn = document.getElementById('batch-update-price');
-        console.log('Update price button:', batchUpdatePriceBtn ? 'Found' : 'NOT FOUND');
-        
-        const batchUpdateStatusBtn = document.getElementById('batch-update-status');
-        console.log('Update status button:', batchUpdateStatusBtn ? 'Found' : 'NOT FOUND');
-        
-        const batchMoveShelfBtn = document.getElementById('batch-move-shelf');
-        console.log('Move shelf button:', batchMoveShelfBtn ? 'Found' : 'NOT FOUND');
-        
-        const batchDeleteBtn = document.getElementById('batch-delete');
-        console.log('Delete button:', batchDeleteBtn ? 'Found' : 'NOT FOUND');
-        
-        // Check modal elements
-        const updatePriceModal = document.getElementById('updatePriceModal');
-        console.log('Update price modal:', updatePriceModal ? 'Found' : 'NOT FOUND');
-        
-        const updateStatusModal = document.getElementById('updateStatusModal');
-        console.log('Update status modal:', updateStatusModal ? 'Found' : 'NOT FOUND');
-        
-        const moveShelfModal = document.getElementById('moveShelfModal');
-        console.log('Move shelf modal:', moveShelfModal ? 'Found' : 'NOT FOUND');
-        
-        const deleteConfirmModal = document.getElementById('deleteConfirmModal');
-        console.log('Delete confirm modal:', deleteConfirmModal ? 'Found' : 'NOT FOUND');
-    }
+
     
     // Set up checkbox behavior
     function setupCheckboxes() {

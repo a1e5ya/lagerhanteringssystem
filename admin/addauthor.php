@@ -97,20 +97,19 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
 ?>
 
 <div class="container mt-2">
-    <h2>Lägg till Författare</h2>
     <div id="author-message-container"></div>
     <form id="add-author-form" onsubmit="return false;">
         <div class="row g-2 align-items-end mb-3">
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <label for="first_name" class="form-label">Förnamn</label>
                 <input type="text" class="form-control" id="first_name" name="first_name" required>
             </div>
-            <div class="col-md-4">
+            <div class="col-md-5">
                 <label for="last_name" class="form-label">Efternamn</label>
                 <input type="text" class="form-control" id="last_name" name="last_name" required>
             </div>
-            <div class="col-md-4">
-                <button type="submit" class="btn btn-primary mt-4">Lägg till</button>
+            <div class="col-md-2">
+                <button type="submit" class="btn btn-primary mt-4 px-5">Lägg till</button>
             </div>
         </div>
     </form>
@@ -144,12 +143,12 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                                 <td>" . htmlspecialchars($row['first_name']) . "</td>
                                 <td>" . htmlspecialchars($row['last_name']) . "</td>
                                 <td>
-                                <a href=\"#\" class=\"edit-item btn btn-warning btn-sm\" 
+                                <a href=\"#\" class=\"edit-item btn btn-outline-primary btn-sm\" 
                                     data-id=\"" . $row['author_id'] . "\" 
                                     data-type=\"author\" 
                                     data-first-name=\"" . htmlspecialchars($row['first_name']) . "\" 
                                     data-last-name=\"" . htmlspecialchars($row['last_name']) . "\">Redigera</a>
-                                <a href=\"javascript:void(0);\" class=\"btn btn-danger btn-sm delete-item\" 
+                                <a href=\"javascript:void(0);\" class=\"btn btn-outline-danger btn-sm delete-item\" 
                                     data-id=\"" . $row['author_id'] . "\" 
                                     data-type=\"author\">Ta bort</a>
                                 </td>
@@ -171,7 +170,7 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                         <a class="page-link pagination-link"
                             href="<?php echo ($page <= 1) ? '#' : "?tab=addauthor&page=" . ($page - 1) . "&sort={$sort_column}&order={$sort_order}"; ?>"
                             <?php echo ($page <= 1) ? 'tabindex="-1" aria-disabled="true"' : ''; ?>>
-                            Föregående
+                            «
                         </a>
                     </li>
 
@@ -205,7 +204,7 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                     <li class="page-item <?php echo ($page >= $total_pages) ? 'disabled' : ''; ?>">
                         <a class="page-link pagination-link"
                             href="<?php echo ($page >= $total_pages) ? '#' : "?tab=addauthor&page=" . ($page + 1) . "&sort={$sort_column}&order={$sort_order}"; ?>">
-                            Nästa
+                            »
                         </a>
                     </li>
                 </ul>

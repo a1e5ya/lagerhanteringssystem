@@ -220,7 +220,7 @@ include 'templates/header.php';
 ?>
 
 <!-- Main Content Container -->
-<div class="container my-5">
+<div class="container my-5 pb-5">
     <div class="row">
 
         

@@ -514,6 +514,11 @@ $initialProducts = selectListItems(['page' => 1, 'limit' => 15]);
                     </div>
                 </button>
             </div>
+          <!--  <div class="col-md-2 mb-2">
+    <button class="btn btn-outline-danger w-100" id="clear-all-filters">
+        <i class="fas fa-times me-1"></i> Rensa alla filter
+    </button> -->
+</div>
         </div>
         <br>
 
@@ -1301,29 +1306,6 @@ function loadProducts(filters = {}) {
         }, 5000);
     }
     
-    // Make rows clickable (to view product details)
-    function makeRowsClickable() {
-        const rows = document.querySelectorAll('#lists-body tr');
-        
-        rows.forEach(row => {
-            row.addEventListener('click', function(e) {
-                // Don't navigate if clicking on checkbox or if checkbox is clicked
-                if (e.target.type === 'checkbox' || e.target.closest('input[type="checkbox"]')) {
-                    return;
-                }
-                
-                // Get product ID from the checkbox in this row
-                const checkbox = row.querySelector('input[name="list-item"]');
-                if (checkbox) {
-                    const productId = checkbox.value;
-                    // Navigate to single product view
-                    window.location.href = `adminsingleproduct.php?id=${productId}`;
-                }
-            });
-        });
-    }
-    
-    // Initialize by making rows clickable
-    makeRowsClickable();
+
 });
 </script>
