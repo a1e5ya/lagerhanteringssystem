@@ -1,0 +1,209 @@
+Karis Antikvariat - System Specification Update 
+
+1. System Overview 
+
+The Karis Antikvariat Inventory System is a comprehensive web-based application designed to manage inventory for a bookstore specializing in Nordic literature, music, and collectibles. This specification outlines the updates and enhancements to be made to the existing system. 
+
+2. User Roles and Access Control 
+
+Admin (Role ID 1): Full access to all system features, user management, database management, and settings. 
+
+Editor (Role ID 2): Create, edit, sell items, generate reports/lists, and perform batch operations. 
+
+Guest (Role ID 3): Search-only access on the public-facing website. 
+
+The system will continue to maintain an event log tracking all actions and the users who performed them. 
+
+3. Page Structure and Functionality Updates 
+
+3.1 Public-Facing Pages 
+
+Home Page (index.php) Updates 
+
+Add "We Recommend" section (4 items marked as recommended) 
+
+Update Sale section to show special_price items 
+
+Ensure only available (non-sold) products are displayed 
+
+New Sale Page (sale.php) 
+
+Dedicated page for viewing items marked as special_price 
+
+Filtering capabilities 
+
+Attractive display with product cards 
+
+Only shows available products 
+
+Single Product Page (singleproduct.php) Updates 
+
+Support for multiple product images with gallery view 
+
+Support for multiple authors 
+
+Support for multiple genres 
+
+3.2 Admin Interface Pages Updates 
+
+Search Tab (search.php) 
+
+Update default filter to show only available products 
+
+Simplified display without ID column 
+
+Add Item Tab (addproduct.php) 
+
+Update author field to use single name instead of first_name/last_name 
+
+Add multiple author support with dynamic field addition 
+
+Add multiple genre support with dynamic field addition 
+
+Add multiple image upload capability 
+
+Add "Recommended" checkbox option 
+
+Edit Product Page (adminsingleproduct.php) 
+
+Update to match addproduct.php changes 
+
+Add ability to manage multiple authors and genres 
+
+Add ability to manage multiple product images 
+
+Add image reordering capability 
+
+Add "Recommended" checkbox option 
+
+Add Author Page (addauthor.php) 
+
+Update to use single name field instead of first_name/last_name 
+
+Improve UI with consistent styling 
+
+Database Management Tab (tabledatamanagement.php) 
+
+Implement accordion interface for better organization 
+
+Update to handle new database structure 
+
+Add database backup functionality 
+
+Bilingual support for Finnish names in relevant tables 
+
+Lists Tab (lists.php) 
+
+Implement accordion interface for filtering options 
+
+Add "Clear all filters" button 
+
+Remove ID column from display 
+
+Add "Sale" and "Recommended" columns 
+
+Add new batch operations: Recommended, Sale (Special Price), Rarity 
+
+Update export functionality to include image URLs 
+
+User Management (usermanagement.php) 
+
+Add user history/log viewing 
+
+4. Technical Requirements 
+
+4.1 Frontend Updates 
+
+Accordion interfaces for better organization 
+
+Mobile-friendly card views for products 
+
+Consistent styling for all pages 
+
+Improved error and confirmation messages 
+
+4.2 Backend Updates 
+
+Add new core functionality:  
+
+Database backup and restoration 
+
+Multiple image handling 
+
+Multiple author/genre support 
+
+Standardized error handling 
+
+4.3 Security Enhancements 
+
+Implement safeEcho() consistently across all output 
+
+Add input validation for all forms 
+
+Ensure all database operations use prepared statements 
+
+Add transaction blocks for all multi-step operations 
+
+5. Development Guidelines 
+
+5.1 Mobile Optimization 
+
+Card-based layouts for product listings on mobile 
+
+Simplified display with key information (title, author, price) 
+
+Touch-friendly interface elements 
+
+Responsive tables with appropriate display on small screens 
+
+5.2 Code Organization 
+
+Follow consistent naming conventions 
+
+Use PHPDoc and JSDoc for all functions and methods 
+
+Centralize common functionality in appropriate files 
+
+Use consistent error handling patterns 
+
+5.3 UI Standardization 
+
+Use consistent styling for all form elements 
+
+Standardize button placement and naming 
+
+Ensure consistent error and success message display 
+
+Implement uniform pagination and sorting across all tables 
+
+6. Testing Strategy 
+
+6.1 Functional Testing 
+
+Verify all CRUD operations for products, authors, etc. 
+
+Test batch operations with varying numbers of items 
+
+Validate form submissions with valid and invalid data 
+
+Check search functionality with different criteria 
+
+6.2 Mobile Testing 
+
+Test on various device sizes (phone, tablet) 
+
+Verify touch interactions work properly 
+
+Check that all content is accessible on small screens 
+
+6.3 Performance Testing 
+
+Verify system performance with large datasets 
+
+Test response times for complex queries 
+
+Check memory usage during batch operations 
+
+Validate export functionality with large datasets 
+
+ 

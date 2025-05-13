@@ -1,54 +1,108 @@
-# Karis Antikvariat - Inventory System
+# Karis Antikvariat - Inventory Management System
 
 ## Project Overview
 
-Karis Antikvariat is a comprehensive web-based application designed to manage inventory for a bookstore. The system aims to streamline inventory management and facilitate easier search capabilities for staff and visitors.
+Karis Antikvariat is a comprehensive web-based application designed to manage inventory for a bookstore specializing in Nordic literature, music, and collectibles. The system streamlines inventory management and provides easy search capabilities for both staff and customers.
 
-## Features
+## Core Features
 
-- Multi-language support (Swedish/Finnish)
-- Role-based access control
-- Comprehensive product management
-- Advanced search and filtering
-- List generation with batch operations
-- User management
-- Newsletter subscription
-- Event logging for audit trail
+- **Multilingual Support**: Complete Swedish/Finnish language interface
+- **Role-Based Access Control**: Admin, Editor, and Guest user levels
+- **Comprehensive Product Management**: Support for multiple authors, genres, and images per product
+- **Advanced Search and Filtering**: Intuitive search across all product attributes
+- **Batch Operations**: Powerful tools for managing multiple products simultaneously
+- **Special Product Sections**: Sale items, rare items, and staff recommendations
+- **Database Backup**: One-click database backup and restoration
+- **User Management**: Complete user administration with event logging
+- **Newsletter Subscription**: Customer engagement through newsletter
 
-## Technologies
+## Technical Architecture
 
-- PHP 7.4+
-- MySQL 5.7+
-- HTML5/CSS3 with Bootstrap
-- jQuery and JavaScript
+- **Frontend**: HTML5, CSS3, Bootstrap 5, jQuery, JavaScript
+- **Backend**: PHP 7.4+
+- **Database**: MySQL 5.7+
+- **Additional Features**: WebP image optimization, CSV export/import
 
-## Requirements
+## System Requirements
 
 - Web server (Apache/Nginx)
-- MySQL database
 - PHP 7.4 or higher
-- Modern web browser
+- MySQL 5.7 or higher
+- Modern web browser with JavaScript enabled
 
 ## Installation
 
-1. Clone the repository to your web server directory
-2. Import database schema (`/db/schema.sql`)
-3. Import initial seed data (`/db/seed.sql`)
-4. Configure database connection in `/config/config.php`
-5. Ensure proper file permissions (especially for `/uploads/` directory)
-6. Access the system via web browser
+1. Clone the repository to your web server directory:
+   ```
+   git clone https://github.com/your-username/karis-antikvariat.git
+   ```
+
+2. Import database schema and seed data:
+   ```
+   mysql -u username -p database_name < db/schema.sql
+   mysql -u username -p database_name < db/seed.sql
+   ```
+
+3. Configure database connection in `/config/config.php`
+
+4. Ensure proper file permissions:
+   ```
+   chmod 755 -R assets/uploads/
+   chmod 755 -R backups/
+   chmod 755 -R logs/
+   ```
+
+5. Access the system via web browser
 
 ## User Roles
 
-- **Admin**: Full access to all system features, user management, and settings
-- **Editor**: Create, edit, sell items, and generate reports/lists
-- **Guest**: Search-only access on the public-facing website
+- **Admin** (Role ID 1): Full access to all system features, user management, and database management
+- **Editor** (Role ID 2): Create, edit, sell items, and generate reports/lists
+- **Guest** (Role ID 3): Search-only access on the public-facing website
 
-## Development
+## Directory Structure
 
-### Development Environment
+```
+/
+├── admin/                  # Admin interface files
+├── assets/                 # Static assets
+│   ├── css/                # Stylesheets
+│   ├── images/             # Static images
+│   ├── js/                 # JavaScript files
+│   └── uploads/            # User uploaded files
+├── backups/                # Database backups
+├── config/                 # Configuration files
+├── db/                     # Database structure files
+├── includes/               # Core functionality
+├── languages/              # Localization files
+├── logs/                   # Error and activity logs
+├── templates/              # Page templates
+```
 
-We recommend using XAMPP or Laragon for local development.
+## Key Files and Components
+
+- `Database.php`: Centralized database operations
+- `ErrorHandler.php`: Standardized error handling
+- `ImageProcessor.php`: Image optimization (WebP conversion)
+- `sale.php`: Special price items display
+- `admin/backup.php`: Database backup functionality
+- `admin/lists.php`: Advanced product management
+
+## Default Login
+
+Default admin credentials for development environment:
+- Username: `admin`
+- Password: `admin`
+
+**IMPORTANT**: Change these credentials immediately in production!
+
+## Developer Guidelines
+
+- Follow PHPDoc and JSDoc standards for comments
+- Use safeEcho() for all content output to prevent XSS
+- Put all database operations in transaction blocks
+- Add descriptive log entries for all significant events
+- Follow the established error handling pattern
 
 ## License
 
@@ -60,6 +114,3 @@ This project is licensed under the MIT License - see the LICENSE file for detail
 - Uses Bootstrap for responsive design
 - Implements a custom database abstraction layer
 
-## Contact
-
-For support or inquiries, please contact the project maintainers.

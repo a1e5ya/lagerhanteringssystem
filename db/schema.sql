@@ -6,7 +6,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: localhost:3306
--- Generation Time: Apr 10, 2025 at 08:01 AM
+-- Generation Time: May 13, 2025 at 08:01 AM
 -- Server version: 8.0.30
 -- PHP Version: 8.1.10
 
@@ -31,8 +31,7 @@ SET time_zone = "+00:00";
 
 CREATE TABLE `author` (
   `author_id` int NOT NULL,
-  `first_name` varchar(100) DEFAULT NULL,
-  `last_name` varchar(100) NOT NULL
+  `author_name` varchar(200) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -43,7 +42,8 @@ CREATE TABLE `author` (
 
 CREATE TABLE `category` (
   `category_id` int NOT NULL,
-  `category_name` varchar(100) NOT NULL
+  `category_sv_name` varchar(100) NOT NULL,
+  `category_fi_name` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -54,9 +54,10 @@ CREATE TABLE `category` (
 
 CREATE TABLE `condition` (
   `condition_id` int NOT NULL,
-  `condition_name` varchar(50) NOT NULL,
+  `condition_sv_name` varchar(50) NOT NULL,
+  `condition_fi_name` varchar(50) NOT NULL,
   `condition_code` varchar(10) NOT NULL,
-  `condition_description` text
+  `condition_description` text DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -69,7 +70,7 @@ CREATE TABLE `event_log` (
   `event_id` int NOT NULL,
   `user_id` int DEFAULT NULL,
   `event_type` varchar(50) NOT NULL,
-  `event_description` text,
+  `event_description` text DEFAULT NULL,
   `event_timestamp` datetime DEFAULT CURRENT_TIMESTAMP,
   `product_id` int DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
@@ -82,7 +83,31 @@ CREATE TABLE `event_log` (
 
 CREATE TABLE `genre` (
   `genre_id` int NOT NULL,
-  `genre_name` varchar(100) NOT NULL
+  `genre_sv_name` varchar(100) NOT NULL,
+  `genre_fi_name` varchar(100) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `image`
+--
+
+CREATE TABLE `image` (
+  `image_id` int NOT NULL,
+  `image_name` varchar(50) NOT NULL UNIQUE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `language`
+--
+
+CREATE TABLE `language` (
+  `language_id` int NOT NULL,
+  `language_sv_name` varchar(50) NOT NULL UNIQUE,
+  `language_fi_name` varchar(50) NOT NULL UNIQUE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -114,14 +139,16 @@ CREATE TABLE `product` (
   `category_id` int DEFAULT NULL,
   `price` decimal(10,2) DEFAULT NULL,
   `condition_id` int DEFAULT NULL,
-  `notes` text,
-  `internal_notes` text,
-  `language` varchar(50) DEFAULT NULL,
+  `notes` text DEFAULT NULL,
+  `internal_notes` text DEFAULT NULL,
+  `language` int DEFAULT NULL,
   `year` int DEFAULT NULL,
   `publisher` varchar(100) DEFAULT NULL,
   `special_price` tinyint(1) DEFAULT '0',
+  `recommended` tinyint(1) DEFAULT '0',
   `rare` tinyint(1) DEFAULT '0',
-  `date_added` datetime DEFAULT CURRENT_TIMESTAMP
+  `date_added` datetime DEFAULT CURRENT_TIMESTAMP,
+  `image` varchar(255) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -151,12 +178,25 @@ CREATE TABLE `product_genre` (
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `product_image`
+--
+
+CREATE TABLE `product_image` (
+  `product_image_id` int NOT NULL,
+  `product_id` int DEFAULT NULL,
+  `image_id` int DEFAULT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `shelf`
 --
 
 CREATE TABLE `shelf` (
   `shelf_id` int NOT NULL,
-  `shelf_name` varchar(100) NOT NULL
+  `shelf_sv_name` varchar(100) NOT NULL,
+  `shelf_fi_name` varchar(100) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 -- --------------------------------------------------------
@@ -167,18 +207,9 @@ CREATE TABLE `shelf` (
 
 CREATE TABLE `status` (
   `status_id` int NOT NULL,
-  `status_name` varchar(50) NOT NULL
+  `status_sv_name` varchar(50) NOT NULL,
+  `status_fi_name` varchar(50) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
-
---
--- Dumping data for table `status`
---
-
-INSERT INTO `status` (`status_id`, `status_name`) VALUES
-(1, 'Available'),
-(4, 'Damaged'),
-(3, 'Reserved'),
-(2, 'Sold');
 
 -- --------------------------------------------------------
 
@@ -198,13 +229,6 @@ CREATE TABLE `user` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
--- Dumping data for table `user`
---
-
-INSERT INTO `user` (`user_id`, `user_username`, `user_password_hash`, `user_role`, `user_email`, `user_last_login`, `user_created_at`, `user_is_active`) VALUES
-(1, 'admin', '$2y$10$6SybWLDYMQG/bMM/YzwsA.wF6YXRZ3KWzgsHcuLEfEHQBGNNTS2G2', 1, 'admin@karisantikvariat.fi', NULL, '2025-04-10 10:41:05', 1);
-
---
 -- Indexes for dumped tables
 --
 
@@ -219,7 +243,7 @@ ALTER TABLE `author`
 --
 ALTER TABLE `category`
   ADD PRIMARY KEY (`category_id`),
-  ADD UNIQUE KEY `category_name` (`category_name`);
+  ADD UNIQUE KEY `category_name` (`category_sv_name`);
 
 --
 -- Indexes for table `condition`
@@ -240,7 +264,22 @@ ALTER TABLE `event_log`
 --
 ALTER TABLE `genre`
   ADD PRIMARY KEY (`genre_id`),
-  ADD UNIQUE KEY `genre_name` (`genre_name`);
+  ADD UNIQUE KEY `genre_name` (`genre_sv_name`);
+
+--
+-- Indexes for table `image`
+--
+ALTER TABLE `image`
+  ADD PRIMARY KEY (`image_id`),
+  ADD UNIQUE KEY `image_name` (`image_name`);
+
+--
+-- Indexes for table `language`
+--
+ALTER TABLE `language`
+  ADD PRIMARY KEY (`language_id`),
+  ADD UNIQUE KEY `language_sv_name` (`language_sv_name`),
+  ADD UNIQUE KEY `language_fi_name` (`language_fi_name`);
 
 --
 -- Indexes for table `newsletter_subscriber`
@@ -257,7 +296,8 @@ ALTER TABLE `product`
   ADD KEY `shelf_id` (`shelf_id`),
   ADD KEY `category_id` (`category_id`),
   ADD KEY `condition_id` (`condition_id`),
-  ADD KEY `idx_product_status` (`status`);
+  ADD KEY `idx_product_status` (`status`),
+  ADD KEY `language` (`language`);
 
 --
 -- Indexes for table `product_author`
@@ -276,18 +316,26 @@ ALTER TABLE `product_genre`
   ADD KEY `genre_id` (`genre_id`);
 
 --
+-- Indexes for table `product_image`
+--
+ALTER TABLE `product_image`
+  ADD PRIMARY KEY (`product_image_id`),
+  ADD KEY `product_id` (`product_id`),
+  ADD KEY `image_id` (`image_id`);
+
+--
 -- Indexes for table `shelf`
 --
 ALTER TABLE `shelf`
   ADD PRIMARY KEY (`shelf_id`),
-  ADD UNIQUE KEY `shelf_name` (`shelf_name`);
+  ADD UNIQUE KEY `shelf_name` (`shelf_sv_name`);
 
 --
 -- Indexes for table `status`
 --
 ALTER TABLE `status`
   ADD PRIMARY KEY (`status_id`),
-  ADD UNIQUE KEY `status_name` (`status_name`);
+  ADD UNIQUE KEY `status_name` (`status_sv_name`);
 
 --
 -- Indexes for table `user`
@@ -332,6 +380,18 @@ ALTER TABLE `genre`
   MODIFY `genre_id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `image`
+--
+ALTER TABLE `image`
+  MODIFY `image_id` int NOT NULL AUTO_INCREMENT;
+
+--
+-- AUTO_INCREMENT for table `language`
+--
+ALTER TABLE `language`
+  MODIFY `language_id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `newsletter_subscriber`
 --
 ALTER TABLE `newsletter_subscriber`
@@ -356,6 +416,12 @@ ALTER TABLE `product_genre`
   MODIFY `product_genre_id` int NOT NULL AUTO_INCREMENT;
 
 --
+-- AUTO_INCREMENT for table `product_image`
+--
+ALTER TABLE `product_image`
+  MODIFY `product_image_id` int NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `shelf`
 --
 ALTER TABLE `shelf`
@@ -365,13 +431,13 @@ ALTER TABLE `shelf`
 -- AUTO_INCREMENT for table `status`
 --
 ALTER TABLE `status`
-  MODIFY `status_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `status_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `user`
 --
 ALTER TABLE `user`
-  MODIFY `user_id` int NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=2;
+  MODIFY `user_id` int NOT NULL AUTO_INCREMENT;
 
 --
 -- Constraints for dumped tables
@@ -391,7 +457,8 @@ ALTER TABLE `product`
   ADD CONSTRAINT `product_ibfk_1` FOREIGN KEY (`shelf_id`) REFERENCES `shelf` (`shelf_id`),
   ADD CONSTRAINT `product_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`),
   ADD CONSTRAINT `product_ibfk_3` FOREIGN KEY (`condition_id`) REFERENCES `condition` (`condition_id`),
-  ADD CONSTRAINT `product_ibfk_4` FOREIGN KEY (`status`) REFERENCES `status` (`status_id`);
+  ADD CONSTRAINT `product_ibfk_4` FOREIGN KEY (`status`) REFERENCES `status` (`status_id`),
+  ADD CONSTRAINT `product_ibfk_5` FOREIGN KEY (`language`) REFERENCES `language` (`language_id`);
 
 --
 -- Constraints for table `product_author`
@@ -406,6 +473,13 @@ ALTER TABLE `product_author`
 ALTER TABLE `product_genre`
   ADD CONSTRAINT `product_genre_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `product` (`prod_id`),
   ADD CONSTRAINT `product_genre_ibfk_2` FOREIGN KEY (`genre_id`) REFERENCES `genre` (`genre_id`);
+
+--
+-- Constraints for table `product_image`
+--
+ALTER TABLE `product_image`
+  ADD CONSTRAINT `product_image_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `product` (`prod_id`),
+  ADD CONSTRAINT `product_image_ibfk_2` FOREIGN KEY (`image_id`) REFERENCES `image` (`image_id`);
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
