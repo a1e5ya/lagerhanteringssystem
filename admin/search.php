@@ -721,34 +721,35 @@ function searchProducts(?array $searchParams = null): array
 
     // Build SQL query with updated author field (author_name instead of first_name/last_name)
     $sql = "SELECT
-                p.prod_id,
-                p.title,
-                p.status,
-                {$statusNameField} as status_name,
-                p.shelf_id,
-                {$shelfNameField} as shelf_name,
-                a.author_name,
-                {$categoryNameField} as category_name,
-                p.category_id,
-                GROUP_CONCAT(DISTINCT {$genreNameField} SEPARATOR ', ') AS genre_names,
-                {$conditionNameField} as condition_name,
-                p.price,
-                p.language,
-                p.year,
-                p.publisher,
-                p.special_price,
-                p.rare,
-                p.recommended,
-                p.date_added
-            FROM product p
-            LEFT JOIN product_author pa ON p.prod_id = pa.product_id
-            LEFT JOIN author a ON pa.author_id = a.author_id
-            JOIN category cat ON p.category_id = cat.category_id
-            LEFT JOIN shelf sh ON p.shelf_id = sh.shelf_id
-            LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
-            LEFT JOIN genre g ON pg.genre_id = g.genre_id
-            JOIN `condition` con ON p.condition_id = con.condition_id
-            JOIN `status` s ON p.status = s.status_id";
+    p.prod_id,
+    p.title,
+    p.status,
+    {$statusNameField} as status_name,
+    p.shelf_id,
+    {$shelfNameField} as shelf_name,
+    a.author_name,
+    {$categoryNameField} as category_name,
+    p.category_id,
+    GROUP_CONCAT(DISTINCT {$genreNameField} SEPARATOR ', ') AS genre_names,
+    {$conditionNameField} as condition_name,
+    p.price,
+    IFNULL(lang.language_sv_name, '') as language,  /* Get language name from language table */
+    p.year,
+    p.publisher,
+    p.special_price,
+    p.rare,
+    p.recommended,
+    p.date_added
+FROM product p
+LEFT JOIN product_author pa ON p.prod_id = pa.product_id
+LEFT JOIN author a ON pa.author_id = a.author_id
+JOIN category cat ON p.category_id = cat.category_id
+LEFT JOIN shelf sh ON p.shelf_id = sh.shelf_id
+LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
+LEFT JOIN genre g ON pg.genre_id = g.genre_id
+JOIN `condition` con ON p.condition_id = con.condition_id
+JOIN `status` s ON p.status = s.status_id
+LEFT JOIN `language` lang ON p.language_id = lang.language_id";
     
     // Add WHERE clause only if we have search parameters
     $whereConditions = [];
@@ -807,9 +808,9 @@ function searchProducts(?array $searchParams = null): array
     // Add GROUP BY and ORDER BY
     // Include all non-aggregated columns in GROUP BY to satisfy ONLY_FULL_GROUP_BY mode
     $sql .= " GROUP BY p.prod_id, p.title, p.status, {$statusNameField}, p.shelf_id, {$shelfNameField}, 
-              a.author_name, {$categoryNameField}, p.category_id, {$conditionNameField}, 
-              p.price, p.language, p.year, p.publisher, p.special_price, p.rare, p.recommended, p.date_added 
-              ORDER BY p.title ASC";
+    a.author_name, {$categoryNameField}, p.category_id, {$conditionNameField}, 
+    p.price, lang.language_sv_name, p.year, p.publisher, p.special_price, p.rare, p.recommended, p.date_added 
+    ORDER BY p.title ASC";
     
     // Save the query for counting total results
     $countSql = $sql;
