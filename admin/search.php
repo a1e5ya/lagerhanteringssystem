@@ -3,23 +3,278 @@
  * Search Products
  * 
  * Contains:
- * - Product search functionality
- * - AJAX endpoints for public and admin search
+ * - Product search functionality for both public and admin interfaces
+ * - AJAX endpoints for search results
  * - Product status management
+ * - Renders product data in different formats
  * 
- * Functions:
- * - searchProducts() - Searches products based on criteria
- * - renderIndexProducts() - For public view
- * - renderAdminProducts() - For admin view only
- * - changeProductSaleStatus() - Changes product availability
+ * @package    KarisAntikvariat
+ * @subpackage Admin
+ * @author     Axxell
+ * @version    2.0
  */
 
-define('BASE_PATH', dirname(__DIR__));
+ define('BASE_PATH', dirname(__DIR__));
 
-// Include necessary files if not already included
-if (!function_exists('safeEcho')) {
-    require_once BASE_PATH . '/includes/functions.php';
-}
+ // Include necessary files if not already included
+ if (!function_exists('safeEcho')) {
+     require_once BASE_PATH . '/includes/functions.php';
+ }
+ require_once BASE_PATH . '/config/config.php';
+ 
+ // Check and include Formatter.php if exists
+ if (file_exists(BASE_PATH . '/includes/Formatter.php')) {
+     require_once BASE_PATH . '/includes/Formatter.php';
+ }
+
+// Create formatter instance
+$formatter = new Formatter();
+
+// Render the search form for the admin page
+if (basename($_SERVER['PHP_SELF']) === 'admin.php' || strpos($_SERVER['REQUEST_URI'], 'admin') !== false) {
+    // Get categories for dropdown
+    $categories = getCategories();
+    
+    // Get current page from GET parameters
+    $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+    ?>
+    
+    <div class="tab-pane fade show active" id="search">
+        <form method="GET" action="javascript:void(0);" id="admin-search-form">
+            <div class="row mb-3">
+                <div class="col-12 mb-3">
+                    <label for="search-term" class="form-label">Sökterm</label>
+                    <input type="text" class="form-control" id="search-term" name="search" placeholder="Ange titel, författare eller ID" value="<?= safeEcho($_GET['search'] ?? '') ?>">
+                </div>
+            </div>
+            <div class="row mb-4">
+                <div class="col-md-6 mb-3 mb-md-0">
+                    <label for="category-filter" class="form-label">Kategorifilter</label>
+                    <select class="form-select" id="category-filter" name="category">
+                        <option value="all">Alla</option>
+                        <?php foreach ($categories as $category): ?>
+                        <option value="<?= safeEcho($category['category_id']) ?>" <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
+                            <?= safeEcho($category['category_name']) ?>
+                        </option>
+                        <?php endforeach; ?>
+                    </select>
+                </div>
+                <div class="col-md-6 d-flex align-items-end">
+                    <button id="search-btn" class="btn btn-primary w-100" type="submit">Sök</button>
+                </div>
+            </div>
+            <input type="hidden" name="tab" value="search">
+            <input type="hidden" name="page" value="1" id="admin-current-page">
+            <input type="hidden" name="limit" value="20">
+        </form>
+        
+        <div class="table-responsive mt-4">
+            <table class="table table-hover" id="inventory-table">
+                <thead class="table-light">
+                    <tr>
+                        <th>Titel</th>
+                        <th>Författare</th>
+                        <th>Kategori</th>
+                        <th>Hylla</th>
+                        <th>Pris</th>
+                        <th>Status</th>
+                        <th>Specialmärkning</th>
+                        <th>Åtgärder</th>
+                    </tr>
+                </thead>
+                <tbody id="inventory-body">
+                    <?php
+                    // Get search parameters (if any)
+                    $searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
+                    $categoryFilter = isset($_GET['category']) ? $_GET['category'] : 'all';
+                    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+                    
+                    // Prepare search parameters
+                    $searchParams = [
+                        'page' => $page,
+                        'limit' => 20,
+                        'show_all_statuses' => true // Admin should see all products regardless of status
+                    ];
+                    
+                    if (!empty($searchTerm)) {
+                        $searchParams['search'] = $searchTerm;
+                    }
+                    if ($categoryFilter !== 'all') {
+                        $searchParams['category'] = $categoryFilter;
+                    }
+                    
+                    try {
+                        // Get products based on search parameters
+                        $products = searchProducts($searchParams);
+                        
+                        // Render products in admin table format
+                        echo renderAdminProducts($products);
+                        
+                        // Add pagination if needed
+                        if (!empty($products) && isset($products[0]->pagination) && $products[0]->pagination['totalPages'] > 1) {
+                            echo renderPagination($products[0]->pagination, 'admin');
+                        }
+                    } catch (Exception $e) {
+                        echo '<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade: ' . safeEcho($e->getMessage()) . '</td></tr>';
+                    }
+                    ?>
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <!-- Add JavaScript for AJAX admin search -->
+    <script>
+    $(document).ready(function() {
+        // Handle search form submission with AJAX
+        $('#admin-search-form').on('submit', function(e) {
+            e.preventDefault();
+            performAdminSearch(1); // Page 1 for new searches
+        });
+
+        // Handle pagination clicks
+        $(document).on('click', '.pagination-link', function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+            $('#admin-current-page').val(page);
+            performAdminSearch(page);
+        });
+
+        // Perform admin search
+        function performAdminSearch(page) {
+            const searchTerm = $('#search-term').val();
+            const category = $('#category-filter').val();
+            const limit = 20; // Fixed limit for admin view
+            
+            // Update the hidden page input
+            $('#admin-current-page').val(page);
+            
+            // Show loading indicator
+            $('#inventory-body').html('<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
+            
+            // Perform AJAX request
+            $.ajax({
+                url: 'admin/search.php',
+                data: {
+                    ajax: 'admin',
+                    search: searchTerm,
+                    category: category,
+                    page: page,
+                    limit: limit
+                },
+                type: 'GET',
+                success: function(data) {
+                    // Update results
+                    $('#inventory-body').html(data);
+                    
+                    // Update URL for bookmarking without page reload
+                    const url = new URL(window.location);
+                    url.searchParams.set('search', searchTerm);
+                    url.searchParams.set('category', category);
+                    url.searchParams.set('page', page);
+                    url.searchParams.set('limit', limit);
+                    url.searchParams.set('tab', 'search');
+                    window.history.pushState({}, '', url);
+                    
+                    // Attach event handlers to action buttons
+                    attachActionListeners();
+                    
+                    // Make rows clickable for viewing details
+                    makeRowsClickable();
+                },
+                error: function() {
+                    $('#inventory-body').html('<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
+                }
+            });
+        }
+
+        // Auto-execute search if there are search parameters in URL
+        const urlParams = new URLSearchParams(window.location.search);
+        if ((urlParams.has('search') || (urlParams.has('category') && urlParams.get('category') !== 'all')) && urlParams.get('tab') === 'search') {
+            // Set form values from URL parameters
+            $('#search-term').val(urlParams.get('search') || '');
+            $('#category-filter').val(urlParams.get('category') || 'all');
+            $('#admin-current-page').val(urlParams.get('page') || '1');
+            
+            // Attach event handlers to action buttons
+            attachActionListeners();
+            
+            // Make rows clickable for viewing details
+            makeRowsClickable();
+        }
+    });
+    
+    // Handle action buttons
+    function attachActionListeners() {
+        // Quick sell button click - no confirmation
+        $('.quick-sell').off('click').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const productId = $(this).data('id');
+            changeProductStatus(productId, 2); // 2 = Sold, no confirmation
+        });
+        
+        // Quick return button click - no confirmation
+        $('.quick-return').off('click').on('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            const productId = $(this).data('id');
+            changeProductStatus(productId, 1); // 1 = Available, no confirmation
+        });
+    }
+    
+    // Change product status via AJAX
+    function changeProductStatus(productId, newStatus) {
+        // Create form data
+        const formData = new FormData();
+        formData.append('action', 'change_status');
+        formData.append('product_id', productId);
+        formData.append('status', newStatus);
+        
+        // Send request
+        fetch('admin/search.php', {
+            method: 'POST',
+            body: formData
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success) {
+                // No success message needed for quick actions
+                
+                // Refresh the inventory table
+                const currentPage = $('#admin-current-page').val() || 1;
+                performAdminSearch(currentPage);
+            } else {
+                // Show error message if there's a problem
+                alert(data.message || 'Ett fel inträffade. Försök igen senare.');
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            alert('Ett fel inträffade. Försök igen senare.');
+        });
+    }
+    
+    // Make rows clickable for viewing product details
+    function makeRowsClickable() {
+        $('.clickable-row').off('click').on('click', function(e) {
+            // Only navigate if not clicking on a button or link
+            if (!$(e.target).closest('button, a, input, select').length) {
+                window.location.href = $(this).data('href');
+            }
+        });
+    }
+    </script>
+<?php } ?>
+
+<?php
+// Only show the admin search form on AJAX requests or when explicitly requested
+if (isset($_GET['ajax']) || (basename($_SERVER['PHP_SELF']) === 'admin.php' && !isset($_GET['include_only']))):
+?>
+<!-- Search form HTML here -->
+<?php endif; ?>
+
+<?php
 require_once BASE_PATH . '/config/config.php';
 
 // Process AJAX requests first
@@ -30,6 +285,10 @@ if (isset($_GET['ajax']) || (isset($_POST['action']) && $_POST['action'] === 'ch
 
 /**
  * Handle AJAX requests
+ * 
+ * Processes various AJAX requests for search and status changes
+ * 
+ * @return void
  */
 function processAjaxRequest() {
     global $pdo;
@@ -55,21 +314,22 @@ function processAjaxRequest() {
             exit;
         }
         
-// Change product status
-$result = changeProductSaleStatus($productId, $newStatus);
+        // Change product status
+        $result = changeProductSaleStatus($productId, $newStatus);
 
-if ($result) {
-    echo json_encode([
-        'success' => true
-        // No message field
-    ]);
-} else {
-    echo json_encode([
-        'success' => false,
-        'message' => 'Ett fel inträffade. Kunde inte ändra produktstatus.' // Keep error message for debugging
-    ]);
-}
-exit; }
+        if ($result) {
+            echo json_encode([
+                'success' => true
+                // No message field needed for success
+            ]);
+        } else {
+            echo json_encode([
+                'success' => false,
+                'message' => 'Ett fel inträffade. Kunde inte ändra produktstatus.'
+            ]);
+        }
+        exit;
+    }
     
     // Public pagination specific request
     if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax']) && $_GET['ajax'] === 'public_pagination') {
@@ -142,7 +402,7 @@ exit; }
             }
         } catch (Exception $e) {
             // Error handling
-            echo '<div class="alert alert-danger">Ett fel inträffade: ' . htmlspecialchars($e->getMessage()) . '</div>';
+            echo '<div class="alert alert-danger">Ett fel inträffade: ' . safeEcho($e->getMessage()) . '</div>';
         }
         
         exit;
@@ -227,7 +487,7 @@ exit; }
             
             // Return error message
             $cols = ($viewType === 'public') ? 7 : 8;
-            echo '<tr><td colspan="' . $cols . '" class="text-center text-danger">Ett fel inträffade: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
+            echo '<tr><td colspan="' . $cols . '" class="text-center text-danger">Ett fel inträffade: ' . safeEcho($e->getMessage()) . '</td></tr>';
         }
         
         exit;
@@ -286,13 +546,26 @@ function renderPagination($pagination, $view = 'public') {
 /**
  * Gets all categories from the database
  * 
- * @param PDO $pdo Database connection
  * @return array List of categories
  */
-function getCategories($pdo) {
+function getCategories() {
+    global $pdo;
+    
+    // Check if PDO is properly initialized
+    if (!isset($pdo) || !$pdo) {
+        // Try to establish the database connection if it's not available
+        require_once BASE_PATH . '/config/config.php';
+    }
+    
     try {
-        // Prepare SQL query to get categories
-        $stmt = $pdo->prepare("SELECT category_id, category_name FROM category ORDER BY category_name ASC");
+        // Get language from session or set default
+        $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+        
+        // Determine which field to use based on language
+        $nameField = ($language === 'fi') ? 'category_fi_name' : 'category_sv_name';
+        
+        // Prepare SQL query to get categories with appropriate language
+        $stmt = $pdo->prepare("SELECT category_id, {$nameField} as category_name FROM category ORDER BY {$nameField} ASC");
         $stmt->execute();
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
@@ -319,6 +592,11 @@ function countProducts(?array $searchParams = null): int
     $categoryFilter = !empty($searchParams['category']) && $searchParams['category'] !== 'all' 
                     ? $searchParams['category'] : null;
 
+    // Check for special filters
+    $specialPrice = isset($searchParams['special']) && $searchParams['special'] ? true : false;
+    $rareItems = isset($searchParams['rare']) && $searchParams['rare'] ? true : false;
+    $recommended = isset($searchParams['recommended']) && $searchParams['recommended'] ? true : false;
+
     // Build SQL query
     $sql = "SELECT COUNT(DISTINCT p.prod_id) as total
             FROM product p
@@ -328,41 +606,56 @@ function countProducts(?array $searchParams = null): int
     
     // Add WHERE clause only if we have search parameters
     $params = [];
+    $whereConditions = [];
     
-    if (!empty($trimmedSearch) || $categoryFilter !== null) {
-        $sql .= " WHERE";
+    // Default to showing only available products (status = 1)
+    if (!isset($searchParams['show_all_statuses']) || !$searchParams['show_all_statuses']) {
+        $whereConditions[] = "p.status = 1";
+    }
+    
+    if (!empty($trimmedSearch)) {
+        $whereConditions[] = "(p.title LIKE :searchTerm1 OR
+                  a.author_name LIKE :searchTerm2 OR
+                  cat.category_sv_name LIKE :searchTerm3";
         
-        if (!empty($trimmedSearch)) {
-            $sql .= " (p.title LIKE :searchTerm1 OR
-                      a.first_name LIKE :searchTerm2 OR
-                      a.last_name LIKE :searchTerm3 OR
-                      cat.category_name LIKE :searchTerm4";
-            
-            // Allow searching by product ID if numeric
-            if (is_numeric($trimmedSearch)) {
-                $sql .= " OR p.prod_id = :prodId";
-            }
-            
-            $sql .= ")";
-            
-            $params[':searchTerm1'] = $searchTerm;
-            $params[':searchTerm2'] = $searchTerm;
-            $params[':searchTerm3'] = $searchTerm;
-            $params[':searchTerm4'] = $searchTerm;
-            
-            if (is_numeric($trimmedSearch)) {
-                $params[':prodId'] = $trimmedSearch;
-            }
+        // Allow searching by product ID if numeric
+        if (is_numeric($trimmedSearch)) {
+            $whereConditions[count($whereConditions) - 1] .= " OR p.prod_id = :prodId";
         }
         
-        // Add category filter if provided
-        if ($categoryFilter !== null) {
-            if (!empty($trimmedSearch)) {
-                $sql .= " AND";
-            }
-            $sql .= " p.category_id = :categoryId";
-            $params[':categoryId'] = $categoryFilter;
+        $whereConditions[count($whereConditions) - 1] .= ")";
+        
+        $params[':searchTerm1'] = $searchTerm;
+        $params[':searchTerm2'] = $searchTerm;
+        $params[':searchTerm3'] = $searchTerm;
+        
+        if (is_numeric($trimmedSearch)) {
+            $params[':prodId'] = $trimmedSearch;
         }
+    }
+    
+    // Add category filter if provided
+    if ($categoryFilter !== null) {
+        $whereConditions[] = "p.category_id = :categoryId";
+        $params[':categoryId'] = $categoryFilter;
+    }
+    
+    // Add special filters
+    if ($specialPrice) {
+        $whereConditions[] = "p.special_price = 1";
+    }
+    
+    if ($rareItems) {
+        $whereConditions[] = "p.rare = 1";
+    }
+    
+    if ($recommended) {
+        $whereConditions[] = "p.recommended = 1";
+    }
+    
+    // Add WHERE clause if we have conditions
+    if (!empty($whereConditions)) {
+        $sql .= " WHERE " . implode(" AND ", $whereConditions);
     }
     
     try {
@@ -385,8 +678,9 @@ function countProducts(?array $searchParams = null): int
 /**
  * Searches products based on user search parameters
  * 
- * @param array|null $searchParams Search parameters (search term, category)
+ * @param array|null $searchParams Search parameters (search term, category, etc.)
  * @return array Found products
+ * @throws Exception If database error occurs
  */
 function searchProducts(?array $searchParams = null): array
 {
@@ -404,27 +698,47 @@ function searchProducts(?array $searchParams = null): array
     // Get category filter
     $categoryFilter = !empty($searchParams['category']) && $searchParams['category'] !== 'all' 
                     ? $searchParams['category'] : null;
+    
+    // Get special filters
+    $specialPrice = isset($searchParams['special']) && $searchParams['special'] ? true : false;
+    $rareItems = isset($searchParams['rare']) && $searchParams['rare'] ? true : false;
+    $recommended = isset($searchParams['recommended']) && $searchParams['recommended'] ? true : false;
                     
     // Pagination parameters
     $page = isset($searchParams['page']) ? max(1, intval($searchParams['page'])) : 1;
-    $limit = isset($searchParams['limit']) ? max(1, intval($searchParams['limit'])) : 10; // Default to 10 for index, 20 for admin
+    $limit = isset($searchParams['limit']) ? max(1, intval($searchParams['limit'])) : 10;
     $offset = ($page - 1) * $limit;
+    
+    // Get current language for localization
+    $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+    
+    // Determine which fields to use based on language
+    $categoryNameField = ($language === 'fi') ? 'cat.category_fi_name' : 'cat.category_sv_name';
+    $shelfNameField = ($language === 'fi') ? 'sh.shelf_fi_name' : 'sh.shelf_sv_name';
+    $statusNameField = ($language === 'fi') ? 's.status_fi_name' : 's.status_sv_name';
+    $genreNameField = ($language === 'fi') ? 'g.genre_fi_name' : 'g.genre_sv_name';
+    $conditionNameField = ($language === 'fi') ? 'con.condition_fi_name' : 'con.condition_sv_name';
 
-    // Build SQL query
+    // Build SQL query with updated author field (author_name instead of first_name/last_name)
     $sql = "SELECT
                 p.prod_id,
                 p.title,
                 p.status,
-                s.status_name,
+                {$statusNameField} as status_name,
                 p.shelf_id,
-                sh.shelf_name,
-                GROUP_CONCAT(DISTINCT a.first_name SEPARATOR ', ') AS first_names,
-                GROUP_CONCAT(DISTINCT a.last_name SEPARATOR ', ') AS last_names,                
-                cat.category_name,
+                {$shelfNameField} as shelf_name,
+                a.author_name,
+                {$categoryNameField} as category_name,
                 p.category_id,
-                GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genre_names,
-                con.condition_name,
+                GROUP_CONCAT(DISTINCT {$genreNameField} SEPARATOR ', ') AS genre_names,
+                {$conditionNameField} as condition_name,
                 p.price,
+                p.language,
+                p.year,
+                p.publisher,
+                p.special_price,
+                p.rare,
+                p.recommended,
                 p.date_added
             FROM product p
             LEFT JOIN product_author pa ON p.prod_id = pa.product_id
@@ -437,51 +751,70 @@ function searchProducts(?array $searchParams = null): array
             JOIN `status` s ON p.status = s.status_id";
     
     // Add WHERE clause only if we have search parameters
-    $hasWhere = false;
+    $whereConditions = [];
     $params = [];
     
-    if (!empty($trimmedSearch) || $categoryFilter !== null) {
-        $sql .= " WHERE";
-        $hasWhere = true;
+    // Default to showing only available products (status = 1)
+    if (!isset($searchParams['show_all_statuses']) || !$searchParams['show_all_statuses']) {
+        $whereConditions[] = "p.status = 1";
+    }
+    
+    if (!empty($trimmedSearch)) {
+        $whereConditions[] = "(p.title LIKE :searchTerm1 OR
+                  a.author_name LIKE :searchTerm2 OR
+                  {$categoryNameField} LIKE :searchTerm3";
         
-        if (!empty($trimmedSearch)) {
-            $sql .= " (p.title LIKE :searchTerm1 OR
-                      a.first_name LIKE :searchTerm2 OR
-                      a.last_name LIKE :searchTerm3 OR
-                      cat.category_name LIKE :searchTerm4";
-            
-            // Allow searching by product ID if numeric
-            if (is_numeric($trimmedSearch)) {
-                $sql .= " OR p.prod_id = :prodId";
-            }
-            
-            $sql .= ")";
-            
-            $params[':searchTerm1'] = $searchTerm;
-            $params[':searchTerm2'] = $searchTerm;
-            $params[':searchTerm3'] = $searchTerm;
-            $params[':searchTerm4'] = $searchTerm;
-            
-            if (is_numeric($trimmedSearch)) {
-                $params[':prodId'] = $trimmedSearch;
-            }
+        // Allow searching by product ID if numeric
+        if (is_numeric($trimmedSearch)) {
+            $whereConditions[count($whereConditions) - 1] .= " OR p.prod_id = :prodId";
         }
         
-        // Add category filter if provided
-        if ($categoryFilter !== null) {
-            if (!empty($trimmedSearch)) {
-                $sql .= " AND";
-            }
-            $sql .= " p.category_id = :categoryId";
-            $params[':categoryId'] = $categoryFilter;
+        $whereConditions[count($whereConditions) - 1] .= ")";
+        
+        $params[':searchTerm1'] = $searchTerm;
+        $params[':searchTerm2'] = $searchTerm;
+        $params[':searchTerm3'] = $searchTerm;
+        
+        if (is_numeric($trimmedSearch)) {
+            $params[':prodId'] = $trimmedSearch;
         }
     }
-
-    // Finish SQL with GROUP BY
-    $sql .= " GROUP BY p.prod_id";
+    
+    // Add category filter if provided
+    if ($categoryFilter !== null) {
+        $whereConditions[] = "p.category_id = :categoryId";
+        $params[':categoryId'] = $categoryFilter;
+    }
+    
+    // Add special filters
+    if ($specialPrice) {
+        $whereConditions[] = "p.special_price = 1";
+    }
+    
+    if ($rareItems) {
+        $whereConditions[] = "p.rare = 1";
+    }
+    
+    if ($recommended) {
+        $whereConditions[] = "p.recommended = 1";
+    }
+    
+    // Add WHERE clause if we have conditions
+    if (!empty($whereConditions)) {
+        $sql .= " WHERE " . implode(" AND ", $whereConditions);
+    }
+    
+    // Add GROUP BY and ORDER BY
+    // Include all non-aggregated columns in GROUP BY to satisfy ONLY_FULL_GROUP_BY mode
+    $sql .= " GROUP BY p.prod_id, p.title, p.status, {$statusNameField}, p.shelf_id, {$shelfNameField}, 
+              a.author_name, {$categoryNameField}, p.category_id, {$conditionNameField}, 
+              p.price, p.language, p.year, p.publisher, p.special_price, p.rare, p.recommended, p.date_added 
+              ORDER BY p.title ASC";
+    
+    // Save the query for counting total results
+    $countSql = $sql;
     
     // Add limit and offset for pagination
-    $countSql = $sql; // Save the query for counting total results
     $sql .= " LIMIT :limit OFFSET :offset";
     
     try {
@@ -540,27 +873,38 @@ function renderIndexProducts(array $products): string
 
     if (!empty($products)) {
         foreach ($products as $product) {
-            ?>
+            // Format author name - now using the single author_name field
+            $authorName = $product->author_name ?? '';
+            
+            // Format price with two decimal places
+            if (class_exists('Formatter')) {
+                $formatter = new Formatter();
+                $formattedPrice = $formatter->formatPrice($product->price);
+            } else {
+                // Fallback to old method if Formatter class doesn't exist
+                $formattedPrice = ($product->price !== null) 
+                    ? number_format($product->price, 2, ',', ' ') . ' €' 
+                    : '-';
+            }            ?>
             <tr class="clickable-row" data-href="singleproduct.php?id=<?= safeEcho($product->prod_id) ?>">
                 <td data-label="Titel"><?= safeEcho($product->title) ?></td>
-                <td data-label="Författare/Artist">
-                    <?php
-                    $authorName = '';
-                    if (!empty($product->first_names) && !empty($product->last_names)) {
-                        $authorName = $product->first_names . ' ' . $product->last_names;
-                    } elseif (!empty($product->first_names)) {
-                        $authorName = $product->first_names;
-                    } elseif (!empty($product->last_names)) {
-                        $authorName = $product->last_names;
-                    }
-                    echo safeEcho($authorName);
-                    ?>
-                </td>
+                <td data-label="Författare/Artist"><?= safeEcho($authorName) ?></td>
                 <td data-label="Kategori"><?= safeEcho($product->category_name) ?></td>
                 <td data-label="Genre"><?= safeEcho($product->genre_names) ?></td>
                 <td data-label="Skick"><?= safeEcho($product->condition_name) ?></td>
-                <td data-label="Pris"><?= safeEcho(number_format($product->price, 2, ',', ' ')) . ' €' ?></td>
-                <td><a class="btn btn-success d-block d-md-none" href="singleproduct.php?id=<?= safeEcho($product->prod_id) ?>">Visa detaljer</a></td>
+                <td data-label="Pris"><?= safeEcho($formattedPrice) ?></td>
+                <td>
+                    <?php if ($product->special_price): ?>
+                        <span class="badge bg-danger">Rea</span>
+                    <?php endif; ?>
+                    <?php if ($product->rare): ?>
+                        <span class="badge bg-warning text-dark">Sällsynt</span>
+                    <?php endif; ?>
+                    <?php if ($product->recommended): ?>
+                        <span class="badge bg-info">Rekommenderas</span>
+                    <?php endif; ?>
+                    <a class="btn btn-success d-block d-md-none" href="singleproduct.php?id=<?= safeEcho($product->prod_id) ?>">Visa detaljer</a>
+                </td>
             </tr>
             <?php
         }
@@ -597,21 +941,20 @@ function renderAdminProducts(array $products): string
                     break;
             }
 
-            // Format price
-            $formattedPrice = number_format($product->price, 2, ',', ' ') . ' €';
-            
-            // Format author name
-            $authorName = '';
-            if (!empty($product->first_names) && !empty($product->last_names)) {
-                $authorName = $product->first_names . ' ' . $product->last_names;
-            } elseif (!empty($product->first_names)) {
-                $authorName = $product->first_names;
-            } elseif (!empty($product->last_names)) {
-                $authorName = $product->last_names;
-            }
+            // Format price with two decimal places
+            if (class_exists('Formatter')) {
+                $formatter = new Formatter();
+                $formattedPrice = $formatter->formatPrice($product->price);
+            } else {
+                // Fallback to old method if Formatter class doesn't exist
+                $formattedPrice = ($product->price !== null) 
+                    ? number_format($product->price, 2, ',', ' ') . ' €' 
+                    : '-';
+            }            
+            // Format author name - now using the single author_name field
+            $authorName = $product->author_name ?? '';
             ?>
             <tr class="clickable-row" data-href="admin/adminsingleproduct.php?id=<?= safeEcho($product->prod_id) ?>">
-                <td><?= safeEcho($product->prod_id) ?></td>
                 <td><?= safeEcho($product->title) ?></td>
                 <td><?= safeEcho($authorName) ?></td>
                 <td><?= safeEcho($product->category_name) ?></td>
@@ -619,9 +962,18 @@ function renderAdminProducts(array $products): string
                 <td><?= safeEcho($formattedPrice) ?></td>
                 <td class="<?= $statusClass ?>"><?= safeEcho($statusName) ?></td>
                 <td>
+                    <?php if ($product->special_price): ?>
+                        <span class="badge bg-danger">Rea</span>
+                    <?php endif; ?>
+                    <?php if ($product->rare): ?>
+                        <span class="badge bg-warning text-dark">Sällsynt</span>
+                    <?php endif; ?>
+                    <?php if ($product->recommended): ?>
+                        <span class="badge bg-info">Rekommenderas</span>
+                    <?php endif; ?>
+                </td>
+                <td>
                     <div class="btn-group btn-group-sm">
-
-                        
                         <?php if (($product->status ?? 1) == 1): // If Available, show Sell button ?>
                             <button class="btn btn-outline-success quick-sell" data-id="<?= safeEcho($product->prod_id) ?>" title="Markera som såld">
                                 <i class="fas fa-shopping-cart"></i>
@@ -669,30 +1021,50 @@ function renderListsProducts(array $products): string
                     break;
             }
 
-            // Format price
-            $formattedPrice = number_format($product->price, 2, ',', ' ') . ' €';
-            
+            // Format price with two decimal places
+            if (class_exists('Formatter')) {
+                $formatter = new Formatter();
+                $formattedPrice = $formatter->formatPrice($product->price);
+            } else {
+                // Fallback to old method if Formatter class doesn't exist
+                $formattedPrice = ($product->price !== null) 
+                    ? number_format($product->price, 2, ',', ' ') . ' €' 
+                    : '-';
+            }            
             // Format date added (assuming it's available in the product object)
             $dateAdded = isset($product->date_added) ? date('Y-m-d', strtotime($product->date_added)) : '';
             
+            // Format author name - now using the single author_name field
+            $authorName = $product->author_name ?? '';
             ?>
             <tr>
                 <td><input type="checkbox" class="item-checkbox" value="<?= safeEcho($product->prod_id) ?>"></td>
                 <td><?= safeEcho($product->prod_id) ?></td>
                 <td><?= safeEcho($product->title) ?></td>
-                <td><?= safeEcho($product->first_names . ' ' . $product->last_names) ?></td>
+                <td><?= safeEcho($authorName) ?></td>
                 <td><?= safeEcho($product->category_name) ?></td>
                 <td><?= safeEcho($product->shelf_name) ?></td>
                 <td><?= safeEcho($product->condition_name) ?></td>
                 <td><?= safeEcho($formattedPrice) ?></td>
                 <td class="<?= $statusClass ?>"><?= safeEcho($statusName) ?></td>
-                <td><?= $dateAdded ?></td>
+                <td><?= safeEcho($dateAdded) ?></td>
+                <td>
+                    <?php if ($product->special_price): ?>
+                        <span class="badge bg-danger">Rea</span>
+                    <?php endif; ?>
+                    <?php if ($product->rare): ?>
+                        <span class="badge bg-warning text-dark">Sällsynt</span>
+                    <?php endif; ?>
+                    <?php if ($product->recommended): ?>
+                        <span class="badge bg-info">Rekommenderas</span>
+                    <?php endif; ?>
+                </td>
             </tr>
             <?php
         }
     } else {
         // No results found
-        echo '<tr><td colspan="10" class="text-center text-muted py-3">Inga produkter hittades som matchar din sökning.</td></tr>';
+        echo '<tr><td colspan="11" class="text-center text-muted py-3">Inga produkter hittades som matchar din sökning.</td></tr>';
     }
 
     return ob_get_clean();
@@ -762,247 +1134,3 @@ function changeProductSaleStatus(int $productId, int $newStatus): bool
         return false;
     }
 }
-
-// Render the search form for the admin page
-if (basename($_SERVER['PHP_SELF']) === 'admin.php' || strpos($_SERVER['REQUEST_URI'], 'admin') !== false) {
-    // Get categories for dropdown
-    $categories = getCategories($pdo);
-    
-    // Get current page from GET parameters
-    $currentPage = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-    ?>
-    
-    <div class="tab-pane fade show active" id="search">
-        <form method="GET" action="javascript:void(0);" id="admin-search-form">
-            <div class="row mb-3">
-                <div class="col-12 mb-3">
-                    <label for="search-term" class="form-label">Sökterm</label>
-                    <input type="text" class="form-control" id="search-term" name="search" placeholder="Ange titel, författare eller ID" value="<?= safeEcho($_GET['search'] ?? '') ?>">
-                </div>
-            </div>
-            <div class="row mb-4">
-                <div class="col-md-6 mb-3 mb-md-0">
-                    <label for="category-filter" class="form-label">Kategorifilter</label>
-                    <select class="form-select" id="category-filter" name="category">
-                        <option value="all">Alla</option>
-                        <?php foreach ($categories as $category): ?>
-                        <option value="<?= safeEcho($category['category_id']) ?>" <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
-                            <?= safeEcho($category['category_name']) ?>
-                        </option>
-                        <?php endforeach; ?>
-                    </select>
-                </div>
-                <div class="col-md-6 d-flex align-items-end">
-                    <button id="search-btn" class="btn btn-primary w-100" type="submit">Sök</button>
-                </div>
-            </div>
-            <input type="hidden" name="tab" value="search">
-            <input type="hidden" name="page" value="1" id="admin-current-page">
-            <input type="hidden" name="limit" value="20">
-        </form>
-        
-        <div class="table-responsive mt-4">
-            <table class="table table-hover" id="inventory-table">
-                <thead class="table-light">
-                    <tr>
-                        <th>ID</th>
-                        <th>Titel</th>
-                        <th>Författare</th>
-                        <th>Kategori</th>
-                        <th>Hylla</th>
-                        <th>Pris</th>
-                        <th>Status</th>
-                        <th>Åtgärder</th>
-                    </tr>
-                </thead>
-                <tbody id="inventory-body">
-                    <?php
-                    // Get search parameters (if any)
-                    $searchTerm = isset($_GET['search']) ? $_GET['search'] : '';
-                    $categoryFilter = isset($_GET['category']) ? $_GET['category'] : 'all';
-                    $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-                    
-                    // Prepare search parameters
-                    $searchParams = [
-                        'page' => $page,
-                        'limit' => 20
-                    ];
-                    
-                    if (!empty($searchTerm)) {
-                        $searchParams['search'] = $searchTerm;
-                    }
-                    if ($categoryFilter !== 'all') {
-                        $searchParams['category'] = $categoryFilter;
-                    }
-                    
-                    try {
-                        // Get products based on search parameters
-                        $products = searchProducts($searchParams);
-                        
-                        // Render products in admin table format
-                        echo renderAdminProducts($products);
-                        
-                        // Add pagination if needed
-                        if (!empty($products) && isset($products[0]->pagination) && $products[0]->pagination['totalPages'] > 1) {
-                            echo renderPagination($products[0]->pagination, 'admin');
-                        }
-                    } catch (Exception $e) {
-                        echo '<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade: ' . htmlspecialchars($e->getMessage()) . '</td></tr>';
-                    }
-                    ?>
-                </tbody>
-            </table>
-        </div>
-    </div>
-    
-    <!-- Add JavaScript for AJAX admin search -->
-    <script>
-    $(document).ready(function() {
-        // Handle search form submission with AJAX
-        $('#admin-search-form').on('submit', function(e) {
-            e.preventDefault();
-            performAdminSearch(1); // Page 1 for new searches
-        });
-
-        // Handle pagination clicks
-        $(document).on('click', '.pagination-link', function(e) {
-            e.preventDefault();
-            const page = $(this).data('page');
-            $('#admin-current-page').val(page);
-            performAdminSearch(page);
-        });
-
-        // Perform admin search
-        function performAdminSearch(page) {
-            const searchTerm = $('#search-term').val();
-            const category = $('#category-filter').val();
-            const limit = 20; // Fixed limit for admin view
-            
-            // Update the hidden page input
-            $('#admin-current-page').val(page);
-            
-            // Show loading indicator
-            $('#inventory-body').html('<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-            
-            // Perform AJAX request
-            $.ajax({
-                url: 'admin/search.php',
-                data: {
-                    ajax: 'admin',
-                    search: searchTerm,
-                    category: category,
-                    page: page,
-                    limit: limit
-                },
-                type: 'GET',
-                success: function(data) {
-                    // Update results
-                    $('#inventory-body').html(data);
-                    
-                    // Update URL for bookmarking without page reload
-                    const url = new URL(window.location);
-                    url.searchParams.set('search', searchTerm);
-                    url.searchParams.set('category', category);
-                    url.searchParams.set('page', page);
-                    url.searchParams.set('limit', limit);
-                    url.searchParams.set('tab', 'search');
-                    window.history.pushState({}, '', url);
-                    
-                    // Attach event handlers to action buttons
-                    attachActionListeners();
-                },
-                error: function() {
-                    $('#inventory-body').html('<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
-                }
-            });
-        }
-
-        // Auto-execute search if there are search parameters in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if ((urlParams.has('search') || (urlParams.has('category') && urlParams.get('category') !== 'all')) && urlParams.get('tab') === 'search') {
-            // Set form values from URL parameters
-            $('#search-term').val(urlParams.get('search') || '');
-            $('#category-filter').val(urlParams.get('category') || 'all');
-            $('#admin-current-page').val(urlParams.get('page') || '1');
-            
-            // Attach event handlers to action buttons
-            attachActionListeners();
-        }
-    });
-    
-    // Handle action buttons
-function attachActionListeners() {
-    // Quick sell button click - no confirmation
-    document.querySelectorAll('.quick-sell').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const productId = this.getAttribute('data-id');
-            changeProductStatus(productId, 2); // 2 = Sold, no confirmation
-        });
-    });
-    
-    // Quick return button click - no confirmation
-    document.querySelectorAll('.quick-return').forEach(button => {
-        button.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            const productId = this.getAttribute('data-id');
-            changeProductStatus(productId, 1); // 1 = Available, no confirmation
-        });
-    });
-}
-    
-    // Function to perform admin search
-    function performAdminSearch(page) {
-        const searchTerm = $('#search-term').val();
-        const category = $('#category-filter').val();
-        const limit = 20; // Fixed limit for admin view
-        
-        // Update the hidden page input
-        $('#admin-current-page').val(page);
-        
-        // Show loading indicator
-        $('#inventory-body').html('<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-        
-        // Perform AJAX request
-        $.ajax({
-            url: 'admin/search.php',
-            data: {
-                ajax: 'admin',
-                search: searchTerm,
-                category: category,
-                page: page,
-                limit: limit
-            },
-            type: 'GET',
-            success: function(data) {
-                // Update results
-                $('#inventory-body').html(data);
-                
-                // Update URL for bookmarking without page reload
-                const url = new URL(window.location);
-                url.searchParams.set('search', searchTerm);
-                url.searchParams.set('category', category);
-                url.searchParams.set('page', page);
-                url.searchParams.set('limit', limit);
-                url.searchParams.set('tab', 'search');
-                window.history.pushState({}, '', url);
-                
-                // Attach event handlers to action buttons
-                attachActionListeners();
-            },
-            error: function() {
-                $('#inventory-body').html('<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
-            }
-        });
-    }
-    </script>
-<?php } ?>
-
-<?php
-// Only show the admin search form on AJAX requests or when explicitly requested
-if (isset($_GET['ajax']) || (basename($_SERVER['PHP_SELF']) === 'admin.php' && !isset($_GET['include_only']))):
-?>
-<!-- Search form HTML here -->
-<?php endif; ?>
