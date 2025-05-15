@@ -51,8 +51,7 @@ function initializePublicSearch() {
         performPublicSearch(1); // Start with page 1 on category change
     });
     
-    // Initialize pagination links
-    initializePublicPagination();
+
     
     // Initial load of products
     const urlParams = new URLSearchParams(window.location.search);
@@ -81,8 +80,6 @@ function performPublicSearch(page = 1) {
     ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
 
         
-        // Update pagination UI
-        updatePublicPaginationUI(page);
         
         // Scroll to search results
         document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
@@ -92,56 +89,9 @@ function performPublicSearch(page = 1) {
     });
 }
 
-// Initialize pagination for public page
-function initializePublicPagination() {
-    document.addEventListener('click', function(e) {
-        // Check if clicked element is a pagination link
-        if (e.target.classList.contains('page-link') && e.target.closest('#public-pagination')) {
-            e.preventDefault();
-            
-            // Get page number from the link
-            const pageNum = e.target.getAttribute('data-page');
-            if (pageNum) {
-                performPublicSearch(pageNum);
-            }
-        }
-    });
-    updateUrlParams(searchParams);
-}
 
-// Update pagination UI on the public page
-function updatePublicPaginationUI(currentPage) {
-    const paginationContainer = document.getElementById('public-pagination');
-    if (!paginationContainer) return;
-    
-    // Get total from data attribute or API call
-    // For this example, we'll assume the server sends back total in a data attribute
-    const totalItems = parseInt(paginationContainer.getAttribute('data-total') || 0);
-    const totalPages = Math.ceil(totalItems / 20);
-    
-    // Create pagination HTML
-    let paginationHTML = '';
-    
-    // Previous button
-    paginationHTML += `<li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
-        <a class="page-link" href="#" data-page="${parseInt(currentPage) - 1}" ${currentPage <= 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>&laquo;</a>
-    </li>`;
-    
-    // Page numbers
-    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, parseInt(currentPage) + 2); i++) {
-        paginationHTML += `<li class="page-item ${i == currentPage ? 'active' : ''}">
-            <a class="page-link" href="#" data-page="${i}">${i}</a>
-        </li>`;
-    }
-    
-    // Next button
-    paginationHTML += `<li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
-        <a class="page-link" href="#" data-page="${parseInt(currentPage) + 1}" ${currentPage >= totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>&raquo;</a>
-    </li>`;
-    
-    // Update pagination container
-    paginationContainer.innerHTML = paginationHTML;
-}
+
+
 
 function makeRowsClickable() {
     const clickableRows = document.querySelectorAll('.clickable-row');
@@ -366,139 +316,4 @@ function showMessage(message, type, containerId = 'message-container') {
 }
 
 
-// Add event listener for pagination links in admin and lists views
-$(document).on('click', '.pagination-link', function(e) {
-    e.preventDefault();
-    
-    const page = $(this).data('page');
-    const searchForm = $('#admin-search-form, #lists-search-form').first();
-    const searchTerm = searchForm.find('input[name="search"]').val();
-    const category = searchForm.find('select').val();
-    
-    // Determine which tab we're on
-    const isListsTab = document.querySelector('.tab-pane[id="lists"]') !== null;
-    const type = isListsTab ? 'lists' : 'admin';
-    
-    // Find the target element to update
-    const targetElem = isListsTab ? $('#lists-body') : $('#inventory-body');
-    
-    // Construct search parameters
-    const searchParams = {
-        search: searchTerm,
-        category: category,
-        page: page
-    };
-    
-    // Perform AJAX search with pagination
-    ajaxSearch('admin/search.php', type, searchParams, targetElem, function() {
-        // Success callback
-        if (type === 'admin') {
-            attachActionListeners();
-        } else if (type === 'lists') {
-            attachListsActionListeners();
-        }
-        
-        // Update URL without reloading
-        updateUrlParams(Object.assign({}, searchParams, { tab: type }));
-    });
-});
 
-
-// Add to main.js - Event handler for pagination links on the homepage
-$(document).on('click', '.public-pagination-link', function(e) {
-    e.preventDefault();
-    
-    const page = $(this).data('page');
-    const searchForm = $('#search-form');
-    const searchTerm = searchForm.find('input[name="search"]').val();
-    const category = searchForm.find('select').val();
-    
-    // Find the target element to update
-    const targetElem = $('#public-inventory-body');
-    
-    // Construct search parameters
-    const searchParams = {
-        search: searchTerm,
-        category: category,
-        page: page,
-        limit: 10 // Always use 10 for public view
-    };
-    
-    // Show loading indicator
-    targetElem.html('<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-    
-    // Perform AJAX request
-    $.ajax({
-        url: 'admin/search.php',
-        data: {
-            ajax: 'public',
-            ...searchParams
-        },
-        method: 'GET',
-        success: function(response) {
-            // Update the table body with the new results
-            targetElem.html(response);
-            
-            // Update pagination
-            updatePublicPagination(searchParams);
-            
-            
-            // Update URL without reloading
-            updateUrlParams(searchParams);
-            
-            // Scroll to search results
-            document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
-        },
-        error: function() {
-            targetElem.html('<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
-        }
-    });
-});
-
-// Function to update pagination controls on the homepage
-function updatePublicPagination(searchParams) {
-    $.ajax({
-        url: 'admin/search.php',
-        data: {
-            ajax: 'public_pagination',
-            ...searchParams
-        },
-        method: 'GET',
-        success: function(response) {
-            $('#pagination-container').html(response);
-        }
-    });
-}
-
-// Admin page product rows
-$(document).off('click', '.product-row');
-$(document).on('click', '.product-row', function(event) {
-    // Only navigate if we didn't click on a link or button
-    if (!$(event.target).closest('a, button, .btn, input, select').length) {
-        const productId = $(this).data('id');
-        window.location.href = 'admin/adminsingleproduct.php?id=' + productId;
-    }
-});
-
-// Public page clickable rows 
-$(document).off('click', '.clickable-row');
-$(document).on('click', '.clickable-row', function(event) {
-    // Only navigate if we didn't click on a link or button
-    if (!$(event.target).closest('a, button, .btn, input, select').length) {
-        window.location.href = $(this).data('href');
-    }
-});
-
-// 3. Ensure category dropdown triggers immediate search on the public page too
-
-// Make public category dropdown trigger search immediately (same as admin)
-$(document).on('change', '#public-category', function() {
-    // If using a form submit approach:
-    $('#search-form').submit();
-    
-    // If using a direct function call approach:
-    // This is needed only if your public page uses a different approach
-    if (typeof performPublicSearch === 'function') {
-        performPublicSearch();
-    }
-});

@@ -21,6 +21,7 @@
      require_once BASE_PATH . '/includes/functions.php';
  }
  require_once BASE_PATH . '/config/config.php';
+ require_once BASE_PATH . '/includes/Paginator.php';
  
  // Check and include Formatter.php if exists
  if (file_exists(BASE_PATH . '/includes/Formatter.php')) {

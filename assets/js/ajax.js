@@ -1,427 +1,835 @@
 /**
- * ajax.js - AJAX functionality for Karis Antikvariat
- * Contains all AJAX search functionality, data fetching, and response handling
+ * Enhanced AJAX utilities for the Karis Antikvariat Inventory Management System
+ * Provides a consistent interface for all AJAX operations
+ * 
+ * @version 2.0
+ * @author Axxell
  */
 
-// Function to handle search form event handlers
-function attachSearchEventHandlers() {
-    const adminSearchForm = document.getElementById('admin-search-form');
-    const categoryFilterSelect = document.getElementById('category-filter');
-    
-    // First, remove any existing event listeners to prevent duplicates
-    if (adminSearchForm) {
-        const newForm = adminSearchForm.cloneNode(true);
-        adminSearchForm.parentNode.replaceChild(newForm, adminSearchForm);
+// Define the InventoryAjax namespace
+const InventoryAjax = {
+    /**
+     * Base request function for standardizing all AJAX calls
+     * 
+     * @param {string} url - The endpoint URL
+     * @param {string} method - HTTP method (GET, POST, PUT, DELETE)
+     * @param {object|FormData} data - Request data
+     * @param {Function} successCallback - Callback for successful responses
+     * @param {Function} errorCallback - Callback for error responses
+     * @return {Promise} - Promise for chaining
+     */
+    request: function(url, method, data, successCallback, errorCallback) {
+        // Show global loading indicator
+        this.showLoader();
         
-        newForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            performAdminSearch();
-        });
-    }
-    
-    // Handle category dropdown change
-    if (categoryFilterSelect) {
-        // Replace with a clone to remove all existing event listeners
-        const newSelect = categoryFilterSelect.cloneNode(true);
-        categoryFilterSelect.parentNode.replaceChild(newSelect, categoryFilterSelect);
-        
-        // Add change event that performs search immediately
-        newSelect.addEventListener('change', function(e) {
-            e.preventDefault();
-            // Perform search immediately when dropdown value changes
-            performAdminSearch();
-        });
-    }
-  }
-  
-  // Initialize admin search functionality
-  function initializeAdminSearch() {
-    const adminSearchForm = document.getElementById('admin-search-form');
-    const searchTermInput = document.getElementById('search-term');
-    const categoryFilterSelect = document.getElementById('category-filter');
-    
-    // Skip if elements don't exist
-    if (!adminSearchForm || !searchTermInput || !categoryFilterSelect) return;
-    
-    // Handle search form submission
-    adminSearchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        performAdminSearch();
-    });
-    
-    // Add this new section: Add change event listener to category dropdown 
-    // to make it trigger search immediately
-    categoryFilterSelect.addEventListener('change', function() {
-        performAdminSearch();
-    });
-  }
-  
-  // Perform admin search
-  function performAdminSearch(page = 1) {
-    const targetElem = document.getElementById('inventory-body');
-    if (!targetElem) {
-        console.error('Target element not found');
-        return;
-    }
-    
-    const searchTermInput = document.getElementById('search-term');
-    const categoryFilterSelect = document.getElementById('category-filter');
-    
-    if (!searchTermInput || !categoryFilterSelect) {
-        console.error('Search form elements not found');
-        return;
-    }
-    
-    const searchParams = {
-        search: searchTermInput.value,
-        category: categoryFilterSelect.value,
-        ajax: 'admin', // Specify that this is an admin search
-        page: page || 1
-    };
-    
-    // Show loading spinner
-    targetElem.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
-    
-    // Perform the AJAX request
-    fetch(`/prog23/lagerhanteringssystem/admin/search.php?${new URLSearchParams(searchParams)}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+        // Determine if we're using GET or POST
+        const isGet = method.toUpperCase() === 'GET';
+        const requestOptions = {
+            method: method.toUpperCase(),
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
             }
-            return response.text();
-        })
-        .then(html => {
-            // Update the table contents
-            targetElem.innerHTML = html;
+        };
+        
+        // Handle data differently for GET vs POST
+        let finalUrl = url;
+        if (isGet && data) {
+            // For GET, convert data to query string
+            const params = new URLSearchParams();
+            Object.keys(data).forEach(key => {
+                params.append(key, data[key]);
+            });
+            finalUrl = `${url}?${params.toString()}`;
+        } else if (!isGet && data) {
+            // For POST, add data to body
+            if (data instanceof FormData) {
+                requestOptions.body = data;
+            } else {
+                requestOptions.headers['Content-Type'] = 'application/json';
+                requestOptions.body = JSON.stringify(data);
+            }
+        }
+        
+        // Make the request using fetch API
+        return fetch(finalUrl, requestOptions)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Server responded with status: ${response.status}`);
+                }
+                return response.json();
+            })
+            .then(responseData => {
+                // Hide loader on success
+                this.hideLoader();
+                
+                // Check for success flag in standardized response
+                if (responseData.success === true) {
+                    if (typeof successCallback === 'function') {
+                        successCallback(responseData);
+                    }
+                    return responseData;
+                } else {
+                    // Application-level error
+                    const errorMsg = responseData.message || 'Unknown error occurred';
+                    this.showMessage(errorMsg, 'danger');
+                    
+                    if (typeof errorCallback === 'function') {
+                        errorCallback(responseData);
+                    }
+                    throw new Error(errorMsg);
+                }
+            })
+            .catch(error => {
+                // Hide loader on error
+                this.hideLoader();
+                
+                // Show error message
+                this.showMessage(error.message || 'Request failed', 'danger');
+                
+                if (typeof errorCallback === 'function') {
+                    errorCallback(error);
+                }
+                
+                return Promise.reject(error);
+            });
+    },
+    
+    /**
+     * Convenience method for GET requests
+     * 
+     * @param {string} url - The endpoint URL
+     * @param {object} data - Request parameters
+     * @param {Function} successCallback - Success callback
+     * @param {Function} errorCallback - Error callback
+     * @return {Promise} - Promise for chaining
+     */
+    get: function(url, data, successCallback, errorCallback) {
+        return this.request(url, 'GET', data, successCallback, errorCallback);
+    },
+    
+    /**
+     * Convenience method for POST requests
+     * 
+     * @param {string} url - The endpoint URL
+     * @param {object|FormData} data - Request data
+     * @param {Function} successCallback - Success callback
+     * @param {Function} errorCallback - Error callback
+     * @return {Promise} - Promise for chaining
+     */
+    post: function(url, data, successCallback, errorCallback) {
+        return this.request(url, 'POST', data, successCallback, errorCallback);
+    },
+    
+    /**
+     * Load table data via AJAX
+     * 
+     * @param {string} tableId - ID of the table container
+     * @param {string} url - Endpoint URL
+     * @param {object} params - Request parameters (pagination, sorting, filters)
+     * @return {Promise} - Promise for chaining
+     */
+    loadTable: function(tableId, url, params = {}) {
+        const tableContainer = document.getElementById(tableId);
+        if (!tableContainer) {
+            console.error(`Table container with ID "${tableId}" not found`);
+            return Promise.reject(new Error(`Table container not found: ${tableId}`));
+        }
+        
+        const tableBody = tableContainer.querySelector('tbody');
+        if (!tableBody) {
+            console.error(`Table body not found in container "${tableId}"`);
+            return Promise.reject(new Error(`Table body not found in container: ${tableId}`));
+        }
+        
+        // Show table-specific loader
+        this.showTableLoader(tableContainer);
+        
+        // Store current filters for pagination
+        tableContainer.dataset.currentFilters = JSON.stringify(params);
+        
+        // Make the request
+        return this.post(url, {
+            ...params,
+            render_html: true // Request HTML rendering from server
+        }, 
+        (response) => {
+            // Success handler
+            if (response.html) {
+                // Use pre-rendered HTML if available
+                tableBody.innerHTML = response.html;
+            } else if (response.items) {
+                // Otherwise, render items manually
+                this.renderTableItems(tableBody, response.items, tableContainer);
+            } else {
+                tableBody.innerHTML = '<tr><td colspan="100" class="text-center">No results found</td></tr>';
+            }
             
-            // Explicitly make rows clickable first (important order)
-            makeRowsClickable();
+            // Update pagination if present
+            if (response.pagination) {
+                this.updatePagination(tableContainer, response.pagination);
+            }
             
-            // Then attach action listeners to buttons
-            attachActionListeners();
+            // Hide table-specific loader
+            this.hideTableLoader(tableContainer);
             
-            // Update URL without reloading
-            updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            targetElem.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>';
+            // Initialize any dynamic elements in the new content
+            this.initDynamicContent(tableBody);
+            
+            // Execute any custom callback
+            if (typeof tableContainer.dataset.onLoad === 'function') {
+                tableContainer.dataset.onLoad(response);
+            }
+        },
+        (error) => {
+            // Error handler
+            tableBody.innerHTML = `<tr><td colspan="100" class="text-center text-danger">${error.message || 'Error loading data'}</td></tr>`;
+            this.hideTableLoader(tableContainer);
         });
-  }
-  
-  // Function to update pagination UI after AJAX load
-  function updatePaginationUI(currentPage) {
-    // Find all pagination links and update their click events
-    document.querySelectorAll('#pagination .page-link').forEach(link => {
-        link.addEventListener('click', function(e) {
-            e.preventDefault();
+    },
+    
+    /**
+     * Render table items without server-side HTML
+     * 
+     * @param {HTMLElement} tableBody - Table body element
+     * @param {Array} items - Array of items to render
+     * @param {HTMLElement} tableContainer - Table container element
+     */
+    renderTableItems: function(tableBody, items, tableContainer) {
+        if (!items || items.length === 0) {
+            tableBody.innerHTML = '<tr><td colspan="100" class="text-center">No results found</td></tr>';
+            return;
+        }
+        
+        // Get column configuration from data attributes or table headers
+        let columns = [];
+        
+        // Try to get columns from data attribute
+        if (tableContainer.dataset.columns) {
+            try {
+                columns = JSON.parse(tableContainer.dataset.columns);
+            } catch (e) {
+                console.error('Error parsing columns data attribute', e);
+            }
+        }
+        
+        // If no columns defined, try to get from table headers
+        if (columns.length === 0) {
+            const headers = tableContainer.querySelectorAll('thead th');
+            headers.forEach(header => {
+                const field = header.dataset.field || '';
+                if (field) {
+                    columns.push({
+                        field: field,
+                        title: header.textContent.trim()
+                    });
+                }
+            });
+        }
+        
+        // Build HTML for items
+        let html = '';
+        items.forEach(item => {
+            let rowClasses = '';
+            let rowDataAttrs = '';
             
-            // Get page number from the link
-            const hrefParams = new URLSearchParams(this.getAttribute('href').split('?')[1]);
-            const pageNum = hrefParams.get('page');
+            // Add clickable-row functionality if href is available
+            if (item.href) {
+                rowClasses += ' clickable-row';
+                rowDataAttrs += ` data-href="${item.href}"`;
+            }
             
-            // Perform search with new page number
-            const searchParams = {
-                search: document.getElementById('search-term').value,
-                category: document.getElementById('category-filter').value,
-                page: pageNum,
-                limit: 20
-            };
+            let rowHtml = `<tr class="${rowClasses}"${rowDataAttrs}>`;
             
-            // Update URL
-            updateUrlParams(Object.assign({}, searchParams, { tab: 'search' }));
-            
-            // Execute search with the new page
-            ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'admin', searchParams, 
-                document.getElementById('inventory-body'), function() {
-                    attachActionListeners();
-                    makeRowsClickable();
-                    updatePaginationUI(pageNum);
+            // If columns are defined, use them to render cells
+            if (columns.length > 0) {
+                columns.forEach(column => {
+                    if (column.field) {
+                        const value = item[column.field] !== undefined ? item[column.field] : '';
+                        const cellClasses = column.cellClass || '';
+                        
+                        rowHtml += `<td class="${cellClasses}">${value}</td>`;
+                    } else {
+                        rowHtml += '<td></td>';
+                    }
                 });
-        });
-    });
-  }
-  
-  // Initialize lists tab
-  function initializeLists() {
-      const listsSearchForm = document.getElementById('lists-search-form');
-      const listsSearchInput = document.getElementById('lists-search-term');
-      const listsCategorySelect = document.getElementById('lists-category');
-      
-      // Skip if elements don't exist
-      if (!listsSearchForm || !listsSearchInput || !listsCategorySelect) return;
-      
-      // Handle search form submission
-      listsSearchForm.addEventListener('submit', function(e) {
-          e.preventDefault();
-          performListsSearch();
-      });
-      
-      // Add change event listener to category dropdown
-      listsCategorySelect.addEventListener('change', function() {
-          performListsSearch();
-      });
-      
-      // Attach list-specific action listeners
-      attachListsActionListeners();
-  }
-  
-  // Perform lists search
-  function performListsSearch() {
-      const targetElem = document.getElementById('lists-body');
-      const searchParams = {
-          search: document.getElementById('lists-search-term').value,
-          category: document.getElementById('lists-category').value
-      };
-      
-      // Perform AJAX search
-      ajaxSearch('admin/search.php', 'lists', searchParams, targetElem, function() {
-          // Success callback
-          attachListsActionListeners();
-          
-          // Update URL without reloading
-          updateUrlParams(Object.assign({}, searchParams, { tab: 'lists' }));
-      });
-  }
-  
-  // AJAX search function
-  function ajaxSearch(url, type, params, targetElement, callback) {
-      // Show loading indicator
-      $(targetElement).html('<tr><td colspan="100%" class="text-center"><div class="spinner-border text-primary"></div></td></tr>');
-      
-      // Create form data
-      const formData = new FormData();
-      formData.append('action', 'search');
-      formData.append('type', type);
-      
-      // Add all params
-      Object.keys(params).forEach(key => {
-          formData.append(key, params[key]);
-      });
-      
-      // Send request
-      fetch(url, {
-          method: 'POST',
-          body: formData
-      })
-      .then(response => {
-          if (!response.ok) {
-              throw new Error('Network response was not ok');
-          }
-          return response.text();
-      })
-      .then(html => {
-          // Update the target element with the response HTML
-          $(targetElement).html(html);
-          
-          // Call the callback function if provided
-          if (typeof callback === 'function') {
-              callback();
-          }
-      })
-      .catch(error => {
-          console.error('Error:', error);
-          $(targetElement).html(`<tr><td colspan="100%" class="text-center text-danger">Ett fel inträffade vid sökning. Försök igen senare.</td></tr>`);
-      });
-  }
-  
-  // Update refreshTableContent to ensure rows are clickable after refresh
-  function refreshTableContent() {
-    const targetElem = document.getElementById('inventory-body');
-    if (!targetElem) {
-        console.error('Target element not found');
-        return;
-    }
-    
-    const searchTermInput = document.getElementById('search-term');
-    const categoryFilterSelect = document.getElementById('category-filter');
-    
-    if (!searchTermInput || !categoryFilterSelect) {
-        console.error('Search form elements not found');
-        return;
-    }
-    
-    const searchParams = {
-        search: searchTermInput.value,
-        category: categoryFilterSelect.value,
-        ajax: 'admin',
-        table_only: 'true' // Request only the table content
-    };
-    
-    // Show loading spinner
-    targetElem.innerHTML = '<tr><td colspan="8" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>';
-    
-    // Perform the AJAX request
-    fetch(`/prog23/lagerhanteringssystem/admin/search.php?${new URLSearchParams(searchParams)}`)
-        .then(response => {
-            if (!response.ok) {
-                throw new Error('Network response was not ok');
+            } else {
+                // Fallback: render all properties
+                Object.values(item).forEach(value => {
+                    rowHtml += `<td>${value}</td>`;
+                });
             }
-            return response.text();
-        })
-        .then(html => {
-            // Only update the table contents, not the form
-            targetElem.innerHTML = html;
             
-            // Explicitly make rows clickable first
-            makeRowsClickable();
-            
-            // Then attach action listeners to buttons
-            attachActionListeners();
-        })
-        .catch(error => {
-            console.error('Error:', error);
-            targetElem.innerHTML = '<tr><td colspan="8" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>';
+            rowHtml += '</tr>';
+            html += rowHtml;
         });
-  }
-  
-  // Change product status (for quick actions)
-  function changeProductStatus(productId, newStatus, callback) {
-    // Create form data for the request
-    const formData = new FormData();
-    formData.append('action', 'change_status');
-    formData.append('product_id', productId);
-    formData.append('status', newStatus);
+        
+        tableBody.innerHTML = html;
+    },
     
-    // Show a loading indicator for the specific row
-    const row = document.querySelector(`tr.clickable-row [data-id="${productId}"]`).closest('tr');
-    if (row) {
-        row.style.opacity = '0.5';
-    }
+    /**
+     * Submit form via AJAX
+     * 
+     * @param {string|HTMLFormElement} form - Form ID or element
+     * @param {Function} successCallback - Success callback
+     * @param {Function} errorCallback - Error callback
+     * @return {Promise} - Promise for chaining
+     */
+    submitForm: function(form, successCallback, errorCallback) {
+        const formElement = typeof form === 'string' ? document.getElementById(form) : form;
+        
+        if (!formElement || !(formElement instanceof HTMLFormElement)) {
+            console.error(`Form not found or invalid: ${form}`);
+            return Promise.reject(new Error(`Form not found or invalid: ${form}`));
+        }
+        
+        // Validate form (optional)
+        if (!this.validateForm(formElement)) {
+            return Promise.reject(new Error('Form validation failed'));
+        }
+        
+        // Collect form data
+        const formData = new FormData(formElement);
+        
+        // Get form action and method
+        const action = formElement.getAttribute('action') || window.location.href;
+        const method = formElement.getAttribute('method') || 'POST';
+        
+        // Show form-specific loader
+        this.showFormLoader(formElement);
+        
+        // Submit form
+        return this.request(action, method, formData, 
+            (response) => {
+                // Success handler
+                this.hideFormLoader(formElement);
+                this.showMessage(response.message || 'Operation successful', 'success');
+                
+                if (typeof successCallback === 'function') {
+                    successCallback(response);
+                }
+                
+                // Reset form if specified
+                if (formElement.dataset.resetOnSuccess === 'true') {
+                    formElement.reset();
+                }
+                
+                // Redirect if specified
+                if (response.redirect) {
+                    window.location.href = response.redirect;
+                }
+            },
+            (error) => {
+                // Error handler
+                this.hideFormLoader(formElement);
+                
+                if (typeof errorCallback === 'function') {
+                    errorCallback(error);
+                }
+            }
+        );
+    },
     
-    // Send request
-    fetch('/prog23/lagerhanteringssystem/admin/search.php', {
-        method: 'POST',
-        body: formData,
-        headers: {
-            'X-Requested-With': 'XMLHttpRequest' // Mark as AJAX request
+    /**
+     * Perform batch operations on selected items
+     * 
+     * @param {string} action - Action to perform
+     * @param {Array|NodeList} selectedItems - Selected item checkboxes or IDs
+     * @param {string} endpoint - API endpoint
+     * @param {Function} successCallback - Success callback
+     * @param {Function} errorCallback - Error callback
+     * @return {Promise} - Promise for chaining
+     */
+    batchOperation: function(action, selectedItems, endpoint, successCallback, errorCallback) {
+        // Convert NodeList to Array if needed
+        const items = Array.from(selectedItems);
+        
+        // Extract IDs from checkboxes or use directly if already IDs
+        const itemIds = items.map(item => {
+            if (typeof item === 'object' && item.value) {
+                return item.value;
+            }
+            return item;
+        });
+        
+        if (itemIds.length === 0) {
+            this.showMessage('No items selected', 'warning');
+            return Promise.reject(new Error('No items selected'));
         }
-    })
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
+        
+        // Show global loader
+        this.showLoader();
+        
+        // Perform the batch operation
+        return this.post(endpoint, {
+            action: action,
+            items: itemIds
+        }, 
+        (response) => {
+            // Success handler
+            this.hideLoader();
+            this.showMessage(response.message || `Operation '${action}' completed successfully`, 'success');
+            
+            if (typeof successCallback === 'function') {
+                successCallback(response);
+            }
+        },
+        (error) => {
+            // Error handler
+            this.hideLoader();
+            
+            if (typeof errorCallback === 'function') {
+                errorCallback(error);
+            }
+        });
+    },
+    
+    /**
+     * Basic form validation
+     * 
+     * @param {HTMLFormElement} form - Form to validate
+     * @return {boolean} - True if valid, false otherwise
+     */
+    validateForm: function(form) {
+        let isValid = true;
+        
+        // Check required fields
+        form.querySelectorAll('[required]').forEach(field => {
+            if (!field.value.trim()) {
+                field.classList.add('is-invalid');
+                
+                // Add invalid feedback if not present
+                let feedback = field.nextElementSibling;
+                if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    feedback.textContent = 'This field is required';
+                    field.parentNode.insertBefore(feedback, field.nextElementSibling);
+                }
+                
+                isValid = false;
+            } else {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        // Check email fields
+        form.querySelectorAll('input[type="email"]').forEach(field => {
+            if (field.value.trim() && !this.validateEmail(field.value)) {
+                field.classList.add('is-invalid');
+                
+                // Add invalid feedback if not present
+                let feedback = field.nextElementSibling;
+                if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    feedback.textContent = 'Please enter a valid email address';
+                    field.parentNode.insertBefore(feedback, field.nextElementSibling);
+                }
+                
+                isValid = false;
+            } else if (field.value.trim()) {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        // Check numeric fields
+        form.querySelectorAll('input[type="number"], [data-validate="number"]').forEach(field => {
+            if (field.value.trim() && isNaN(parseFloat(field.value))) {
+                field.classList.add('is-invalid');
+                
+                // Add invalid feedback if not present
+                let feedback = field.nextElementSibling;
+                if (!feedback || !feedback.classList.contains('invalid-feedback')) {
+                    feedback = document.createElement('div');
+                    feedback.className = 'invalid-feedback';
+                    feedback.textContent = 'Please enter a valid number';
+                    field.parentNode.insertBefore(feedback, field.nextElementSibling);
+                }
+                
+                isValid = false;
+            } else if (field.value.trim()) {
+                field.classList.remove('is-invalid');
+            }
+        });
+        
+        return isValid;
+    },
+    
+    /**
+     * Validate email format
+     * 
+     * @param {string} email - Email to validate
+     * @return {boolean} - True if valid, false otherwise
+     */
+    validateEmail: function(email) {
+        const re = /^(([^<>()\[\]\\.,;:\s@"]+(\.[^<>()\[\]\\.,;:\s@"]+)*)|(".+"))@((\[[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\.[0-9]{1,3}\])|(([a-zA-Z\-0-9]+\.)+[a-zA-Z]{2,}))$/;
+        return re.test(String(email).toLowerCase());
+    },
+    
+    /**
+     * Update pagination controls
+     * 
+     * @param {HTMLElement} container - Container element
+     * @param {object} paginationData - Pagination data
+     */
+    updatePagination: function(container, paginationData) {
+        // Find or create pagination container
+        let paginationContainer = container.querySelector('.pagination-container');
+        if (!paginationContainer) {
+            paginationContainer = document.createElement('div');
+            paginationContainer.className = 'pagination-container mt-3';
+            container.appendChild(paginationContainer);
         }
-        return response.json();
-    })
-    .then(data => {
-        if (data.success) {
-            // Don't show success message anymore
+        
+        // Generate pagination HTML
+        let paginationHtml = '<ul class="pagination justify-content-center">';
+        
+        // Previous button
+        paginationHtml += `
+            <li class="page-item ${paginationData.currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link pagination-link" href="javascript:void(0);" data-page="${paginationData.currentPage - 1}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+        
+        // Page numbers
+        const startPage = Math.max(1, paginationData.currentPage - 2);
+        const endPage = Math.min(paginationData.totalPages, paginationData.currentPage + 2);
+        
+        // First page link if not in range
+        if (startPage > 1) {
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="javascript:void(0);" data-page="1">1</a>
+                </li>
+            `;
             
-            // Just refresh the table content
-            refreshTableContent();
+            // Add ellipsis if needed
+            if (startPage > 2) {
+                paginationHtml += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+        }
+        
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHtml += `
+                <li class="page-item ${i === paginationData.currentPage ? 'active' : ''}">
+                    <a class="page-link pagination-link" href="javascript:void(0);" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Last page link if not in range
+        if (endPage < paginationData.totalPages) {
+            // Add ellipsis if needed
+            if (endPage < paginationData.totalPages - 1) {
+                paginationHtml += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
             
-            // Call the callback function if provided
-            if (typeof callback === 'function') {
-                callback(true);
+            paginationHtml += `
+                <li class="page-item">
+                    <a class="page-link pagination-link" href="javascript:void(0);" data-page="${paginationData.totalPages}">${paginationData.totalPages}</a>
+                </li>
+            `;
+        }
+        
+        // Next button
+        paginationHtml += `
+            <li class="page-item ${paginationData.currentPage >= paginationData.totalPages ? 'disabled' : ''}">
+                <a class="page-link pagination-link" href="javascript:void(0);" data-page="${paginationData.currentPage + 1}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+        
+        paginationHtml += '</ul>';
+        
+        // Add pagination info text
+        if (paginationData.totalItems > 0) {
+            paginationHtml += `
+                <div class="pagination-info text-center mt-2">
+                    Showing ${paginationData.firstRecord} to ${paginationData.lastRecord} of ${paginationData.totalItems} items
+                </div>
+            `;
+        }
+        
+        // Update container
+        paginationContainer.innerHTML = paginationHtml;
+        
+        // Attach event handlers to pagination links
+        const links = paginationContainer.querySelectorAll('.pagination-link');
+        links.forEach(link => {
+            link.addEventListener('click', (e) => {
+                e.preventDefault();
+                
+                const page = parseInt(link.dataset.page, 10);
+                if (isNaN(page)) return;
+                
+                // Get current filters from data attribute
+                let currentFilters = {};
+                try {
+                    currentFilters = JSON.parse(container.dataset.currentFilters || '{}');
+                } catch (err) {
+                    console.error('Error parsing current filters', err);
+                }
+                
+                // Update page number
+                currentFilters.page = page;
+                
+                // Get endpoint from data attribute or use default
+                const endpoint = container.dataset.endpoint || 'api/get_paginated_data.php';
+                
+                // Reload table data
+                this.loadTable(container.id, endpoint, currentFilters);
+                
+                // Update URL if specified
+                if (container.dataset.updateUrl === 'true') {
+                    this.updateUrlParams({ page: page });
+                }
+            });
+        });
+    },
+    
+    /**
+     * Initialize dynamic content elements
+     * 
+     * @param {HTMLElement} container - Container with new content
+     */
+    initDynamicContent: function(container) {
+        // Make rows clickable
+        container.querySelectorAll('.clickable-row').forEach(row => {
+            row.addEventListener('click', function(e) {
+                // Only navigate if not clicking on a control element
+                if (!e.target.closest('a, button, input, select, .no-click')) {
+                    window.location.href = this.dataset.href;
+                }
+            });
+        });
+        
+        // Initialize any Bootstrap components
+        if (typeof bootstrap !== 'undefined') {
+            // Initialize tooltips
+            container.querySelectorAll('[data-bs-toggle="tooltip"]').forEach(el => {
+                new bootstrap.Tooltip(el);
+            });
+            
+            // Initialize popovers
+            container.querySelectorAll('[data-bs-toggle="popover"]').forEach(el => {
+                new bootstrap.Popover(el);
+            });
+        }
+        
+        // Initialize any custom input handlers
+        container.querySelectorAll('input[data-autosubmit="true"]').forEach(input => {
+            input.addEventListener('change', function() {
+                if (this.form) {
+                    this.form.submit();
+                }
+            });
+        });
+    },
+    
+    /**
+     * Show global loading indicator
+     */
+    showLoader: function() {
+        // Show global loader
+        let loader = document.getElementById('global-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.id = 'global-loader';
+            loader.className = 'global-loader';
+            loader.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+            document.body.appendChild(loader);
+        }
+        loader.style.display = 'flex';
+    },
+    
+    /**
+     * Hide global loading indicator
+     */
+    hideLoader: function() {
+        // Hide global loader
+        const loader = document.getElementById('global-loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+    },
+    
+    /**
+     * Show table-specific loading indicator
+     * 
+     * @param {HTMLElement} tableContainer - Table container element
+     */
+    showTableLoader: function(tableContainer) {
+        // Show table-specific loader
+        let loader = tableContainer.querySelector('.table-loader');
+        
+        // Create loader if it doesn't exist
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.className = 'table-loader';
+            loader.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
+            tableContainer.appendChild(loader);
+        }
+        
+        loader.style.display = 'flex';
+    },
+    
+    /**
+     * Hide table-specific loading indicator
+     * 
+     * @param {HTMLElement} tableContainer - Table container element
+     */
+    hideTableLoader: function(tableContainer) {
+        // Hide table-specific loader
+        const loader = tableContainer.querySelector('.table-loader');
+        if (loader) {
+            loader.style.display = 'none';
+        }
+    },
+    
+    /**
+     * Show form-specific loading indicator
+     * 
+     * @param {HTMLFormElement} form - Form element
+     */
+    showFormLoader: function(form) {
+        // Disable all form inputs and buttons
+        form.querySelectorAll('input, select, textarea, button').forEach(el => {
+            el.disabled = true;
+        });
+        
+        // Create and show loader
+        let loader = form.querySelector('.form-loader');
+        if (!loader) {
+            loader = document.createElement('div');
+            loader.className = 'form-loader';
+            loader.innerHTML = '<div class="spinner-border spinner-border-sm text-primary" role="status"><span class="visually-hidden">Loading...</span></div> Processing...';
+            
+            // Find submit button and replace its text
+            const submitBtn = form.querySelector('[type="submit"]');
+            if (submitBtn) {
+                submitBtn.dataset.originalText = submitBtn.innerHTML;
+                submitBtn.innerHTML = loader.innerHTML;
+            } else {
+                // If no submit button, append to form
+                form.appendChild(loader);
             }
         } else {
-            // Still show error message if there's a problem
-            if (data.message) {
-                showMessage('Error: ' + data.message, 'danger');
-            }
-            
-            // Reset opacity of the row
-            if (row) {
-                row.style.opacity = '1';
-            }
-            
-            // Call the callback function with false if provided
-            if (typeof callback === 'function') {
-                callback(false);
-            }
+            loader.style.display = 'block';
         }
-    })
-    .catch(error => {
-        console.error('Error:', error);
-        showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
+    },
+    
+    /**
+     * Hide form-specific loading indicator
+     * 
+     * @param {HTMLFormElement} form - Form element
+     */
+    hideFormLoader: function(form) {
+        // Re-enable all form inputs and buttons
+        form.querySelectorAll('input, select, textarea, button').forEach(el => {
+            el.disabled = false;
+        });
         
-        // Reset opacity of the row
-        if (row) {
-            row.style.opacity = '1';
+        // Find submit button and restore its text
+        const submitBtn = form.querySelector('[type="submit"]');
+        if (submitBtn && submitBtn.dataset.originalText) {
+            submitBtn.innerHTML = submitBtn.dataset.originalText;
         }
         
-        // Call the callback function with false if provided
-        if (typeof callback === 'function') {
-            callback(false);
+        // Hide standalone loader if present
+        const loader = form.querySelector('.form-loader');
+        if (loader) {
+            loader.style.display = 'none';
         }
-    });
-  }
-  
-  // Update URL parameters without reloading the page
-  function updateUrlParams(params) {
-      const url = new URL(window.location);
-      
-      // Remove all existing parameters
-      [...url.searchParams.keys()].forEach(key => {
-          url.searchParams.delete(key);
-      });
-      
-      // Add new parameters
-      Object.keys(params).forEach(key => {
-          if (params[key]) url.searchParams.set(key, params[key]);
-      });
-      
-      // Update URL without reload
-      window.history.pushState({}, '', url);
-  }
-  
-  // Perform batch action on selected items in lists
-  function performBatchAction(action) {
-      // Get all selected checkboxes
-      const checkboxes = document.querySelectorAll('.item-checkbox:checked');
-      
-      if (checkboxes.length === 0) {
-          showMessage('Välj minst en produkt för att utföra denna åtgärd.', 'warning');
-          return;
-      }
-      
-      // Confirm action
-      let confirmMessage = 'Är du säker på att du vill utföra denna åtgärd på de valda produkterna?';
-      switch (action) {
-          case 'sell':
-              confirmMessage = 'Är du säker på att du vill markera de valda produkterna som sålda?';
-              break;
-          case 'return':
-              confirmMessage = 'Är du säker på att du vill återställa de valda produkterna till tillgängliga?';
-              break;
-          case 'delete':
-              confirmMessage = 'Är du säker på att du vill ta bort de valda produkterna? Denna åtgärd kan inte ångras!';
-              break;
-      }
-      
-      if (!confirm(confirmMessage)) {
-          return;
-      }
-      
-      // Get selected product IDs
-      const productIds = Array.from(checkboxes).map(checkbox => checkbox.value);
-      
-      // Create form data
-      const formData = new FormData();
-      formData.append('action', 'batch_action');
-      formData.append('batch_action', action);
-      formData.append('product_ids', JSON.stringify(productIds));
-      
-      // Send request
-      fetch('admin/lists.php', {
-          method: 'POST',
-          body: formData
-      })
-      .then(response => response.json())
-      .then(data => {
-          if (data.success) {
-              // Show success message
-              showMessage(data.message, 'success');
-              
-              // Reload lists results
-              performListsSearch();
-          } else {
-              // Show error message
-              showMessage('Error: ' + data.message, 'danger');
-          }
-      })
-      .catch(error => {
-          console.error('Error:', error);
-          showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
-      });
-  }
+    },
+    
+    /**
+     * Show message to user
+     * 
+     * @param {string} message - Message text
+     * @param {string} type - Message type (success, danger, warning, info)
+     */
+    showMessage: function(message, type = 'success') {
+        // Use existing showMessage function if available
+        if (typeof window.showMessage === 'function') {
+            window.showMessage(message, type);
+            return;
+        }
+        
+        // Create a message container if not exists
+        let messageContainer = document.getElementById('message-container');
+        if (!messageContainer) {
+            messageContainer = document.createElement('div');
+            messageContainer.id = 'message-container';
+            messageContainer.className = 'message-container';
+            
+            // Insert at the top of the main content
+            const mainContent = document.querySelector('.container') || document.body;
+            mainContent.insertBefore(messageContainer, mainContent.firstChild);
+        }
+        
+        // Make sure container is visible
+        messageContainer.style.display = 'block';
+        
+        // Create alert element
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.role = 'alert';
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+        `;
+        
+        // Add to container
+        messageContainer.appendChild(alert);
+        
+        // Auto dismiss after 5 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.classList.remove('show');
+                setTimeout(() => {
+                    if (alert.parentNode) {
+                        alert.remove();
+                        
+                        // Hide container if empty
+                        if (messageContainer.children.length === 0) {
+                            messageContainer.style.display = 'none';
+                        }
+                    }
+                }, 150);
+            }
+        }, 5000);
+    },
+    
+    /**
+     * Update URL parameters without reloading the page
+     * 
+     * @param {object} params - Parameters to update
+     */
+    updateUrlParams: function(params) {
+        const url = new URL(window.location);
+        
+        // Update or add each parameter
+        Object.keys(params).forEach(key => {
+            if (params[key] !== null && params[key] !== undefined) {
+                url.searchParams.set(key, params[key]);
+            } else {
+                url.searchParams.delete(key);
+            }
+        });
+        
+        // Update browser history without reloading page
+        window.history.pushState({}, '', url);
+    }
+};
