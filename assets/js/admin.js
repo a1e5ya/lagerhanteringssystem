@@ -55,8 +55,7 @@ $(document).ready(function() {
                   makeRowsClickable();
               } else if (tab === "addproduct") {
                   // Your existing code for addproduct tab
-                  setupAutocomplete("author-first", "suggest-author-first", "authorFirst");
-                  setupAutocomplete("author-last", "suggest-author-last", "authorLast");
+                  setupAutocomplete("author-name", "suggest-author", "author");
                   setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
                   // Set up image preview
                   setupImagePreview();
@@ -437,9 +436,8 @@ $(document).ready(function() {
     const addProductForm = document.getElementById('add-item-form');
     if (addProductForm) {
       console.log('Add product form detected, setting up autocomplete');
-      setupAutocomplete('author-first', 'suggest-author-first', 'authorFirst');
-      setupAutocomplete('author-last', 'suggest-author-last', 'authorLast');
-      setupAutocomplete('item-publisher', 'suggest-publisher', 'publisher');
+      setupAutocomplete("author-name", "suggest-author", "author");
+      setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
       
       // Initialize authors management
       initializeAuthorsManagement();

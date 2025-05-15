@@ -15,6 +15,7 @@ require_once 'includes/functions.php';
 require_once 'includes/db_functions.php';
 require_once 'includes/auth.php';
 require_once 'includes/ui.php';
+require_once 'includes/Formatter.php';
 
 // Check if user is authenticated and has admin or editor permissions
 // Only Admin (1) or Editor (2) roles can access this page
