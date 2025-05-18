@@ -88,29 +88,9 @@ function setupImagePreview() {
       });
   }
   
-  // Make rows clickable to view product details
-  function makeRowsClickable() {
-    // This selects all clickable rows
-    const clickableRows = document.querySelectorAll('.clickable-row');
-    clickableRows.forEach(row => {
-        row.addEventListener('click', function(event) {
-            if (!event.target.closest('a') && !event.target.closest('button')) {
-                window.location.href = this.dataset.href;
-            }
-        });
-    });
+
     
-    // Add this new section to handle admin product rows too
-    const productRows = document.querySelectorAll('.product-row');
-    productRows.forEach(row => {
-        row.addEventListener('click', function(event) {
-            if (!event.target.closest('a') && !event.target.closest('button')) {
-                const productId = this.dataset.id;
-                window.location.href = `admin/adminsingleproduct.php?id=${productId}`;
-            }
-        });
-    });
-  }
+
   
   // Modal edit functionality for both single field and author
   $(document).on('click', '.edit-item', function(e) {

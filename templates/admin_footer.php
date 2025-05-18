@@ -24,6 +24,7 @@
 <!-- Custom Admin JS -->
 <script src="<?php echo getBasePath(); ?>assets/js/admin.js"></script>
 <script src="<?php echo getBasePath(); ?>assets/js/validation.js"></script>
+<script src="<?php echo getBasePath(); ?>assets/js/pagination.js"></script>
 
 </body>
 </html>

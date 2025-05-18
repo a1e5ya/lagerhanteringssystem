@@ -31,7 +31,6 @@ function initializeSearch() {
 /**
  * Initialize public search on index.php
  */
-// Add this to main.js - Initialize public search with pagination
 function initializePublicSearch() {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('public-search');
@@ -43,30 +42,42 @@ function initializePublicSearch() {
     // Handle search form submission
     searchForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        performPublicSearch(1); // Start with page 1 on new search
+        
+        // If TablePagination is available, use it
+        if (typeof TablePagination !== 'undefined') {
+            const container = document.querySelector('.table-pagination-container');
+            if (container) {
+                TablePagination.setFilters({
+                    search: searchInput.value,
+                    category: categorySelect.value
+                }).loadPage(1);
+                
+                // Scroll to search results
+                document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                // Fallback if container not found
+                performPublicSearch(1);
+            }
+        } else {
+            // Fallback if TablePagination not available
+            performPublicSearch(1);
+        }
     });
     
     // Add change event listener to category dropdown
     categorySelect.addEventListener('change', function() {
-        performPublicSearch(1); // Start with page 1 on category change
+        // Trigger form submission to update results
+        searchForm.dispatchEvent(new Event('submit'));
     });
     
-
-    
-    // Initial load of products
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentPage = urlParams.get('page') || 1;
-    
-    if (!searchInput.value && categorySelect.value === 'all') {
-        // If no search filters, load default products with pagination
-        performPublicSearch(currentPage);
-    } else {
-        // If there are search filters, use them
-        performPublicSearch(currentPage);
-    }
+    // Initialize rows as clickable
+    makeRowsClickable();
 }
 
-// Function to perform public search with pagination
+/**
+ * Legacy function to perform public search
+ * @param {number} page Page number
+ */
 function performPublicSearch(page = 1) {
     const targetElem = document.getElementById('public-inventory-body');
     const searchParams = {
@@ -78,9 +89,6 @@ function performPublicSearch(page = 1) {
     
     // Perform AJAX search
     ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
-
-        
-        
         // Scroll to search results
         document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
         
@@ -89,32 +97,55 @@ function performPublicSearch(page = 1) {
     });
 }
 
-
-
-
-
+/**
+ * Make table rows clickable
+ */
 function makeRowsClickable() {
-    const clickableRows = document.querySelectorAll('.clickable-row');
+    console.log('Making rows clickable (jQuery version)');
     
-    clickableRows.forEach(row => {
-        // Remove any existing click event listeners first to prevent duplicates
-        row.removeEventListener('click', rowClickHandler);
+    // Remove any existing click handlers first
+    $('.clickable-row').off('click');
+    
+    // Add the click event using jQuery
+    $('.clickable-row').on('click', function(e) {
+        console.log('Row clicked with jQuery!', $(this).data('href'));
         
-        // Add the click event listener
-        row.addEventListener('click', rowClickHandler);
+        // Only navigate if click wasn't on a button, link, or other interactive element
+        if (!$(e.target).closest('a, button, input, select, .no-click').length) {
+            const href = $(this).data('href');
+            if (href) {
+                console.log('Navigating to:', href);
+                window.location.href = href;
+            }
+        } else {
+            console.log('Click was on an interactive element, not navigating');
+        }
     });
 }
 
-// Separate the handler function to avoid duplicating anonymous functions
+/**
+ * Row click handler
+ * @param {Event} event Click event
+ */
 function rowClickHandler(event) {
-    // Only navigate if click wasn't on a button or link
-    if (!event.target.closest('a') && !event.target.closest('button')) {
-        window.location.href = this.dataset.href;
+    console.log('Row clicked!', event.target, this.dataset.href);
+    
+    // Only navigate if click wasn't on a button, link, or other interactive element
+    if (!event.target.closest('a, button, input, select, .no-click')) {
+        const href = this.dataset.href;
+        if (href) {
+            console.log('Navigating to:', href);
+            window.location.href = href;
+        } else {
+            console.log('No href found on this row');
+        }
+    } else {
+        console.log('Click was on an interactive element, not navigating');
     }
 }
 
 /**
- * Generic AJAX search function (used by both admin.js and main.js)
+ * Generic AJAX search function
  * 
  * @param {string} url - URL to send the request to
  * @param {string} type - Type of search ('public', 'admin', 'lists')
@@ -122,11 +153,9 @@ function rowClickHandler(event) {
  * @param {HTMLElement} targetElem - Element to update with results
  * @param {Function} successCallback - Callback to run on success
  */
-// Revised AJAX search function in main.js
 function ajaxSearch(url, type, params, targetElem, successCallback) {
     // Check if we have a valid target element
     if (!targetElem) {
-        console.error('Target element not found');
         return;
     }
     
@@ -160,20 +189,18 @@ function ajaxSearch(url, type, params, targetElem, successCallback) {
             }
         } else {
             targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Försök igen senare. Status: ${xhr.status}</td></tr>`;
-            console.error('Error response:', xhr.responseText);
         }
     };
     
     xhr.onerror = function() {
         targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Kontrollera din internetanslutning.</td></tr>`;
-        console.error('Network error occurred');
     };
     
     xhr.send();
 }
 
 /**
- * Change product status (sell/return) - shared function
+ * Change product status (sell/return)
  * 
  * @param {number} productId - Product ID
  * @param {number} newStatus - New status (1=Available, 2=Sold)
@@ -223,7 +250,6 @@ function changeProductStatus(productId, newStatus) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
         showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
     });
 }
@@ -276,7 +302,6 @@ function showMessage(message, type, containerId = 'message-container') {
         }
         
         if (!parent) {
-            console.error('Cannot find suitable parent for message container');
             return;
         }
         
@@ -305,7 +330,9 @@ function showMessage(message, type, containerId = 'message-container') {
     setTimeout(() => {
         alert.classList.remove('show');
         setTimeout(() => {
-            alert.remove();
+            if (alert.parentNode) {
+                alert.remove();
+            }
             
             // If no alerts left, hide container
             if (messageContainer.children.length === 0) {
@@ -314,6 +341,3 @@ function showMessage(message, type, containerId = 'message-container') {
         }, 150);
     }, 5000);
 }
-
-
-

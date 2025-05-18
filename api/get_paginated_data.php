@@ -1,4 +1,19 @@
 <?php
+
+// Add at the very beginning of get_public_products.php, after the initial PHP tag
+error_log('get_public_products.php called with params: ' . json_encode($_GET));
+
+// Debugging
+ini_set('display_errors', 1);
+ini_set('display_startup_errors', 1);
+error_reporting(E_ALL);
+
+// Log request details
+error_log('API Request: ' . json_encode($_REQUEST));
+error_log('POST data: ' . file_get_contents('php://input'));
+error_log('Content-Type: ' . ($_SERVER['CONTENT_TYPE'] ?? 'not set'));
+
+
 /**
  * Centralized API Endpoint for Paginated Data
  * 
@@ -8,7 +23,7 @@
  * @package    KarisAntikvariat
  * @subpackage API
  * @author     Axxell
- * @version    1.0
+ * @version    2.0
  */
 
 // Define BASE_PATH if not already defined
@@ -45,16 +60,20 @@ if ($requestMethod === 'POST' && isset($_SERVER['CONTENT_TYPE']) &&
 }
 
 // Required parameters
-$entity = $params['entity'] ?? '';  // Which entity to query (products, authors, etc.)
-$action = $params['action'] ?? 'list'; // Action to perform (list, count, etc.)
+$entity = $params['entity'] ?? '';                 // Which entity to query (products, authors, etc.)
+$action = $params['action'] ?? 'list';             // Action to perform (list, count, etc.)
+$viewType = $params['view_type'] ?? 'public';      // View type (public, admin, lists)
 
 // Pagination parameters
 $page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
-$limit = isset($params['limit']) ? max(1, (int)$params['limit']) : 15;
+$limit = isset($params['limit']) ? max(1, (int)$params['limit']) : 20; // Default 20 items per page
 
 // Sorting parameters
 $sortColumn = isset($params['sort']) ? $params['sort'] : '';
 $sortDirection = (isset($params['order']) && strtolower($params['order']) === 'desc') ? 'desc' : 'asc';
+
+// Whether to include HTML rendering in response
+$renderHtml = isset($params['render_html']) && $params['render_html'];
 
 // Authentication check for protected entities
 $protectedEntities = ['users', 'settings', 'event_log'];
@@ -69,7 +88,35 @@ if (in_array($entity, $protectedEntities)) {
 }
 
 // Create paginator instance
-$paginator = new Paginator(0, $limit, $page, $sortColumn, $sortDirection);
+// Create paginator instance with allowed sort columns
+$allowedSortColumns = getAllowedSortColumns($entity);
+$paginator = new Paginator(0, $limit, $page, $sortColumn, $sortDirection, $allowedSortColumns);
+
+/**
+ * Get allowed sort columns for an entity
+ * 
+ * @param string $entity Entity name
+ * @return array Allowed sort columns
+ */
+function getAllowedSortColumns($entity) {
+    switch ($entity) {
+        case 'products':
+            return ['prod_id', 'title', 'author_name', 'price', 'category_name', 
+                    'status', 'condition_name', 'date_added'];
+        case 'authors':
+            return ['author_id', 'author_name'];
+        case 'categories':
+            return ['category_id', 'category_name'];
+        case 'shelves':
+            return ['shelf_id', 'shelf_name'];
+        case 'users':
+            return ['user_id', 'user_username', 'user_created_at', 'user_last_login'];
+        case 'event_log':
+            return ['event_id', 'event_timestamp', 'event_type', 'user_username'];
+        default:
+            return [];
+    }
+}
 
 try {
     // Validate entity
@@ -144,6 +191,39 @@ function handleProductsRequest(array $params, Paginator $paginator, Formatter $f
     
     // Get filter parameters
     $filters = getProductFilters($params);
+
+// Handle initial display of products
+// We'll show random samples for initial page loads
+$isInitialPageLoad = empty($filters['search']) && 
+                    (empty($filters['category']) || $filters['category'] === 'all' || $filters['category'] == 0);
+
+// For initial page loads, show random samples
+if ($isInitialPageLoad && $action === 'list') {
+    // Get random samples
+    $sampleProducts = getRandomSampleProducts($pdo, 2); // 2 samples per category
+    
+    // Format the products data
+    $formattedProducts = formatProductsData($sampleProducts, $formatter);
+    
+    // Set total items in paginator
+    $totalItems = count($formattedProducts);
+    $paginator->setTotalItems($totalItems);
+    
+    // Prepare response with formatted sample products
+    $response = [
+        'success' => true,
+        'items' => $formattedProducts,
+        'pagination' => $paginator->toArray()
+    ];
+    
+    // Add HTML rendering if requested
+    if (isset($params['render_html']) && $params['render_html']) {
+        $response['html'] = renderProductsTable($formattedProducts, $params['view_type'] ?? 'public');
+    }
+    
+    sendJsonResponse($response);
+    return;
+}
     
     try {
         switch ($action) {
@@ -884,7 +964,7 @@ function handleEventLogRequest(array $params, Paginator $paginator, Formatter $f
                     $whereClauses[] = "el.event_timestamp <= :date_to";
                     $sqlParams[':date_to'] = $dateTo . ' 23:59:59';
                 }
-                
+
                 if (!empty($eventType)) {
                     $whereClauses[] = "el.event_type = :event_type";
                     $sqlParams[':event_type'] = $eventType;
@@ -989,15 +1069,20 @@ function handleEventLogRequest(array $params, Paginator $paginator, Formatter $f
         // Send error response
         sendErrorResponse('Database error: ' . $e->getMessage());
     }
-}
-
-/**
+ }
+ 
+ /**
  * Get filter parameters for products
  * 
  * @param array $params Request parameters
  * @return array Filter parameters
  */
-function getProductFilters(array $params): array {
+ function getProductFilters(array $params): array {
+
+    error_log('Raw parameters: ' . json_encode($params));
+if (isset($params['category'])) {
+    error_log('Category parameter: ' . $params['category'] . ' (type: ' . gettype($params['category']) . ')');
+}
     return [
         'search' => $params['search'] ?? '',
         'category' => isset($params['category']) ? (int)$params['category'] : 0,
@@ -1018,8 +1103,8 @@ function getProductFilters(array $params): array {
         'language' => isset($params['language']) ? (int)$params['language'] : 0,
         'view_type' => $params['view_type'] ?? 'admin' // 'admin', 'public', 'lists'
     ];
-}
-
+ }
+ 
 /**
  * Build the SQL query for products with filters
  * 
@@ -1059,7 +1144,7 @@ function buildProductsQuery(array $filters, Paginator $paginator): array {
         p.rare,
         p.recommended,
         p.date_added,
-        p.image,
+        (SELECT GROUP_CONCAT(i.image_path) FROM product_image pi JOIN image i ON pi.image_id = i.image_id WHERE pi.product_id = p.prod_id) AS image_paths,
         p.notes,
         p.internal_notes
     FROM product p
@@ -1107,7 +1192,7 @@ function buildProductsQuery(array $filters, Paginator $paginator): array {
     // Return both queries and parameters
     return [$sql, $countSql, $sqlParams];
 }
-
+ 
 /**
  * Apply filter conditions to a product query
  * 
@@ -1119,14 +1204,22 @@ function applyProductFilters(string $sql, array $filters): array {
     $whereClauses = [];
     $sqlParams = [];
     
-    // Apply search filter
+    // Apply search filter - Enhanced to include more fields
     if (!empty($filters['search'])) {
-        $whereClauses[] = "(p.title LIKE :search OR a.author_name LIKE :search OR p.notes LIKE :search)";
-        $sqlParams[':search'] = "%" . $filters['search'] . "%";
+        $searchTerm = $filters['search'];
+        $whereClauses[] = "(p.title LIKE :search 
+                           OR a.author_name LIKE :search 
+                           OR p.notes LIKE :search 
+                           OR p.publisher LIKE :search
+                           OR cat.category_sv_name LIKE :search
+                           OR cat.category_fi_name LIKE :search
+                           OR g.genre_sv_name LIKE :search
+                           OR g.genre_fi_name LIKE :search)";
+        $sqlParams[':search'] = "%" . $searchTerm . "%";
     }
     
     // Apply category filter
-    if (!empty($filters['category'])) {
+    if (!empty($filters['category']) && $filters['category'] !== 'all') {
         $whereClauses[] = "p.category_id = :category";
         $sqlParams[':category'] = $filters['category'];
     }
@@ -1225,8 +1318,68 @@ function applyProductFilters(string $sql, array $filters): array {
     
     return [$sql, $sqlParams];
 }
-
+ 
 /**
+ * Get random sample products from each category
+ * 
+ * @param PDO $pdo Database connection
+ * @param int $samplesPerCategory Number of samples to get from each category
+ * @return array Sample products
+ */
+function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2): array {
+    try {
+        // Get all categories first
+        $stmtCategories = $pdo->query("SELECT category_id FROM category");
+        $categories = $stmtCategories->fetchAll(PDO::FETCH_COLUMN);
+        
+        $sampleProducts = [];
+        
+        // For each category, get sample products
+        foreach ($categories as $categoryId) {
+            $sql = "SELECT 
+                    p.prod_id, 
+                    p.title, 
+                    p.status,
+                    p.category_id,
+                    p.price,
+                    p.special_price,
+                    p.rare,
+                    p.recommended,
+                    p.image,
+                    p.date_added,
+                    GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
+                    c.category_sv_name as category_name,
+                    co.condition_sv_name as condition_name,
+                    GROUP_CONCAT(DISTINCT g.genre_sv_name SEPARATOR ', ') AS genre_names
+                FROM product p
+                LEFT JOIN product_author pa ON p.prod_id = pa.product_id
+                LEFT JOIN author a ON pa.author_id = a.author_id
+                JOIN category c ON p.category_id = c.category_id
+                LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
+                LEFT JOIN genre g ON pg.genre_id = g.genre_id
+                JOIN `condition` co ON p.condition_id = co.condition_id
+                WHERE p.status = 1 AND p.category_id = :category_id
+                GROUP BY p.prod_id
+                ORDER BY RAND()
+                LIMIT :limit";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindParam(':category_id', $categoryId, PDO::PARAM_INT);
+            $stmt->bindParam(':limit', $samplesPerCategory, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $categoryProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $sampleProducts = array_merge($sampleProducts, $categoryProducts);
+        }
+        
+        return $sampleProducts;
+    } catch (PDOException $e) {
+        error_log('Error fetching sample products: ' . $e->getMessage());
+        return [];
+    }
+}
+
+ /**
  * Format products data for consistent output
  * 
  * @param array $products Raw products data from database
@@ -1239,13 +1392,15 @@ function formatProductsData(array $products, Formatter $formatter): array {
         // Format price
         $product['formatted_price'] = $formatter->formatPrice($product['price']);
         
-        // Format date
-        $product['formatted_date'] = $formatter->formatDate($product['date_added']);
+        // Format date if it exists
+        if (isset($product['date_added'])) {
+            $product['formatted_date'] = $formatter->formatDate($product['date_added']);
+        }
         
         // Format flags for display
-        $product['is_special'] = $product['special_price'] ? true : false;
-        $product['is_rare'] = $product['rare'] ? true : false;
-        $product['is_recommended'] = $product['recommended'] ? true : false;
+        $product['is_special'] = isset($product['special_price']) && $product['special_price'] ? true : false;
+        $product['is_rare'] = isset($product['rare']) && $product['rare'] ? true : false;
+        $product['is_recommended'] = isset($product['recommended']) && $product['recommended'] ? true : false;
         
         // Format image path
         if (!empty($product['image'])) {
@@ -1255,14 +1410,16 @@ function formatProductsData(array $products, Formatter $formatter): array {
         } else {
             // Default image based on category
             $defaultImage = 'assets/images/src-book.webp';
-            if ($product['category_id'] == 5) { // CD
-                $defaultImage = 'assets/images/src-cd.webp';
-            } elseif ($product['category_id'] == 6) { // Vinyl
-                $defaultImage = 'assets/images/src-vinyl.webp';
-            } elseif ($product['category_id'] == 7) { // DVD
-                $defaultImage = 'assets/images/src-dvd.webp';
-            } elseif ($product['category_id'] == 8) { // Comics/Magazines
-                $defaultImage = 'assets/images/src-magazine.webp';
+            if (isset($product['category_id'])) {
+                if ($product['category_id'] == 5) { // CD
+                    $defaultImage = 'assets/images/src-cd.webp';
+                } elseif ($product['category_id'] == 6) { // Vinyl
+                    $defaultImage = 'assets/images/src-vinyl.webp';
+                } elseif ($product['category_id'] == 7) { // DVD
+                    $defaultImage = 'assets/images/src-dvd.webp';
+                } elseif ($product['category_id'] == 8) { // Comics/Magazines
+                    $defaultImage = 'assets/images/src-magazine.webp';
+                }
             }
             
             $product['image'] = $defaultImage;
@@ -1272,15 +1429,15 @@ function formatProductsData(array $products, Formatter $formatter): array {
     
     return $products;
 }
-
-/**
+ 
+ /**
  * Render products table HTML for different views
  * 
  * @param array $products Formatted products data
  * @param string $viewType View type ('admin', 'public', 'lists')
  * @return string HTML for products table
  */
-function renderProductsTable(array $products, string $viewType = 'admin'): string {
+ function renderProductsTable(array $products, string $viewType = 'admin'): string {
     ob_start();
     
     if (empty($products)) {
@@ -1305,15 +1462,15 @@ function renderProductsTable(array $products, string $viewType = 'admin'): strin
     }
     
     return ob_get_clean();
-}
-
-/**
+ }
+ 
+ /**
  * Render product row for admin view
  * 
  * @param array $product Product data
  * @return void
  */
-function renderAdminProductRow(array $product): void {
+ function renderAdminProductRow(array $product): void {
     $statusClass = (int)$product['status'] === 1 ? 'text-success' : 'text-danger';
     ?>
     <tr class="clickable-row" data-href="admin/adminsingleproduct.php?id=<?= safeEcho($product['prod_id']) ?>">
@@ -1352,46 +1509,49 @@ function renderAdminProductRow(array $product): void {
         </td>
     </tr>
     <?php
-}
-
-/**
+ }
+ 
+ /**
  * Render product row for public view
  * 
  * @param array $product Product data
  * @return void
  */
 function renderPublicProductRow(array $product): void {
+    // Format the price using a fallback if formatted_price doesn't exist
+    $formattedPrice = $product['formatted_price'] ?? (isset($product['price']) ? number_format($product['price'], 2, ',', ' ') . ' €' : '');
+    $productUrl = "singleproduct.php?id=" . $product['prod_id'];
     ?>
-    <tr class="clickable-row" data-href="singleproduct.php?id=<?= safeEcho($product['prod_id']) ?>">
+    <tr onclick="window.location='<?= $productUrl ?>';" style="cursor: pointer;">
         <td data-label="Titel"><?= safeEcho($product['title']) ?></td>
         <td data-label="Författare/Artist"><?= safeEcho($product['author_name']) ?></td>
         <td data-label="Kategori"><?= safeEcho($product['category_name']) ?></td>
         <td data-label="Genre"><?= safeEcho($product['genre_names']) ?></td>
         <td data-label="Skick"><?= safeEcho($product['condition_name']) ?></td>
-        <td data-label="Pris"><?= safeEcho($product['formatted_price']) ?></td>
-        <td>
-            <?php if ($product['is_special']): ?>
+        <td data-label="Pris"><?= safeEcho($formattedPrice) ?></td>
+        <td onclick="event.stopPropagation();">
+            <?php if (isset($product['is_special']) && $product['is_special']): ?>
                 <span class="badge bg-danger">Rea</span>
             <?php endif; ?>
-            <?php if ($product['is_rare']): ?>
+            <?php if (isset($product['is_rare']) && $product['is_rare']): ?>
                 <span class="badge bg-warning text-dark">Sällsynt</span>
             <?php endif; ?>
-            <?php if ($product['is_recommended']): ?>
+            <?php if (isset($product['is_recommended']) && $product['is_recommended']): ?>
                 <span class="badge bg-info">Rekommenderas</span>
             <?php endif; ?>
-            <a class="btn btn-success d-block d-md-none" href="singleproduct.php?id=<?= safeEcho($product['prod_id']) ?>">Visa detaljer</a>
+            <a class="btn btn-success d-block d-md-none" href="<?= safeEcho($productUrl) ?>">Visa detaljer</a>
         </td>
     </tr>
     <?php
 }
-
-/**
+ 
+ /**
  * Render product row for lists view
  * 
  * @param array $product Product data
  * @return void
  */
-function renderListsProductRow(array $product): void {
+ function renderListsProductRow(array $product): void {
     $statusClass = (int)$product['status'] === 1 ? 'bg-success' : 'bg-secondary';
     ?>
     <tr>
@@ -1418,15 +1578,15 @@ function renderListsProductRow(array $product): void {
         </td>
     </tr>
     <?php
-}
-
-/**
+ }
+ 
+ /**
  * Render authors table HTML
  * 
  * @param array $authors Authors data
  * @return string HTML for authors table
  */
-function renderAuthorsTable(array $authors): string {
+ function renderAuthorsTable(array $authors): string {
     ob_start();
     
     if (empty($authors)) {
@@ -1454,15 +1614,15 @@ function renderAuthorsTable(array $authors): string {
     }
     
     return ob_get_clean();
-}
-
-/**
+ }
+ 
+ /**
  * Render users table HTML
  * 
  * @param array $users Users data
  * @return string HTML for users table
  */
-function renderUsersTable(array $users): string {
+ function renderUsersTable(array $users): string {
     ob_start();
     
     if (empty($users)) {
@@ -1491,15 +1651,15 @@ function renderUsersTable(array $users): string {
     }
     
     return ob_get_clean();
-}
-
-/**
+ }
+ 
+ /**
  * Render event log table HTML
  * 
  * @param array $events Event log data
  * @return string HTML for event log table
  */
-function renderEventLogTable(array $events): string {
+ function renderEventLogTable(array $events): string {
     ob_start();
     
     if (empty($events)) {
@@ -1559,43 +1719,34 @@ function renderEventLogTable(array $events): string {
     }
     
     return ob_get_clean();
-}
-
-/**
+ }
+ 
+ /**
  * Send JSON response
  * 
  * @param array $data Response data
  * @param int $statusCode HTTP status code
  * @return void
  */
-function sendJsonResponse(array $data, int $statusCode = 200): void {
+ function sendJsonResponse(array $data, int $statusCode = 200): void {
     http_response_code($statusCode);
     echo json_encode($data);
     exit;
-}
-
-/**
+ }
+ 
+ /**
  * Send error response
  * 
  * @param string $message Error message
  * @param int $statusCode HTTP status code
  * @return void
  */
-function sendErrorResponse(string $message, int $statusCode = 400): void {
+ function sendErrorResponse(string $message, int $statusCode = 400): void {
     http_response_code($statusCode);
     echo json_encode([
         'success' => false,
         'message' => $message
     ]);
     exit;
-}
-
-/**
- * Safe echo function to handle potentially null values
- * 
- * @param mixed $value The value to sanitize
- * @return string The sanitized string or empty string if value is null
- */
-function safeEcho($value) {
-    return ($value !== null) ? htmlspecialchars($value) : '';
-}
+ }
+ 
