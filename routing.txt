@@ -1,0 +1,286 @@
+<?php
+/**
+ * Centralized Routing Configuration
+ * 
+ * This file provides a single location to manage all paths and routes
+ * throughout the application. This approach makes it easier to migrate
+ * to a new server or change the application's base path without having
+ * to modify multiple files.
+ * 
+ * @package    KarisAntikvariat
+ * @author     Created based on system migration requirements
+ * @version    1.0
+ */
+
+class Routes {
+    // Base application path - change this when moving to a new server
+    private static $basePath = '/prog23/lagerhanteringssystem';
+    
+    // Server domain - change this when moving to a new server
+    private static $domain = '';
+    
+    // File structure paths (relative to the base path)
+    private static $paths = [
+        // Main directories
+        'admin'     => '/admin',
+        'api'       => '/api',
+        'assets'    => '/assets',
+        'config'    => '/config',
+        'db'        => '/db',
+        'includes'  => '/includes',
+        'languages' => '/languages',
+        'templates' => '/templates',
+        'uploads'   => '/uploads',
+        
+        // Asset subdirectories
+        'css'       => '/assets/css',
+        'js'        => '/assets/js',
+        'images'    => '/assets/images',
+        
+        // Upload subdirectories
+        'products'  => '/uploads/products',
+        
+        // Specific files
+        'index'     => '/index.php',
+        'admin_index' => '/admin.php',
+        'newsletter' => '/newsletter.php',
+        'newsletter_js' => '/assets/js/newsletter.js',
+        'sale'      => '/sale.php',
+        'single_product' => '/singleproduct.php',
+        'session_check' => '/includes/session_check.php',
+        
+        // External resources (CDN)
+        'bootstrap_css' => 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css',
+        'bootstrap_js'  => 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
+        'jquery'        => 'https://code.jquery.com/jquery-3.6.0.min.js',
+        'fontawesome'   => 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css',
+    ];
+    
+    /**
+     * Initialize the routing configuration
+     * 
+     * This should be called once at application startup, typically in config.php
+     * 
+     * @param string $basePath The base path of the application
+     * @param string $domain The domain of the server (optional)
+     */
+    public static function init($basePath = null, $domain = null) {
+        if ($basePath !== null) {
+            self::$basePath = $basePath;
+        }
+        
+        if ($domain !== null) {
+            self::$domain = $domain;
+        } else {
+            // Auto-detect domain if not provided
+            self::$domain = self::detectDomain();
+        }
+    }
+    
+    /**
+     * Set a custom path
+     * 
+     * @param string $key The path key
+     * @param string $path The path value
+     */
+    public static function setPath($key, $path) {
+        self::$paths[$key] = $path;
+    }
+    
+    /**
+     * Get the base path
+     * 
+     * @return string The base path
+     */
+    public static function getBasePath() {
+        return self::$basePath;
+    }
+    
+    /**
+     * Get the full URL for a specified path key
+     * 
+     * @param string $key The path key
+     * @param array $params Optional query parameters
+     * @param bool $absolute Whether to return an absolute URL with domain
+     * @return string The URL
+     */
+    public static function url($key, $params = [], $absolute = false) {
+        // If the key doesn't exist, return it as is (might be a direct path)
+        if (!isset(self::$paths[$key])) {
+            $path = $key;
+        } else {
+            $path = self::$paths[$key];
+        }
+        
+        // Check if this is an external URL (starts with http)
+        if (strpos($path, 'http') === 0) {
+            return $path; // Return external URLs as is
+        }
+        
+        // Build the URL
+        $url = self::$basePath . $path;
+        
+        // Add query parameters if any
+        if (!empty($params)) {
+            $url .= '?' . http_build_query($params);
+        }
+        
+        // Add domain for absolute URLs
+        if ($absolute && !empty(self::$domain)) {
+            $url = self::$domain . $url;
+        }
+        
+        return $url;
+    }
+    
+    /**
+     * Get the file path for a specified path key
+     * 
+     * @param string $key The path key
+     * @return string The file path
+     */
+    public static function path($key) {
+        // If the key doesn't exist, return it as is
+        if (!isset(self::$paths[$key])) {
+            return $key;
+        }
+        
+        // Check if this is an external URL (starts with http)
+        if (strpos(self::$paths[$key], 'http') === 0) {
+            return self::$paths[$key]; // Return external URLs as is
+        }
+        
+        return self::$basePath . self::$paths[$key];
+    }
+    
+    /**
+     * Get an asset URL
+     * 
+     * @param string $file The asset file name
+     * @param string $type The asset type (css, js, images)
+     * @return string The asset URL
+     */
+    public static function asset($file, $type = 'images') {
+        return self::url($type) . '/' . $file;
+    }
+    
+    /**
+     * Get a product image URL
+     * 
+     * @param int $productId The product ID
+     * @param string $defaultImage The default image if not found
+     * @return string The image URL
+     */
+    public static function productImage($productId, $defaultImage = 'src-book.webp') {
+        $imagePath = self::path('products') . '/' . $productId . '.jpg';
+        
+        // Check if the file exists (for server-side usage)
+        if (file_exists($_SERVER['DOCUMENT_ROOT'] . $imagePath)) {
+            return $imagePath;
+        }
+        
+        // Return default image
+        return self::asset($defaultImage);
+    }
+    
+    /**
+     * Redirect to a specified path
+     * 
+     * @param string $key The path key
+     * @param array $params Optional query parameters
+     */
+    public static function redirect($key, $params = []) {
+        $url = self::url($key, $params);
+        header("Location: $url");
+        exit;
+    }
+    
+    /**
+     * Detect the domain from server variables
+     * 
+     * @return string The detected domain
+     */
+    private static function detectDomain() {
+        $protocol = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on') ? 'https://' : 'http://';
+        return $protocol . $_SERVER['HTTP_HOST'];
+    }
+    
+    /**
+     * Get all defined routes
+     * 
+     * @return array All defined routes
+     */
+    public static function getAllRoutes() {
+        $routes = [];
+        
+        foreach (self::$paths as $key => $path) {
+            if (strpos($path, 'http') === 0) {
+                $routes[$key] = $path;
+            } else {
+                $routes[$key] = self::$basePath . $path;
+            }
+        }
+        
+        return $routes;
+    }
+}
+
+// Initialize routes with default values
+Routes::init();
+
+/**
+ * Helper functions for easier use in templates
+ */
+
+/**
+ * Get the URL for a route
+ * 
+ * @param string $key The route key
+ * @param array $params Optional query parameters
+ * @param bool $absolute Whether to return an absolute URL
+ * @return string The URL
+ */
+function route($key, $params = [], $absolute = false) {
+    return Routes::url($key, $params, $absolute);
+}
+
+/**
+ * Get the URL for an asset
+ * 
+ * @param string $file The asset file name
+ * @param string $type The asset type (css, js, images)
+ * @return string The asset URL
+ */
+function asset($file, $type = 'images') {
+    return Routes::asset($file, $type);
+}
+
+/**
+ * Get the base path
+ * 
+ * @return string The base path
+ */
+function getBasePath() {
+    return Routes::getBasePath();
+}
+
+/**
+ * Get a product image URL
+ * 
+ * @param int $productId The product ID
+ * @param string $defaultImage The default image if not found
+ * @return string The image URL
+ */
+function productImage($productId, $defaultImage = 'src-book.webp') {
+    return Routes::productImage($productId, $defaultImage);
+}
+
+/**
+ * Redirect to a route
+ * 
+ * @param string $key The route key
+ * @param array $params Optional query parameters
+ */
+function redirectTo($key, $params = []) {
+    Routes::redirect($key, $params);
+}

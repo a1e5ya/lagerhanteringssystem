@@ -1,35 +1,4 @@
 <?php
-
-/**
- * Send JSON response
- * 
- * @param array $data Response data
- * @param int $statusCode HTTP status code
- * @return void
- */
-function sendJsonResponse(array $data, int $statusCode = 200): void {
-    http_response_code($statusCode);
-    echo json_encode($data);
-    exit;
-}
-
-/**
- * Send error response
- * 
- * @param string $message Error message
- * @param int $statusCode HTTP status code
- * @return void
- */
-function sendErrorResponse(string $message, int $statusCode = 400): void {
-    http_response_code($statusCode);
-    echo json_encode([
-        'success' => false,
-        'message' => $message
-    ]);
-    exit;
-}
-
-
 /**
  * Centralized API Endpoint for Paginated Data
  * 
@@ -91,11 +60,16 @@ $sortDirection = (isset($params['order']) && strtolower($params['order']) === 'd
 // Authentication check for protected entities
 $protectedEntities = ['users', 'settings', 'event_log'];
 if (in_array($entity, $protectedEntities)) {
-    checkAuth(2); // Role 2 (Editor) or above required
+    // Check if user is logged in and has proper role without redirecting
+    if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || 
+        !isset($_SESSION['user_role']) || $_SESSION['user_role'] > 2) {
+        sendErrorResponse('Unauthorized access - please log in', 401);
+        exit;
+    }
     
-    // Additional auth check for user management (admin only)
-    if ($entity === 'users' && (!isset($_SESSION['user_role']) || $_SESSION['user_role'] > 1)) {
-        sendErrorResponse('Unauthorized access', 403);
+    // Additional check for users entity
+    if ($entity === 'users' && $_SESSION['user_role'] > 1) {
+        sendErrorResponse('Unauthorized access - admin required', 403);
         exit;
     }
 }
@@ -194,6 +168,35 @@ try {
     
     // Send error response
     sendErrorResponse('An error occurred: ' . $e->getMessage());
+}
+
+/**
+ * Send JSON response
+ * 
+ * @param array $data Response data
+ * @param int $statusCode HTTP status code
+ * @return void
+ */
+function sendJsonResponse(array $data, int $statusCode = 200): void {
+    http_response_code($statusCode);
+    echo json_encode($data);
+    exit;
+}
+
+/**
+ * Send error response
+ * 
+ * @param string $message Error message
+ * @param int $statusCode HTTP status code
+ * @return void
+ */
+function sendErrorResponse(string $message, int $statusCode = 400): void {
+    http_response_code($statusCode);
+    echo json_encode([
+        'success' => false,
+        'message' => $message
+    ]);
+    exit;
 }
 
 /**
