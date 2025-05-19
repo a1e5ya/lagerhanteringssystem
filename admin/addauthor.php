@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once 'init.php';
 
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
@@ -39,7 +39,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             } else {
                 $_SESSION['message'] = "Författare tillagd i databasen!";
-                header('Location: admin.php?tab=addauthor');
+                header('Location: ' . url('admin.php', ['tab' => 'addauthor']));
                 exit();
             }
         } catch (PDOException $e) {
@@ -50,7 +50,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             } else {
                 $_SESSION['error_message'] = $msg;
-                header('Location: admin.php?tab=addauthor');
+                header('Location: ' . url('admin.php', ['tab' => 'addauthor']));
                 exit();
             }
         }
@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         } else {
             $_SESSION['error_message'] = $msg;
-            header('Location: admin.php?tab=addauthor');
+            header('Location: ' . url('admin.php', ['tab' => 'addauthor']));
             exit();
         }
     }
@@ -283,7 +283,7 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
 
             // Load content via AJAX
             $.ajax({
-                url: '/prog23/lagerhanteringssystem/admin/addauthor.php',
+                url: BASE_URL + '/admin/addauthor.php',
                 data: {
                     page: page,
                     sort: sort,
@@ -322,7 +322,7 @@ function refreshAuthorsTable() {
   
   // Fetch the updated table content
   $.ajax({
-    url: '/prog23/lagerhanteringssystem/admin/addauthor.php',
+    url: BASE_URL + '/admin/addauthor.php',
     data: {
       page: page,
       sort: sort,

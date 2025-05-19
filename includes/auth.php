@@ -231,8 +231,8 @@ function logout() {
 function checkAuth($requiredRole = null) {
     // First validate the session
     if (!validateSession()) {
-        // If validation fails, redirect to login
-        header("Location: " . getBasePath() . "index.php?auth_error=1");
+        // If validation fails, redirect to login using routing system
+        header("Location: " . Routes::url('index.php', ['auth_error' => 1]));
         exit;
     }
     
@@ -251,8 +251,8 @@ function checkAuth($requiredRole = null) {
         }
     }
     
-    // If not authenticated or insufficient role, redirect to login
-    header("Location: " . getBasePath() . "index.php?auth_error=1");
+    // If not authenticated or insufficient role, redirect to login using routing system
+    header("Location: " . Routes::url('index.php', ['auth_error' => 1]));
     exit;
 }
 
@@ -261,7 +261,7 @@ function checkAuth($requiredRole = null) {
  * 
  * @return string Base path
  */
-function getBasePath() {
+function getAuthBasePath() {
     $currentPath = $_SERVER['PHP_SELF'];
     $inAdminDir = (strpos($currentPath, '/admin/') !== false);
     return $inAdminDir ? '../' : '';
@@ -293,7 +293,8 @@ function getSessionUser() {
 // Handle logout requests
 if (isset($_GET['logout']) && $_GET['logout'] == 1) {
     $result = logout();
-    header("Location: " . $result['redirect'] . "?message=" . urlencode($result['message']));
+    // Use routing system for redirect
+    header("Location: " . Routes::url($result['redirect'], ['message' => urlencode($result['message'])]));
     exit;
 }
 ?>

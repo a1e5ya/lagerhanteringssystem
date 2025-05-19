@@ -59,7 +59,8 @@ class Database {
     
     public function backupDatabase($backupPath = null) {
         if (!$backupPath) {
-            $backupPath = BASE_PATH . '/backups/';
+            // Updated to use routing system
+            $backupPath = Routes::getBasePath() . '/backups/';
         }
         
         if (!file_exists($backupPath)) {

@@ -13,13 +13,8 @@
  * @version    3.0
  */
 
-// Include necessary files
-require_once 'config/config.php';
-require_once 'includes/functions.php';
-require_once 'includes/db_functions.php';
-require_once 'includes/auth.php';
-require_once 'includes/ui.php';
-require_once 'includes/Formatter.php';
+// Include initialization file (replaces multiple require statements)
+require_once 'init.php';
 
 // Clean URL for default view
 if (empty($_GET['search']) && 
@@ -27,7 +22,7 @@ if (empty($_GET['search']) &&
     isset($_GET['page']) && 
     isset($_GET['limit'])) {
     // Redirect to clean URL
-    header('Location: index.php');
+    header('Location: ' . url('index.php'));
     exit;
 }
 
@@ -105,7 +100,7 @@ include 'templates/header.php';
 
 <!-- Hero Banner with Full Width Image -->
 <div class="hero-container position-relative">
-    <img src="assets/images/hero.webp" alt="Karis Antikvariat" class="hero-image w-100">
+<img src="<?php echo asset('images', 'hero.webp'); ?>" alt="Karis Antikvariat" class="hero-image w-100">
     <div class="container">
         <div class="hero-content position-absolute">
             <div class="hero-text-container p-5 rounded text-center">
@@ -117,8 +112,58 @@ include 'templates/header.php';
     </div>
 </div>
 
+
+
+
 <!-- Main Content Container -->
 <div class="container my-4">
+
+<!-- About Section -->
+        <section id="about" class="my-5">
+            <div class="row">
+                <div class="col-lg-6">
+                    <h2><?php echo $strings['about_heading']; ?></h2>
+                    <p><?php echo $strings['about_p1']; ?></p>
+                    <p><?php echo $strings['about_p2']; ?></p>
+                    <p><?php echo $strings['about_p3']; ?></p>
+                </div>
+                <div class="col-lg-6">
+                    <!-- Image Carousel -->
+                    <div id="storeCarousel" class="carousel slide" data-bs-ride="carousel">
+                        <div class="carousel-indicators">
+                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
+                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
+                        </div>
+                        <div class="carousel-inner rounded">
+                            <div class="carousel-item active">
+                                <img src="assets/images/bild1.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 1">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="assets/images/bild2.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 2">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="assets/images/bild3.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 3">
+                            </div>
+                            <div class="carousel-item">
+                                <img src="assets/images/bild4.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 4">
+                            </div>
+                        </div>
+                        <button class="carousel-control-prev" type="button" data-bs-target="#storeCarousel" data-bs-slide="prev">
+                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden"><?php echo $strings['previous']; ?></span>
+                        </button>
+                        <button class="carousel-control-next" type="button" data-bs-target="#storeCarousel" data-bs-slide="next">
+                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                            <span class="visually-hidden"><?php echo $strings['next']; ?></span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+
     <!-- Browse Section -->
     <section id="browse" class="my-5">
         <h2 class="mb-4"><?php echo $lang_strings['browse_heading'] ?? 'Bläddra & Sök'; ?></h2>
@@ -230,10 +275,10 @@ include 'templates/header.php';
                 <div class="card h-100">
                     <?php
                     // Image handling
-                    $productImagePath = !empty($product->image) 
-                        ? '/prog23/lagerhanteringssystem/' . str_replace('../', '', $product->image)
-                        : 'assets/images/src-book.webp';
-                    ?>
+$productImagePath = !empty($product->image) 
+    ? getBasePath() . '/' . str_replace('../', '', $product->image)
+    : asset('images', 'src-book.webp');
+?>
                     <img src="<?php echo safeEcho($productImagePath); ?>" 
                          class="card-img-top" 
                          style="height: 180px; object-fit: cover;" 
@@ -267,7 +312,7 @@ include 'templates/footer.php';
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <!-- <script src="assets/js/pagination.js"></script> -->
-<script src="assets/js/main.js"></script>
+<script src="<?php echo url('assets/js/main.js'); ?>"></script>
 
 
 

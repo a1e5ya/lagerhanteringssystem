@@ -1,42 +1,78 @@
 <?php
-
 /**
  * Configuration File
  * 
  * Contains:
- * - Database connection parameters
- * - Site configuration settings
- * - Error reporting settings
- * - Path definitions
+ * - Database connection settings
+ * - Application configuration
+ * - Error handling settings
+ * 
+ * @package    KarisAntikvariat
+ * @subpackage Configuration
  */
 
-// File: include/config.php
+// Include the routing system
+require_once __DIR__ . '/../includes/routes.php';
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+// Initialize routes - CHANGE THIS VALUE when migrating to a new server
+Routes::init('/prog23/lagerhanteringssystem');
 
-// Database connection settings
-$host = '127.0.0.1';
-$db   = 'ka_lagerhanteringssystem';
-$user = 'root';
-$pass = '';
-$charset = 'utf8mb4';
+// Error reporting settings
+error_reporting(E_ALL);
+ini_set('display_errors', 0); // Set to 1 during development, 0 in production
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../logs/error.log');
 
-$dsn = "mysql:host=$host;dbname=$db;charset=$charset";
+// Timezone setting
+date_default_timezone_set('Europe/Helsinki');
 
-$options = [
-    PDO::ATTR_ERRMODE               => PDO::ERRMODE_EXCEPTION,
-    PDO::ATTR_DEFAULT_FETCH_MODE    => PDO::FETCH_ASSOC,
-    PDO::ATTR_EMULATE_PREPARES      => false,
+// Database configuration
+$db_config = [
+    'host'     => 'localhost',
+    'dbname'   => 'ka_lagerhanteringssystem',
+    'username' => 'root',
+    'password' => '',
+    'charset'  => 'utf8mb4',
+    'options'  => [
+        PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+        PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+        PDO::ATTR_EMULATE_PREPARES   => false,
+    ]
 ];
 
+// Application settings
+$app_config = [
+    'name'        => 'Karis Antikvariat',
+    'version'     => '3.0',
+    'admin_email' => 'admin@example.com',
+    'pagination'  => [
+        'default_limit' => 10,
+        'max_limit'     => 100,
+        'limit_options' => [10, 20, 50, 100]
+    ],
+    'uploads' => [
+        'max_size' => 5242880, // 5MB
+        'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
+        'product_images_path' => 'uploads/products'
+    ],
+    'languages' => [
+        'default' => 'sv',
+        'available' => ['sv', 'fi']
+    ]
+];
+
+// Global application constants
+define('APP_NAME', $app_config['name']);
+define('APP_VERSION', $app_config['version']);
+define('IS_DEVELOPMENT', $_SERVER['SERVER_NAME'] === 'localhost' || strpos($_SERVER['SERVER_NAME'], 'dev.') === 0);
+define('BASE_PATH', Routes::getBasePath());
+
+// Establish database connection
 try {
-    $pdo = new PDO($dsn, $user, $pass, $options);
+    $dsn = "mysql:host={$db_config['host']};dbname={$db_config['dbname']};charset={$db_config['charset']}";
+    $pdo = new PDO($dsn, $db_config['username'], $db_config['password'], $db_config['options']);
 } catch (PDOException $e) {
-    // Log the error and display a user-friendly message
-    error_log('Database Connection Error: ' . $e->getMessage());
-    die('Could not connect to the database. Please try again later.');
+    // Log error and display user-friendly message
+    error_log("Database connection error: " . $e->getMessage());
+    die("Database connection failed. Please contact the administrator.");
 }
-?>

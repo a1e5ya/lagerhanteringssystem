@@ -12,7 +12,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     formData.append('status', newStatus);
     
     // Send request
-    fetch('/prog23/lagerhanteringssystem/admin/search.php', {
+    fetch(BASE_URL + '/admin/search.php', {
         method: 'POST',
         body: formData
     })
@@ -51,7 +51,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     formData.append('delete-item', '1');
     
     // Send request
-    fetch('/prog23/lagerhanteringssystem/admin/adminsingleproduct.php', {
+    fetch(BASE_URL + '/admin/adminsingleproduct.php', {
         method: 'POST',
         body: formData
     })
@@ -63,7 +63,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
                 callback(true);
             }
             // Redirect to admin page if needed
-            window.location.href = '/prog23/lagerhanteringssystem/admin.php?tab=search';
+            window.location.href = BASE_URL + '/admin.php?tab=search';
         } else {
             showMessage(data.message || 'Ett fel inträffade', 'danger');
             if (typeof callback === 'function') {
@@ -95,7 +95,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     formData.append('save-item', '1');
     
     // Send request
-    fetch('/prog23/lagerhanteringssystem/admin/adminsingleproduct.php?id=' + productId, {
+    fetch(BASE_URL + '/admin/adminsingleproduct.php?id=' + productId, {
         method: 'POST',
         body: formData
     })
@@ -134,7 +134,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     }
     
     // Send request
-    fetch('/prog23/lagerhanteringssystem/admin/addproduct.php', {
+    fetch(BASE_URL + '/admin/addproduct.php', {
         method: 'POST',
         body: formData
     })
@@ -163,7 +163,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
   
   // Get product by ID via AJAX
   function getProductById(productId, callback) {
-    fetch('/prog23/lagerhanteringssystem/admin/get_item.php?type=product&id=' + productId)
+    fetch(BASE_URL + '/admin/get_item.php?type=product&id=' + productId)
         .then(response => response.json())
         .then(data => {
             if (data.success) {
@@ -203,7 +203,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     formData.append('last_name', lastName);
     
     // Send request
-    fetch('/prog23/lagerhanteringssystem/admin/addauthor.php', {
+    fetch(BASE_URL + '/admin/addauthor.php', {
         method: 'POST',
         body: formData,
         headers: {
@@ -255,7 +255,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     // Send request
     $.ajax({
         type: 'POST',
-        url: '/prog23/lagerhanteringssystem/admin/edit_item.php',
+        url: BASE_URL + '/admin/edit_item.php',
         data: data,
         dataType: 'json',
         success: function(response) {
@@ -290,7 +290,7 @@ function changeProductSaleStatus(productId, newStatus, callback) {
     // Send request
     $.ajax({
         type: 'POST',
-        url: '/prog23/lagerhanteringssystem/admin/delete_item.php',
+        url: BASE_URL + '/admin/delete_item.php',
         data: {
             id: id,
             type: type

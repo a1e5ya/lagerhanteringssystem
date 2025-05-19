@@ -11,18 +11,8 @@
  * @version    2.0
  */
 
-// Define BASE_PATH if not already defined
-if (!defined('BASE_PATH')) {
-    define('BASE_PATH', dirname(__DIR__));
-}
-
-// Include necessary files
-require_once BASE_PATH . '/config/config.php';
-require_once BASE_PATH . '/includes/functions.php';
-require_once BASE_PATH . '/includes/db_functions.php';
-require_once BASE_PATH . '/includes/auth.php';
-require_once BASE_PATH . '/includes/Paginator.php';
-require_once BASE_PATH . '/includes/Formatter.php';
+// Include initialization file
+require_once dirname(__DIR__) . '/init.php';
 
 // Set JSON content type
 header('Content-Type: application/json');
@@ -119,15 +109,15 @@ try {
     switch ($entity) {
         case 'products':
             // For products, delegate to the specialized product API endpoints
-            if ($viewType === 'public') {
-                // Redirect to public products API
-                header('Location: get_public_products.php?' . http_build_query($params));
-                exit;
-            } else {
-                // Redirect to admin products API
-                header('Location: ../admin/get_products.php?' . http_build_query($params));
-                exit;
-            }
+if ($viewType === 'public') {
+    // Redirect to public products API
+    header('Location: ' . url('api/get_public_products.php?' . http_build_query($params)));
+    exit;
+} else {
+    // Redirect to admin products API
+    header('Location: ' . url('admin/get_products.php?' . http_build_query($params)));
+    exit;
+}
             break;
             
         case 'authors':

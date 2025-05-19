@@ -15,20 +15,14 @@
  * - renderEditUserForm()
  */
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
 
 
 // Set page title
 $pageTitle = "Användarhantering - Karis Antikvariat";
 
 
-// Include configuration file
-require_once '../config/config.php';
-require_once '../includes/db_functions.php';
-require_once '../includes/auth.php';
+// Include initialization file
+require_once '../init.php';
 require_once '../templates/admin_header.php';
 
 // Check if user is authenticated and has admin permissions
@@ -353,7 +347,7 @@ function renderEditUserForm($userId = null) {
     global $pdo;
     
     $userData = null;
-    $formAction = "?tab=add";
+    $formAction = url('admin/usermanagement.php', ['tab' => 'add']);
     $submitButtonText = "Lägg till användare";
     $formTitle = "Lägg till ny användare";
     
@@ -365,7 +359,7 @@ function renderEditUserForm($userId = null) {
             $userData = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($userData) {
-                $formAction = "?tab=edit&user_id=" . $userId;
+                $formAction = url('admin/usermanagement.php', ['tab' => 'edit', 'user_id' => $userId]);
                 $submitButtonText = "Spara ändringar";
                 $formTitle = "Redigera användare: " . htmlspecialchars($userData['user_username']);
             }
@@ -492,7 +486,7 @@ function renderEditUserForm($userId = null) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tillbaka</button>
-                    <form action="?tab=edit&user_id=<?php echo $userId; ?>" method="POST">
+                    <form action="<?php echo url('admin/usermanagement.php', ['tab' => 'edit', 'user_id' => $userId]); ?>" method="POST">
                         <input type="hidden" name="delete_user_id" value="<?php echo $userId; ?>">
                         <button type="submit" name="delete_user" class="btn btn-danger">Ta bort</button>
                     </form>
@@ -523,7 +517,7 @@ if (isset($_POST['create_user'])) {
     if ($result['success']) {
         $success = $result['message'];
         // Redirect to prevent form resubmission
-        header("Location: usermanagement.php?tab=list&success=" . urlencode($success));
+        header("Location: " . url('admin/usermanagement.php', ['tab' => 'list', 'success' => urlencode($success)]));
         exit;
     } else {
         $error = $result['error'];
@@ -610,10 +604,12 @@ require_once '../templates/admin_header.php';
 <!-- Tab Navigation -->
 <ul class="nav nav-tabs" id="userManagementTabs">
     <li class="nav-item">
-        <a class="user-nav-link <?php echo $tab === 'list' ? 'active' : ''; ?>" href="?tab=list">Användarlista</a>
+        <a class="user-nav-link <?php echo $tab === 'list' ? 'active' : ''; ?>" 
+   href="<?php echo url('admin/usermanagement.php', ['tab' => 'list']); ?>">Användarlista</a>
     </li>
     <li class="nav-item">
-        <a class="user-nav-link <?php echo $tab === 'add' ? 'active' : ''; ?>" href="?tab=add">Lägg till användare</a>
+        <a class="user-nav-link <?php echo $tab === 'add' ? 'active' : ''; ?>" 
+   href="<?php echo url('admin/usermanagement.php', ['tab' => 'add']); ?>">Lägg till användare</a>
     </li>
     <?php if ($tab === 'edit' && $userId): ?>
     <li class="nav-item">
@@ -629,7 +625,7 @@ require_once '../templates/admin_header.php';
         <div class="tab-pane fade show active" id="user-list">
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <form method="GET" action="" class="d-flex">
+                    <form method="GET" action="<?php echo url('admin/usermanagement.php'); ?>" class="d-flex">
                         <input type="hidden" name="tab" value="list">
                         <input type="text" class="form-control me-2" name="search" 
                                placeholder="Sök efter användare..." 

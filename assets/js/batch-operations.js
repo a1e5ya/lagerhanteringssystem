@@ -281,7 +281,7 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Send AJAX request
         $.ajax({
-            url: 'admin/list_ajax_handler.php',
+            url: BASE_URL + '/admin/list_ajax_handler.php',
             type: 'POST',
             data: requestData,
             dataType: 'json',

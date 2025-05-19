@@ -88,7 +88,7 @@ function performPublicSearch(page = 1) {
     };
     
     // Perform AJAX search
-    ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
+    ajaxSearch(BASE_URL + '/admin/search.php', 'public', searchParams, targetElem, function() {
         // Scroll to search results
         document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
         
@@ -210,7 +210,7 @@ function changeProductStatus(productId, newStatus) {
     formData.append('status', newStatus);
     
     // Send request
-    fetch('admin/search.php', {
+    fetch(BASE_URL + '/admin/search.php', {
         method: 'POST',
         body: formData
     })
@@ -224,7 +224,7 @@ function changeProductStatus(productId, newStatus) {
                 
                 // Use AJAX to refresh just the table without page reload
                 $.ajax({
-                    url: 'admin/search.php',
+                    url: BASE_URL + '/admin/search.php',
                     data: {
                         ajax: 'admin',
                         search: searchTerm, 

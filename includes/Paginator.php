@@ -274,8 +274,8 @@ class Paginator {
             if ($this->currentPage <= 1) {
                 $html .= '<span class="page-link">&laquo;</span>';
             } else {
-                $html .= '<a class="page-link ' . $linkClass . '" href="' . $baseUrl . '&page=' . ($this->currentPage - 1) . '&limit=' . $this->itemsPerPage . '" data-page="' . ($this->currentPage - 1) . '">&laquo;</a>';
-            }
+$params = ['page' => ($this->currentPage - 1), 'limit' => $this->itemsPerPage];
+$html .= '<a class="page-link ' . $linkClass . '" href="' . $baseUrl . '&' . http_build_query($params) . '" data-page="' . ($this->currentPage - 1) . '">&laquo;</a>';            }
             $html .= '</li>';
             
             // Calculate range of page numbers to display
@@ -380,8 +380,13 @@ class Paginator {
         }
         
         // Generate the link with sort and page size parameters
-        $url = '?sort=' . urlencode($column) . '&order=' . $newDirection . '&page=1&limit=' . $this->itemsPerPage;
-        
+$params = [
+    'sort' => $column,
+    'order' => $newDirection,
+    'page' => 1,
+    'limit' => $this->itemsPerPage
+];
+$url = '?' . http_build_query($params);        
         return '<a href="' . $url . '" class="sort-link text-decoration-none text-reset" data-column="' . htmlspecialchars($column) . '" data-order="' . $newDirection . '">' . htmlspecialchars($label) . $icon . '</a>';
     }
     

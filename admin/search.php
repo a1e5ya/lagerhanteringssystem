@@ -13,15 +13,8 @@
  * @version    3.6
  */
 
-define('BASE_PATH', dirname(__DIR__));
-
-// Include necessary files if not already included
-if (!function_exists('safeEcho')) {
-    require_once BASE_PATH . '/includes/functions.php';
-}
-require_once BASE_PATH . '/config/config.php';
-require_once BASE_PATH . '/includes/Paginator.php';
-require_once BASE_PATH . '/includes/Formatter.php';
+// Include initialization file (replaces multiple require statements)
+require_once dirname(__DIR__) . '/init.php';
 
 // Create formatter instance
 $formatter = new Formatter();
@@ -269,7 +262,7 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 20) {
     
     // Use jQuery AJAX to make the request
     $.ajax({
-        url: 'admin/get_products.php', // Use server-side proxy script
+        url: BASE_URL + '/admin/get_products.php',
         type: 'GET',
         data: {
             search: searchTerm,
@@ -325,7 +318,7 @@ function renderProducts(products) {
         const statusClass = parseInt(product.status) === 1 ? 'text-success' : 'text-danger';
         
         html += `
-        <tr class="clickable-row" data-href="admin/adminsingleproduct.php?id=${product.prod_id}">
+        <tr class="clickable-row" data-href="${BASE_URL}/admin/adminsingleproduct.php?id=${product.prod_id}">
             <td>${product.title || ''}</td>
             <td>${product.author_name || ''}</td>
             <td>${product.category_name || ''}</td>
@@ -347,7 +340,7 @@ function renderProducts(products) {
                             <i class="fas fa-undo"></i>
                         </button>`
                     }
-                    <a href="admin/adminsingleproduct.php?id=${product.prod_id}" class="btn btn-outline-primary" title="Redigera">
+                    <a href="${BASE_URL}/admin/adminsingleproduct.php?id=${product.prod_id}" class="btn btn-outline-primary" title="Redigera">
                         <i class="fas fa-edit"></i>
                     </a>
                 </div>
@@ -474,7 +467,7 @@ function changeProductStatus(productId, newStatus) {
     
     // Use jQuery AJAX
     $.ajax({
-        url: 'admin/search.php',
+        url: BASE_URL + '/admin/search.php',
         type: 'POST',
         data: {
             action: 'change_status',

@@ -1,11 +1,12 @@
 <?php
 /**
- * Footer Template
+ * Footer Template (Updated with JS Loader)
  * 
  * Contains:
  * - Footer with contact info
  * - Newsletter subscription
  * - Copyright information
+ * - Centralized JavaScript loading
  */
 
 // Load language strings if not already loaded
@@ -16,7 +17,6 @@ if (!isset($strings)) {
 ?>
 
 <!-- Footer for Public Pages -->
-
 <footer class="footer text-white py-4 mt-5">
     <div class="container">
         <div class="row">
@@ -46,7 +46,8 @@ if (!isset($strings)) {
             <div class="col-md-4">
                 <h5><?php echo $strings['newsletter']; ?></h5>
                 <p><?php echo $strings['newsletter_desc']; ?></p>
-                <form id="newsletter-form" method="post" action="newsletter.php">
+                <!-- Form action with routing helper -->
+                <form id="newsletter-form" method="post" action="<?php echo url('newsletter.php'); ?>">
                     <div class="input-group mb-3">
                         <input type="email" class="form-control" name="email" placeholder="<?php echo $strings['your_email']; ?>" aria-label="<?php echo $strings['your_email']; ?>" id="newsletter-email" required>
                     </div>
@@ -61,10 +62,17 @@ if (!isset($strings)) {
     </div>
 </footer>
 
-<!-- Bootstrap JS and dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<!-- Custom JS -->
-<script src="assets/js/main.js"></script>
+<!-- Load JavaScript using the centralized loader -->
+<?php 
+// Include the JS loader if not already included
+require_once __DIR__ . '/../includes/js_loader.php';
+
+// For public pages
+echo loadPublicJavaScript();
+
+// You could also load specific files if needed:
+// echo loadCustomJavaScript(['specific-file-name']);
+?>
 
 <script>
     // Forgot password link functionality
@@ -84,9 +92,6 @@ if (!isset($strings)) {
                 forgotPasswordModal.show();
             });
         }
-        
-
-
     });
 </script>
 

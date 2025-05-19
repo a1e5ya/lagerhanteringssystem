@@ -5,10 +5,8 @@
  * Exports data in various formats (CSV, etc.)
  */
 
-require_once '../config/config.php';
-require_once '../includes/functions.php';
-require_once '../includes/db_functions.php';
-require_once '../includes/auth.php';
+require_once '../init.php';
+
 
 // Check if user is authenticated and has admin or editor permissions
 // Only Admin (1) or Editor (2) roles can access this page

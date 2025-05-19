@@ -32,23 +32,30 @@ const InventoryAjax = {
         };
         
         // Handle data differently for GET vs POST
-        let finalUrl = url;
-        if (isGet && data) {
-            // For GET, convert data to query string
-            const params = new URLSearchParams();
-            Object.keys(data).forEach(key => {
-                params.append(key, data[key]);
-            });
-            finalUrl = `${url}?${params.toString()}`;
-        } else if (!isGet && data) {
-            // For POST, add data to body
-            if (data instanceof FormData) {
-                requestOptions.body = data;
-            } else {
-                requestOptions.headers['Content-Type'] = 'application/json';
-                requestOptions.body = JSON.stringify(data);
-            }
-        }
+let finalUrl = url;
+// Add BASE_URL to relative URLs
+if (url.indexOf('http') !== 0 && url.indexOf('/') !== 0) {
+    finalUrl = BASE_URL + '/' + url;
+} else if (url.indexOf('/') === 0) {
+    finalUrl = BASE_URL + url;
+}
+
+if (isGet && data) {
+    // For GET, convert data to query string
+    const params = new URLSearchParams();
+    Object.keys(data).forEach(key => {
+        params.append(key, data[key]);
+    });
+    finalUrl = `${finalUrl}?${params.toString()}`;
+} else if (!isGet && data) {
+    // For POST, add data to body
+    if (data instanceof FormData) {
+        requestOptions.body = data;
+    } else {
+        requestOptions.headers['Content-Type'] = 'application/json';
+        requestOptions.body = JSON.stringify(data);
+    }
+}
         
         // Make the request using fetch API
         return fetch(finalUrl, requestOptions)
@@ -314,9 +321,15 @@ const InventoryAjax = {
                 }
                 
                 // Redirect if specified
-                if (response.redirect) {
-                    window.location.href = response.redirect;
-                }
+if (response.redirect) {
+    if (response.redirect.indexOf('http') !== 0 && response.redirect.indexOf('/') !== 0) {
+        window.location.href = BASE_URL + '/' + response.redirect;
+    } else if (response.redirect.indexOf('/') === 0) {
+        window.location.href = BASE_URL + response.redirect;
+    } else {
+        window.location.href = response.redirect;
+    }
+}
             },
             (error) => {
                 // Error handler

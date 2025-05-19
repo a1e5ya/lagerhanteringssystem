@@ -10,10 +10,7 @@
  * @version    1.0
  */
 
-define('BASE_PATH', dirname(__DIR__));
-require_once BASE_PATH . '/config/config.php';
-require_once BASE_PATH . '/includes/functions.php';
-require_once BASE_PATH . '/includes/Formatter.php';
+require_once dirname(__DIR__) . '/init.php';
 
 // Set header to JSON
 header('Content-Type: application/json');
@@ -54,7 +51,7 @@ try {
             $product['formatted_date'] = $formatter->formatDate($product['date_added']);
             
             // Add link to single product page
-            $product['href'] = "singleproduct.php?id={$product['prod_id']}";
+            $product['href'] = url('singleproduct.php', ['id' => $product['prod_id']]);
             
             // Add to formatted array
             $formattedProducts[] = $product;
@@ -242,7 +239,7 @@ try {
         $product['formatted_date'] = $formatter->formatDate($product['date_added']);
         
         // Add link to single product page
-        $product['href'] = "singleproduct.php?id={$product['prod_id']}";
+        $product['href'] = url('singleproduct.php', ['id' => $product['prod_id']]);
         
         // Add to formatted array
         $formattedProducts[] = $product;
@@ -254,7 +251,7 @@ try {
         ob_start();
         foreach ($formattedProducts as $product) {
             ?>
-            <tr class="clickable-row" data-href="<?= safeEcho("singleproduct.php?id={$product['prod_id']}") ?>">
+            <tr class="clickable-row" data-href="<?= safeEcho(url('singleproduct.php', ['id' => $product['prod_id']])) ?>">
                 <td><?= safeEcho($product['title']) ?></td>
                 <td><?= safeEcho($product['author_name']) ?></td>
                 <td><?= safeEcho($product['category_name']) ?></td>
@@ -277,7 +274,7 @@ try {
                     <?php if ((int)$product['recommended'] === 1): ?>
                         <span class="badge bg-info">Rekommenderas</span>
                     <?php endif; ?>
-                    <a class="btn btn-success d-block d-md-none" href="<?= safeEcho("singleproduct.php?id={$product['prod_id']}") ?>">Visa detaljer</a>
+                    <a class="btn btn-success d-block d-md-none" href="<?= safeEcho(url('singleproduct.php', ['id' => $product['prod_id']])) ?>">Visa detaljer</a>
                 </td>
             </tr>
             <?php
@@ -408,7 +405,7 @@ function formatProductsData(array $products, Formatter $formatter): array {
         if (!empty($product['image'])) {
             // Make sure the path is relative
             $product['image'] = str_replace('../', '', $product['image']);
-            $product['image_url'] = '/prog23/lagerhanteringssystem/' . $product['image'];
+            $product['image_url'] = getBasePath() . '/' . $product['image'];
         } else {
             // Default image based on category
             $defaultImage = 'assets/images/src-book.webp';
@@ -425,7 +422,7 @@ function formatProductsData(array $products, Formatter $formatter): array {
             }
             
             $product['image'] = $defaultImage;
-            $product['image_url'] = '/prog23/lagerhanteringssystem/' . $defaultImage;
+            $product['image_url'] = asset('images', basename($defaultImage));
         }
     }
     

@@ -11,7 +11,7 @@
  * - renderInputAlternatives()
  */
 
-require_once '../config/config.php';
+require_once '../init.php';
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
@@ -90,7 +90,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             $fileTmpPath = $_FILES['item-image']['tmp_name'];
             $fileName = $_FILES['item-image']['name'];
-            $uploadFileDir = '../assets/uploads/';
+            $uploadFileDir = __DIR__ . '/../assets/uploads/';
             $dest_path = $uploadFileDir . basename($fileName);
 
             if (move_uploaded_file($fileTmpPath, $dest_path)) {
@@ -101,7 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     exit();
                 } else {
                     $_SESSION['error_message'] = "Error moving the uploaded file.";
-                    header('Location: admin.php?tab=addproduct');
+                    header('Location: ' . url('admin.php', ['tab' => 'addproduct']));
                     exit();
                 }
             }
@@ -172,7 +172,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             } else {
                 $_SESSION['message'] = "Product added successfully!";
-                header('Location: admin.php?tab=addproduct');
+                header('Location: ' . url('admin.php', ['tab' => 'addproduct']));
                 exit();
             }
         } catch (PDOException $e) {
@@ -185,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 exit();
             } else {
                 $_SESSION['error_message'] = "An error occurred. Please try again.";
-                header('Location: admin.php?tab=addproduct');
+                header('Location: ' . url('admin.php', ['tab' => 'addproduct']));
                 exit();
             }
         }
@@ -195,7 +195,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         } else {
             $_SESSION['error_message'] = "Please fill in the required field: Title.";
-            header('Location: admin.php?tab=addproduct');
+            header('Location: ' . url('admin.php', ['tab' => 'addproduct']));
             exit();
         }
     }
@@ -211,7 +211,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="card-body">
                         <h5 class="card-title mb-3">Produktbild</h5>
                         <div class="item-image-container mb-3">
-                            <img src="assets/images/src-book.webp" alt="Produktbild" class="img-fluid rounded shadow"
+                            <img src="<?php echo asset('images', 'src-book.webp'); ?>" alt="Produktbild" class="img-fluid rounded shadow"
                                 id="new-item-image">
                         </div>
                         <div class="mb-3">

@@ -5,14 +5,7 @@
  * Server-side proxy script to handle API requests
  */
 
-define('BASE_PATH', dirname(__DIR__));
-require_once BASE_PATH . '/config/config.php';
-require_once BASE_PATH . '/includes/functions.php';
-require_once BASE_PATH . '/includes/auth.php';
-
-// Check if user is authenticated and has admin or editor permissions
-// Only Admin (1) or Editor (2) roles can access this page
-checkAuth(2); // 2 or lower (Admin or Editor) role required
+require_once dirname(__DIR__) . '/init.php';
 
 // Get parameters
 $search = isset($_GET['search']) ? $_GET['search'] : '';
@@ -26,9 +19,6 @@ $status = isset($_GET['status']) ? $_GET['status'] : '';
 header('Content-Type: application/json');
 
 try {
-    // Create formatter instance
-    require_once BASE_PATH . '/includes/Formatter.php';
-    $formatter = new Formatter();
     
     // Create SQL query - now including internal_notes
     $sql = "SELECT 
@@ -152,7 +142,7 @@ try {
         foreach ($formattedProducts as $product) {
             $statusClass = (int)$product['status'] === 1 ? 'text-success' : 'text-danger';
             ?>
-            <tr class="clickable-row" data-href="admin/adminsingleproduct.php?id=<?= safeEcho($product['prod_id']) ?>">
+            <tr class="clickable-row" data-href="<?= url('admin/adminsingleproduct.php', ['id' => $product['prod_id']]) ?>">
                 <td>
                     <?= safeEcho($product['title']) ?>
                     <?php if (!empty($product['internal_notes'])): ?>
