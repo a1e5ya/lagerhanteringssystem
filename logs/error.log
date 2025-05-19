@@ -1,3 +1,119 @@
 [19-May-2025 10:08:52 Europe/Helsinki] PHP Fatal error:  Cannot redeclare getBasePath() (previously declared in C:\laragon\www\prog23\lagerhanteringssystem\includes\routes.php:264) in C:\laragon\www\prog23\lagerhanteringssystem\includes\auth.php on line 264
 [19-May-2025 10:08:59 Europe/Helsinki] PHP Fatal error:  Cannot redeclare getBasePath() (previously declared in C:\laragon\www\prog23\lagerhanteringssystem\includes\routes.php:264) in C:\laragon\www\prog23\lagerhanteringssystem\includes\auth.php on line 264
 [19-May-2025 10:12:04 Europe/Helsinki] PHP Fatal error:  Cannot redeclare getBasePath() (previously declared in C:\laragon\www\prog23\lagerhanteringssystem\includes\routes.php:72) in C:\laragon\www\prog23\lagerhanteringssystem\includes\auth.php on line 264
+[19-May-2025 10:32:11 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:12 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:12 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:20 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:20 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:20 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:29 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:29 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:29 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:33 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:35 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:37 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:37 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:37 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:40 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:40 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:40 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:42 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:43 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:43 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:43 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:32:56 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:01 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:03 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:05 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:13 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:14 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:17 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:17 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:17 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:21 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:21 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:21 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:22 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:23 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:23 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:23 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:24 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:59 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:59 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:33:59 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:02 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:06 Europe/Helsinki] PHP Warning:  Constant BASE_PATH already defined in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 68
+[19-May-2025 10:34:23 Europe/Helsinki] Database connection test: successful
+[19-May-2025 10:34:23 Europe/Helsinki] Product ID: 26, Result: found
+[19-May-2025 10:34:47 Europe/Helsinki] PHP Fatal error:  Cannot redeclare getBasePath() (previously declared in C:\laragon\www\prog23\lagerhanteringssystem\includes\routes.php:72) in C:\laragon\www\prog23\lagerhanteringssystem\includes\auth.php on line 264
+[19-May-2025 10:34:59 Europe/Helsinki] PHP Fatal error:  Cannot redeclare getBasePath() (previously declared in C:\laragon\www\prog23\lagerhanteringssystem\includes\routes.php:72) in C:\laragon\www\prog23\lagerhanteringssystem\includes\auth.php on line 264
+[19-May-2025 10:35:25 Europe/Helsinki] PHP Fatal error:  Uncaught Error: Call to undefined method Routes::path() in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php:58
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\index.php(17): require_once()
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 58
+[19-May-2025 10:35:28 Europe/Helsinki] PHP Fatal error:  Uncaught Error: Call to undefined method Routes::path() in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php:58
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\index.php(17): require_once()
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\config\config.php on line 58
