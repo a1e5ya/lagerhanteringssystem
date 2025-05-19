@@ -59,29 +59,21 @@ function changeLanguage($language) {
         $parsedUrl = parse_url($referrer);
         $path = $parsedUrl['path'] ?? '';
         
+        // Extract the filename from the path
+        $filename = basename($path);
+        
         // Get query parameters without the lang parameter
-        $query = '';
+        $queryParams = [];
         if (isset($parsedUrl['query'])) {
             parse_str($parsedUrl['query'], $queryParams);
             unset($queryParams['lang']);
-            if (!empty($queryParams)) {
-                $query = '?' . http_build_query($queryParams);
-            }
         }
         
-        // Rebuild the URL with the path and remaining query parameters
-        $redirectUrl = $path . $query;
+        // Use the routing function to generate the URL
+        $redirectUrl = url($filename, $queryParams);
     } else {
-        // Fallback to handling based on REQUEST_URI if no referrer
-        $uri = $_SERVER['REQUEST_URI'];
-        $redirectUrl = strtok($uri, '?');
-        
-        // Get query parameters without the lang parameter
-        $queryParams = $_GET;
-        unset($queryParams['lang']);
-        if (!empty($queryParams)) {
-            $redirectUrl .= '?' . http_build_query($queryParams);
-        }
+        // Fallback to index if no referrer
+        $redirectUrl = url('index.php');
     }
     
     // Redirect to the appropriate page

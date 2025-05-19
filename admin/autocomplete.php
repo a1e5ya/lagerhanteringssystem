@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once '../init.php';
 
 $type = $_GET['type'] ?? '';
 $query = $_GET['query'] ?? '';

@@ -70,7 +70,7 @@ $(document)
 
     $.ajax({
       type: "POST",
-      url: "/prog23/lagerhanteringssystem/admin/addproduct.php",
+url: BASE_URL + "/admin/addproduct.php",
       data: new FormData(form[0]),
       processData: false,
       contentType: false,
@@ -92,7 +92,7 @@ $(document)
 
             // Reset image preview if it exists
             if ($("#new-item-image").length) {
-              $("#new-item-image").attr("src", "assets/images/src-book.webp");
+              $("#new-item-image").attr("src", BASE_URL + "/assets/images/src-book.webp");
             }
 
           } else {
@@ -159,7 +159,7 @@ function initializeAddAuthor() {
   
           $.ajax({
             type: "POST",
-            url: "/prog23/lagerhanteringssystem/admin/addauthor.php",
+            url: BASE_URL + "/admin/addauthor.php",
             data: form.serialize(),
             headers: {
               "X-Requested-With": "XMLHttpRequest",

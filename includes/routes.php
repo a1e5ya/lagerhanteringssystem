@@ -68,8 +68,10 @@ class Routes {
  * 
  * @return string The base path
  */
-function getBasePath() {
-    return Routes::getBasePath();
+if (!function_exists('getBasePath')) {
+    function getBasePath() {
+        return Routes::getBasePath();
+    }
 }
 
 /**

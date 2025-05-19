@@ -6,16 +6,9 @@
  * - Main admin dashboard
  * - Authentication check
  */
-session_start();
 
-define('BASE_PATH', __DIR__);
-// Include necessary files
-require_once 'config/config.php';
-require_once 'includes/functions.php';
-require_once 'includes/db_functions.php';
-require_once 'includes/auth.php';
-require_once 'includes/ui.php';
-require_once 'includes/Formatter.php';
+// Include initialization file
+require_once 'init.php';
 
 // Check if user is authenticated and has admin or editor permissions
 // Only Admin (1) or Editor (2) roles can access this page
@@ -30,7 +23,6 @@ $pageTitle = "Lagerhanteringssystem - Karis Antikvariat";
 // Include admin header
 include_once 'templates/admin_header.php';
 ?>
-
 
     <?php
     // Check and display success message
@@ -66,21 +58,10 @@ include_once 'templates/admin_header.php';
             <div id="tabs-content" class="tab-content border border-top-0 p-4 bg-white">
                 <!-- Initial content will be loaded here -->
             </div>
-
         </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/ui-components.js"></script>
-<script src="assets/js/forms.js"></script>
-<script src="assets/js/ajax.js"></script>
-<script src="assets/js/data-operations.js"></script>
-<script src="assets/js/admin.js"></script>
-<script src="assets/js/main.js"></script>
-<script src="assets/js/lists.js"></script>
-<script src="assets/js/batch-operations.js"></script>
     
     <?php
-    // Include admin footer
+    // Include admin footer (which will include JS files)
     include_once 'templates/admin_footer.php';
     ?>

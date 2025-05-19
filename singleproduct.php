@@ -11,27 +11,8 @@
  * - getRelatedProducts()
  */
 
-// Add error reporting for debugging
-error_reporting(E_ALL);
-ini_set('display_errors', 1);
-
-// Include necessary files
-require_once 'config/config.php';
-require_once 'includes/functions.php';
-require_once 'includes/db_functions.php';
-require_once 'includes/ui.php';
-require_once 'includes/Formatter.php';
-
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
-
-// Get current language
-$language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
-
-// Load language strings
-$strings = loadLanguageStrings($language);
+// Include initialization file (replaces multiple require statements)
+require_once 'init.php';
 
 // Get product ID from URL parameter
 $productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -39,12 +20,9 @@ $productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
 // Check if product ID is valid
 if ($productId <= 0) {
     // Redirect to home page if invalid product ID
-    header("Location: index.php");
+    header("Location: " . url('index.php'));
     exit;
 }
-
-// Create formatter instance
-$formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
 
 /**
  * Gets complete product data by ID
@@ -225,20 +203,10 @@ function getRelatedProducts($productId, $categoryId, $genreIds, $limit = 4) {
 // Get product data
 $product = getProductById($productId);
 
-// Test database connection and product retrieval
-try {
-    $testQuery = $pdo->query("SELECT 1");
-    error_log("Database connection test: " . ($testQuery ? 'successful' : 'failed'));
-} catch (PDOException $e) {
-    error_log("Database error in connection test: " . $e->getMessage());
-}
-
-error_log("Product ID: $productId, Result: " . ($product ? 'found' : 'not found'));
-
 // If product not found, redirect to home page
 if (!$product) {
     error_log("Redirecting to index.php because product not found");
-    header("Location: index.php?error=product_not_found&id=" . $productId);
+    header("Location: " . url('index.php', ['error' => 'product_not_found', 'id' => $productId]));
     exit;
 }
 
@@ -290,16 +258,16 @@ include 'templates/header.php';
                     <?php
                     // Check if product image exists, otherwise use default based on category
                     $imagePath = 'uploads/products/' . $product->prod_id . '.jpg';
-                    $defaultImage = 'assets/images/src-book.webp'; // Default image
+                    $defaultImage = asset('images', 'src-book.webp'); // Default image
                     
                     if ($product->category_id == 5) { // CD
-                        $defaultImage = 'assets/images/src-cd.webp';
+                        $defaultImage = asset('images', 'src-cd.webp');
                     } elseif ($product->category_id == 6) { // Vinyl
-                        $defaultImage = 'assets/images/src-vinyl.webp';
+                        $defaultImage = asset('images', 'src-vinyl.webp');
                     } elseif ($product->category_id == 7) { // DVD
-                        $defaultImage = 'assets/images/src-dvd.webp';
+                        $defaultImage = asset('images', 'src-dvd.webp');
                     } elseif ($product->category_id == 8) { // Comics/Magazines
-                        $defaultImage = 'assets/images/src-magazine.webp';
+                        $defaultImage = asset('images', 'src-magazine.webp');
                     }
                     
                     $imageToShow = file_exists($imagePath) ? $imagePath : $defaultImage;
@@ -407,7 +375,7 @@ include 'templates/header.php';
                                 <?php
                                 // Check if related product image exists
                                 $relatedImagePath = 'uploads/products/' . $relatedProduct->prod_id . '.jpg';
-                                $relatedDefaultImage = 'assets/images/src-book.webp'; // Default related image
+                                $relatedDefaultImage = asset('images', 'src-book.webp'); // Default related image
                                 $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                                 ?>
                                 <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($relatedProduct->title); ?>">
@@ -429,7 +397,7 @@ include 'templates/header.php';
                         <?php
                         // Check if related product image exists
                         $relatedImagePath = 'uploads/products/' . $relatedProduct->prod_id . '.jpg';
-                        $relatedDefaultImage = 'assets/images/src-book.webp'; // Default related image
+                        $relatedDefaultImage = asset('images', 'src-book.webp'); // Default related image
                         $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                         ?>
                         <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($relatedProduct->title); ?>">
@@ -442,7 +410,7 @@ include 'templates/header.php';
                         </div>
                     </div>
                     
-                    <a href="singleproduct.php?id=<?php echo safeEcho($relatedProduct->prod_id); ?>" class="stretched-link"></a>
+                    <a href="<?php echo url('singleproduct.php', ['id' => $relatedProduct->prod_id]); ?>" class="stretched-link"></a>
                 </div>
             </div>
             <?php endforeach; ?>
@@ -457,10 +425,3 @@ include 'templates/header.php';
 // Include footer
 include 'templates/footer.php';
 ?>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Add any JavaScript functionality needed for the single product page
-        console.log('Single product page loaded');
-    });
-</script>

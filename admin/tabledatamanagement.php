@@ -11,7 +11,7 @@
  * - editTableData() -> inside of edit_item.php
  * - deleteTableData()  -> inside delete_item.php atm
  */
-require_once '../config/config.php'; 
+require_once '../init.php';
 
 
 // Check if the form has been submitted
@@ -65,7 +65,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     // redirect & refresh page after inserting a new category,shelf or genre
-    header('Location: /prog23/lagerhanteringssystem/admin.php?tab=tabledatamanagement'); 
+    header('Location: ' . url('admin.php', ['tab' => 'tabledatamanagement']));
     exit();
 }
 
@@ -78,7 +78,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h5 class="mb-0">Kategorier</h5>
         </div>
         <div class="card-body">
-            <form id="category-form" action="admin/tabledatamanagement.php" method="POST">
+            <form id="category-form" action="<?php echo url('admin/tabledatamanagement.php'); ?>" method="POST">
                 <div class="d-flex mb-3">
                     <input type="text" class="form-control me-2 flex-grow-1" name="category_name" placeholder="Ny kategori" required>
                     <button class="btn btn-primary w-25" type="submit" name="action" value="add_category">Lägg till</button>
@@ -130,7 +130,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h5 class="mb-0">Hyllplatser</h5>
         </div>
         <div class="card-body">
-        <form id="shelf-form" action="admin/tabledatamanagement.php" method="POST">
+        <form id="shelf-form" action="<?php echo url('admin/tabledatamanagement.php'); ?>" method="POST">
                 <div class="d-flex mb-3">
                     <input type="text" class="form-control me-2 flex-grow-1" name="shelf_name" placeholder="Ny hyllplats" required>
                     <button class="btn btn-primary w-25" type="submit" name="action" value="add_shelf">Lägg till</button>
@@ -181,7 +181,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             <h5 class="mb-0">Genrer</h5>
         </div>
         <div class="card-body">
-        <form id="genre-form" action="admin/tabledatamanagement.php" method="POST">
+        <form id="genre-form" action="<?php echo url('admin/tabledatamanagement.php'); ?>" method="POST">
                 <div class="d-flex mb-3">
                     <input type="text" class="form-control me-2 flex-grow-1" name="genre_name" placeholder="Ny genre" required>
                     <button class="btn btn-primary w-25" type="submit" name="action" value="add_genre">Lägg till</button>

@@ -33,7 +33,7 @@ $(document).ready(function() {
         
         // Perform AJAX request
         $.ajax({
-            url: 'admin/list_ajax_handler.php',
+url: BASE_URL + '/admin/list_ajax_handler.php',
             type: 'POST',
             data: {
                 action: 'get_filtered_products',
@@ -403,7 +403,7 @@ function performBatchAction(action, params = {}) {
     
     // Send the AJAX request
     $.ajax({
-        url: 'admin/list_ajax_handler.php',
+url: BASE_URL + '/admin/list_ajax_handler.php',
         type: 'POST',
         data: {
             action: 'batch_action',
@@ -455,7 +455,7 @@ function exportData(format) {
     // Create a form for POST submission
     const form = document.createElement('form');
     form.method = 'POST';
-    form.action = 'admin/export.php';
+form.action = BASE_URL + '/admin/export.php';
     form.target = '_blank';
     
     // Add format parameter

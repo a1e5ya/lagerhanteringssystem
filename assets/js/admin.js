@@ -42,7 +42,7 @@ $(document).ready(function() {
 
     // Load the content via AJAX
     $("#tabs-content").load(
-      "/prog23/lagerhanteringssystem/admin/" + url,
+  BASE_URL + "/admin/" + url,
       function(response, status, xhr) {
           if (status == "error") {
               console.log("Error loading content: " + xhr.status + " " + xhr.statusText);
@@ -105,7 +105,7 @@ $(document).ready(function() {
     // Check if error is due to session timeout
     if (jqXHR.status === 401) {
       alert('Din session har gått ut. Du kommer att omdirigeras till inloggningssidan.');
-      window.location.href = '/prog23/lagerhanteringssystem/login.php';
+      window.location.href = BASE_URL + '/login.php';
     }
   });
 
@@ -119,7 +119,7 @@ $(document).ready(function() {
       try {
         // Direct AJAX for quick filter
         $.ajax({
-          url: 'admin/list_ajax_handler.php',
+          url: BASE_URL + '/admin/list_ajax_handler.php',
           type: 'POST',
           data: {
             action: 'get_filtered_products',

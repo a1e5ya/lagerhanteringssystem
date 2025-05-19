@@ -40,8 +40,7 @@ function setupImagePreview() {
           }
   
           // Use fetch API to get suggestions
-          fetch(`admin/autocomplete.php?type=${type}&query=${encodeURIComponent(query)}`)
-              .then((response) => {
+fetch(BASE_URL + `/admin/autocomplete.php?type=${type}&query=${encodeURIComponent(query)}`)              .then((response) => {
                   if (!response.ok) {
                       throw new Error("Network response was not ok");
                   }
@@ -160,7 +159,7 @@ function setupImagePreview() {
       
       $.ajax({
           type: 'POST',
-          url: '/prog23/lagerhanteringssystem/admin/edit_item.php',
+url: BASE_URL + '/admin/edit_item.php',
           data: postData,
           dataType: 'json',
           success: function(response) {
@@ -265,7 +264,7 @@ function setupImagePreview() {
               // Send AJAX request
               $.ajax({
                   type: 'POST',
-                  url: '/prog23/lagerhanteringssystem/admin/delete_item.php',
+                  url: BASE_URL + '/admin/delete_item.php',
                   data: {
                       id: id,
                       type: type

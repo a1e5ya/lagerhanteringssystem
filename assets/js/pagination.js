@@ -316,9 +316,9 @@ renderItems: function(items) {
             rowAttributes += ` data-href="${item.href}"`;
         } else if (item.prod_id) {
             const viewType = this.options.viewType;
-            const productUrl = (viewType === 'admin') ? 
-                `admin/adminsingleproduct.php?id=${item.prod_id}` : 
-                `singleproduct.php?id=${item.prod_id}`;
+const productUrl = (viewType === 'admin') ? 
+    `${BASE_URL}/admin/adminsingleproduct.php?id=${item.prod_id}` : 
+    `${BASE_URL}/singleproduct.php?id=${item.prod_id}`;
             rowAttributes += ` data-href="${productUrl}"`;
         }
         
@@ -386,15 +386,14 @@ renderActionButtons: function(item) {
         }
         
         // Always add edit button
-        html += `<a href="admin/adminsingleproduct.php?id=${item.prod_id}" class="btn btn-outline-primary" title="Redigera">
-            <i class="fas fa-edit"></i>
-        </a>`;
+html += `<a href="${BASE_URL}/admin/adminsingleproduct.php?id=${item.prod_id}" class="btn btn-outline-primary" title="Redigera">
+    <i class="fas fa-edit"></i>
+</a>`;
         
         html += '</div>';
     } else if (this.options.viewType === 'public') {
         // Add "View details" button for mobile
-        html += `<a class="btn btn-success d-block d-md-none" href="singleproduct.php?id=${item.prod_id}">Visa detaljer</a>`;
-    }
+html += `<a class="btn btn-success d-block d-md-none" href="${BASE_URL}/singleproduct.php?id=${item.prod_id}">Visa detaljer</a>`;    }
     
     html += '</td>';
     return html;
@@ -616,8 +615,8 @@ changeProductStatus: function(productId, newStatus) {
     this.showLoading();
     
     // Send request
-    fetch('admin/search.php', {
-        method: 'POST',
+fetch(BASE_URL + '/admin/search.php', {
+            method: 'POST',
         body: formData
     })
     .then(response => response.json())

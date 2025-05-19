@@ -7,10 +7,8 @@
  * is automatically logged out across all tabs if they log out in one tab
  */
 
-// Required files
-require_once '../config/config.php';
-require_once 'db_functions.php';
-require_once 'auth.php';
+// Include initialization file instead of multiple requires
+require_once '../init.php';
 
 // Return JSON response
 header('Content-Type: application/json');

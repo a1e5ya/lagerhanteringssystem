@@ -1,10 +1,10 @@
 <?php
 /**
- * Admin Footer Template
+ * Admin Footer Template (Updated with JS Loader)
  * 
  * Contains:
  * - Simple admin footer
- * - JavaScript resources for admin functionality
+ * - Centralized JavaScript loading for admin functionality
  */
 ?>
 
@@ -17,14 +17,14 @@
     </div>
 </footer>
 
-<!-- Bootstrap JS and dependencies -->
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
-<!-- jQuery (needed for some admin functionality) -->
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- Custom Admin JS -->
-<script src="<?php echo getBasePath(); ?>assets/js/admin.js"></script>
-<script src="<?php echo getBasePath(); ?>assets/js/validation.js"></script>
-<script src="<?php echo getBasePath(); ?>assets/js/pagination.js"></script>
+<!-- Load JavaScript using the centralized loader -->
+<?php 
+// Include the JS loader if not already included
+require_once __DIR__ . '/../includes/js_loader.php';
+
+// For admin pages, load all admin JS files
+echo loadAdminJavaScript();
+?>
 
 </body>
 </html>

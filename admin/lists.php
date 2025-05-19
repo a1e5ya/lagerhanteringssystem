@@ -15,31 +15,8 @@
  * - exportToCSV()
  */
 
-// Include necessary files
-require_once '../config/config.php';
-require_once '../includes/functions.php';
-require_once '../includes/db_functions.php';
-require_once '../includes/auth.php';
-
-// Check if user is authenticated and has admin or editor permissions
-// Only Admin (1) or Editor (2) roles can access this page
-if (!function_exists('checkAuth')) {
-    function checkAuth($requiredRole) {
-        // Simple authentication check if not already included
-        if (!isset($_SESSION['logged_in']) || $_SESSION['logged_in'] !== true) {
-            header("Location: ../index.php?auth_error=1");
-            exit;
-        }
-
-        if ($_SESSION['user_role'] > $requiredRole) {
-            header("Location: ../index.php?auth_error=1");
-            exit;
-        }
-    }
-}
-
-// Check authentication - requires admin or editor role
-checkAuth(2); // Role 2 (Editor) or above required
+// With this single line:
+require_once '../init.php';
 
 // Process any AJAX requests
 if (isset($_POST['action'])) {
@@ -872,7 +849,7 @@ function loadProducts(filters = {}) {
     
     // Perform AJAX request
     $.ajax({
-        url: 'admin/list_ajax_handler.php',
+        url: BASE_URL + '/admin/list_ajax_handler.php',
         type: 'POST',
         data: {
             action: 'get_filtered_products',
@@ -1220,7 +1197,7 @@ function loadProducts(filters = {}) {
         }
         
         // Send AJAX request
-        fetch('lists.php', {
+        fetch(BASE_URL + '/admin/lists.php', {
             method: 'POST',
             body: formData
         })
@@ -1252,7 +1229,7 @@ function loadProducts(filters = {}) {
     // Function to export data
     function exportData(format) {
         // Prepare export URL with current filters
-        let exportUrl = `export.php?format=${format}`;
+        let exportUrl = `${BASE_URL}/admin/export.php?format=${format}`;
         
         // Add all current filters to URL
         for (const [key, value] of Object.entries(currentFilters)) {

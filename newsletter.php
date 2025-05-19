@@ -9,8 +9,11 @@
  * - subscribeToNewsletter()
  */
 
-// Include config file
-require_once 'config/config.php';
+// Use init.php if it includes config and database setup
+require_once 'init.php';
+
+// Define BASE_URL for JavaScript usage
+echo "<script>const BASE_URL = '" . getBasePath() . "';</script>";
 
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -31,7 +34,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
     
     // Redirect back to the referring page with a status parameter
-    $redirect_url = $_SERVER['HTTP_REFERER'] ?? 'index.php';
+    $redirect_url = $_SERVER['HTTP_REFERER'] ?? url('index.php');
     $redirect_url .= (strpos($redirect_url, '?') !== false ? '&' : '?') . 'newsletter=' . $result['status'];
     
     header("Location: $redirect_url");
@@ -46,7 +49,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
  * @return array Result of the operation with status and message
  */
 function subscribeToNewsletter($email, $name = null) {
-    // Validate email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return [
             'status' => 'error',
@@ -62,10 +64,9 @@ function subscribeToNewsletter($email, $name = null) {
         $check_stmt->execute(['email' => $email]);
         
         if ($check_stmt->rowCount() > 0) {
-            // Email exists, check if it's active
             $subscriber = $check_stmt->fetch();
             
-            // If you want to reactivate unsubscribed users
+            // Reactivate unsubscribed users
             $update_stmt = $pdo->prepare("UPDATE newsletter_subscriber SET subscriber_is_active = 1 WHERE subscriber_email = :email AND subscriber_is_active = 0");
             $update_stmt->execute(['email' => $email]);
             
@@ -113,7 +114,6 @@ function subscribeToNewsletter($email, $name = null) {
  * @return array Result of the operation with status and message
  */
 function unsubscribeFromNewsletter($email) {
-    // Validate email
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return [
             'status' => 'error',
@@ -124,7 +124,6 @@ function unsubscribeFromNewsletter($email) {
     try {
         global $pdo;
         
-        // Update subscriber status to inactive
         $stmt = $pdo->prepare("UPDATE newsletter_subscriber SET subscriber_is_active = 0 WHERE subscriber_email = :email");
         $stmt->execute(['email' => $email]);
         

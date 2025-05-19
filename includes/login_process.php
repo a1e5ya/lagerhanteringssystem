@@ -5,10 +5,8 @@
  * Handles login form submissions
  */
 
-// Include necessary files
-require_once '../config/config.php';
-require_once '../includes/db_functions.php';
-require_once '../includes/auth.php';
+// Include initialization file
+require_once '../init.php';
 
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
@@ -22,17 +20,17 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     // Handle result
     if ($result['success']) {
-        // Redirect to admin dashboard
-        header("Location: ../" . $result['redirect']);
+        // Redirect to admin dashboard using routing system
+        header("Location: " . url($result['redirect']));
         exit;
     } else {
-        // Redirect back to login with error
-        header("Location: ../index.php?error=" . urlencode($result['message']));
+        // Redirect back to login with error using routing system
+        header("Location: " . url('index.php', ['error' => urlencode($result['message'])]));
         exit;
     }
 } else {
-    // If not POST request, redirect to homepage
-    header("Location: ../index.php");
+    // If not POST request, redirect to homepage using routing system
+    header("Location: " . url('index.php'));
     exit;
 }
 ?>

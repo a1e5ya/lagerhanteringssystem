@@ -4,7 +4,7 @@ error_reporting(E_ALL);
 ini_set('display_errors', 1);
 
 // Include database connection
-require_once '../config/config.php';
+require_once '../init.php';
 
 header('Content-Type: application/json');
 

@@ -1,5 +1,5 @@
 <?php
-require_once '../config/config.php';
+require_once '../init.php';
 header('Content-Type: application/json');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {

@@ -14,11 +14,7 @@
  */
 
 // Include necessary files
-require_once '../config/config.php';
-require_once '../includes/functions.php';
-require_once '../includes/db_functions.php';
-require_once '../includes/auth.php';
-require_once '../includes/ui.php';
+require_once '../init.php';
 
 // Check authentication - requires admin or editor role
 checkAuth(2); // Role 2 (Editor) or above required
@@ -149,7 +145,7 @@ include '../templates/admin_header.php';
                                 <div class="carousel-inner">
                                     <?php foreach ($productImages as $index => $image): ?>
                                         <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
-                                            <img src="../<?php echo htmlspecialchars($image->image_path); ?>" class="d-block w-100 rounded product-image" alt="<?php echo htmlspecialchars($product->title); ?>">
+                                            <img src="<?php echo getBasePath() . '/' . htmlspecialchars($image->image_path); ?>" class="d-block w-100 rounded product-image" alt="<?php echo htmlspecialchars($product->title); ?>">
                                             <div class="carousel-caption d-none d-md-block bg-dark bg-opacity-50 rounded">
                                                 <p class="mb-0"><?php echo $image->is_primary ? 'Primär bild' : 'Bild ' . ($index + 1); ?></p>
                                             </div>
