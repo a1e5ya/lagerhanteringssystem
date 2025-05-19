@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: May 13, 2025 at 12:39 PM
+-- Generation Time: May 15, 2025 at 11:55 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -97,7 +97,9 @@ INSERT INTO `category` (`category_id`, `category_sv_name`, `category_fi_name`) V
 (6, 'Vinyl', 'Vinyyli'),
 (7, 'DVD', 'DVD'),
 (8, 'Serier', 'Sarjakuva'),
-(9, 'Samlarobjekt', 'Keräilyesine');
+(9, 'Samlarobjekt', 'Keräilyesine'),
+(12, 'Spel', 'Pelit'),
+(13, 'Tidningar', 'Lehdet');
 
 -- --------------------------------------------------------
 
@@ -180,6 +182,19 @@ INSERT INTO `genre` (`genre_id`, `genre_sv_name`, `genre_fi_name`) VALUES
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `image`
+--
+
+CREATE TABLE `image` (
+  `image_id` int(11) NOT NULL,
+  `image_name` varchar(255) NOT NULL,
+  `image_path` varchar(255) NOT NULL,
+  `image_uploaded_at` datetime DEFAULT current_timestamp()
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `language`
 --
 
@@ -197,7 +212,11 @@ INSERT INTO `language` (`language_id`, `language_sv_name`, `language_fi_name`) V
 (1, 'Svenska', 'Ruotsi'),
 (2, 'Finska', 'Suomi'),
 (3, 'Engelska', 'Englanti'),
-(4, 'Norska', 'Norja');
+(4, 'Norska', 'Norja'),
+(5, 'Tyska', 'Saksa'),
+(6, 'Ryska', 'Venäjä'),
+(7, 'Franska', 'Ranska'),
+(8, 'Spanska', 'Espanja');
 
 -- --------------------------------------------------------
 
@@ -244,66 +263,65 @@ CREATE TABLE `product` (
   `condition_id` int(11) DEFAULT NULL,
   `notes` text DEFAULT NULL,
   `internal_notes` text DEFAULT NULL,
-  `language` varchar(50) DEFAULT NULL,
   `year` int(11) DEFAULT NULL,
   `publisher` varchar(100) DEFAULT NULL,
   `special_price` tinyint(1) DEFAULT NULL COMMENT 'Om produkten är på rea: 1 = Ja, 0 = Nej',
   `recommended` tinyint(1) DEFAULT NULL COMMENT 'Om produkten är rekommenderad: 1 = Ja, 0 = Nej	',
   `rare` tinyint(1) DEFAULT 0,
   `date_added` datetime DEFAULT current_timestamp(),
-  `image` varchar(255) DEFAULT NULL
+  `language_id` int(11) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `product`
 --
 
-INSERT INTO `product` (`prod_id`, `title`, `status`, `shelf_id`, `category_id`, `price`, `condition_id`, `notes`, `internal_notes`, `language`, `year`, `publisher`, `special_price`, `recommended`, `rare`, `date_added`, `image`) VALUES
-(1, 'Harry Potter och De Vises Sten', 1, 5, 1, 24.95, 2, 'Första boken i Harry Potter-serien', 'Bra skick, populär bland yngre läsare', 'Svenska', 1997, 'Tiden', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(2, 'Lysningen', 1, 1, 1, 19.95, 3, NULL, NULL, 'Svenska', 1977, 'Bra Böcker', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(3, 'Tjänarinnans berättelse', 1, 1, 1, 22.50, 1, 'Dystopisk roman', NULL, 'Svenska', 1985, 'Norstedts', 1, 0, 0, '2025-05-13 12:37:38', NULL),
-(4, 'Amerikanska gudar', 1, 1, 1, NULL, 2, 'Fantasyroman', 'Köpt på bokauktion i Helsingfors', 'Svenska', 2001, 'Bonnier Carlsen', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(5, 'Älskade', 1, 1, 1, NULL, 2, NULL, NULL, 'Svenska', 1987, 'Trevi', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(6, 'Trollvinter', 1, 1, 1, 26.50, 1, 'Mumin-roman', 'En av våra bästsäljare', 'Svenska', 1957, 'Schildts', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(7, 'Pippi Långstrump', 1, 5, 1, 18.95, 1, 'Barnklassiker', NULL, 'Svenska', 1945, 'Rabén & Sjögren', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(8, 'Män som hatar kvinnor', 1, 1, 1, 23.75, 2, NULL, NULL, 'Svenska', 2005, NULL, 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(9, 'Min kamp 1', 1, 1, 1, 29.95, 2, 'Självbiografisk roman', 'Kontroversiell titel men efterfrågad', 'Norska', 2009, 'Oktober', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(10, 'Hundraåringen som klev ut genom fönstret och försvann', 1, 1, 1, 22.95, 1, 'Komisk roman', NULL, 'Svenska', 2009, 'Piratförlaget', 1, 0, 0, '2025-05-13 12:37:38', NULL),
-(11, 'Sinuhe egyptiläinen', 1, 3, 1, 28.50, 2, NULL, NULL, 'Finska', 1945, 'WSOY', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(12, 'Tuntematon sotilas', 1, 3, 1, 24.95, 3, 'Krigsskildring', 'Viktigt historiskt verk, flera på väntelista', 'Finska', 1954, 'WSOY', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(13, 'Kalevala', 1, 3, 1, 32.00, 1, 'Finsk nationalepos', NULL, 'Finska', 1835, 'SKS', 0, 0, 1, '2025-05-13 12:37:38', NULL),
-(14, 'Muumipappa ja meri', 1, 5, 1, NULL, 2, NULL, NULL, 'Finska', 1965, 'WSOY', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(15, 'Stolthet och fördom', 1, 1, 1, 15.50, 2, 'Klassisk kärleksroman', 'Originalbindning, värdefull', 'Svenska', 1813, NULL, 0, 0, 1, '2025-05-13 12:37:38', NULL),
-(16, 'Brott och straff', 1, 1, 1, 20.25, 3, NULL, NULL, 'Svenska', 1866, 'Norstedts', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(17, 'Krig och fred', 1, 1, 1, 32.95, 4, 'Episk roman', NULL, NULL, 1869, 'Norstedts', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(18, 'Fru Dalloway', 1, 1, 1, 17.95, 2, 'Modernistisk roman', 'Fina understrykningar med blyerts', 'Svenska', NULL, 'Bonnier', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(19, 'Wolf Hall', 1, 1, 1, NULL, 1, NULL, NULL, 'Engelska', 2009, 'Fourth Estate', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(20, 'Svärdet och spiran', 1, 1, 1, 28.50, 2, 'Medeltida historisk roman', 'Personligt ex från författaren', 'Svenska', 1989, 'Bonnier', 1, 0, 0, '2025-05-13 12:37:38', NULL),
-(21, 'Dikter', 1, 1, 1, 29.50, 2, 'Diktsamling', 'Sällsynt utgåva, rödkantad', 'Svenska', 1916, 'Holger Schildts förlag', 0, 0, 1, '2025-05-13 12:37:38', NULL),
-(22, 'Min själ var en stilla sjö', 1, 1, 1, 24.50, 1, NULL, NULL, 'Svenska', 1954, 'Schildts', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(23, 'Sapiens: En kort historik över mänskligheten', 1, 3, 1, 28.95, 1, 'Mänsklighetens historia', NULL, 'Svenska', 2011, 'Natur & Kultur', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(24, 'Min historia', 1, 3, 1, NULL, 1, NULL, NULL, 'Svenska', 2018, 'Bokförlaget Forum', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(25, 'Skärgårdens båtar', 1, 4, 1, 45.00, 2, 'Maritim historia', 'Intressant för lokala båtentusiaster', 'Svenska', 2005, 'Wahlström & Widstrand', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(26, 'Östersjöns fyrar', 1, 4, 1, 39.95, 1, NULL, NULL, 'Svenska', 2012, 'Nautiska Förlaget', 1, 0, 0, '2025-05-13 12:37:38', NULL),
-(27, 'Beethoven: De kompletta symfonierna', 1, 6, 5, 35.99, 1, NULL, NULL, NULL, 2003, 'Deutsche Grammophon', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(28, 'Mozart: Pianokonserter', 1, 6, 5, NULL, 2, 'Urval av pianokonserter', 'Speciell inspelning, efterfrågad', NULL, 1999, 'Philips', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(29, 'Sibelius: Symfonier nr 1-7', 1, 6, 5, 29.95, 1, 'Kompletta symfonier', NULL, NULL, 2001, 'BIS Records', 1, 0, 0, '2025-05-13 12:37:38', NULL),
-(30, 'ABBA Gold: Greatest Hits', 1, 6, 5, 18.50, 2, 'ABBA-samling', 'Nära nyskick, original', NULL, 1992, 'Polar', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(31, '25', 1, 6, 5, 15.95, 1, NULL, NULL, NULL, 2015, 'XL Recordings', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(32, '÷ (Divide)', 1, 6, 5, 17.99, 1, NULL, NULL, NULL, 2017, 'Asylum Records', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(33, 'Vespertine', 1, 6, 5, NULL, 2, 'Björk-album', 'Limiterad upplaga', NULL, 2001, 'One Little Indian', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(34, 'Abbey Road', 1, 6, 6, 45.99, 2, NULL, NULL, NULL, 1969, 'Apple Records', 0, 0, 1, '2025-05-13 12:37:38', NULL),
-(35, 'Thriller', 1, 6, 6, 39.95, 3, 'Michael Jackson-album', 'Originalpressning, samlarobjekt', NULL, 1982, 'Epic Records', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(36, 'Waterloo', 1, 6, 6, 42.50, 2, NULL, NULL, NULL, 1974, 'Polar', 1, 0, 0, '2025-05-13 12:37:38', NULL),
-(37, 'Inception', 1, 7, 7, 14.99, 1, NULL, NULL, NULL, 2010, 'Warner Bros.', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(38, 'Det sjunde inseglet', 1, 7, 7, 22.50, 2, 'Klassisk svensk film', 'Restaurerad utgåva', NULL, 1957, 'Criterion Collection', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(39, 'Schindlers lista', 1, 7, 7, NULL, 2, 'Historiskt drama', NULL, NULL, 1993, 'Universal Pictures', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(40, 'Watchmen', 1, 1, 8, 29.99, 1, NULL, NULL, 'Engelska', 1986, 'DC Comics', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(41, 'Maus', 1, 1, 8, 24.95, 2, 'Grafisk roman', 'Prisbelönt och eftersökt', 'Svenska', 1991, 'Bonnier Carlsen', 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(42, 'Tintin: Den blå lotus', 1, 1, 8, 18.50, 3, NULL, NULL, 'Svenska', 1936, NULL, 0, 0, 0, '2025-05-13 12:37:38', NULL),
-(43, 'Första utgåvan Ulysses', 2, 1, 9, 2500.00, 4, 'Sällsynt första utgåva', 'Extremt sällsynt, har verifierats äkta', 'Engelska', 1922, 'Sylvia Beach', 0, 0, 1, '2025-05-13 12:37:38', NULL),
-(44, 'Limiterad vinyl-boxupplaga', 1, 6, 9, 199.95, 1, NULL, NULL, NULL, 2022, 'Rhino Records', 0, 0, 1, '2025-05-13 12:37:38', NULL),
-(45, 'Antika bokstöd', 1, 1, 9, NULL, 2, 'Dekorativa bokstöd', NULL, NULL, 1930, '', 0, 0, 0, '2025-05-13 12:37:38', NULL);
+INSERT INTO `product` (`prod_id`, `title`, `status`, `shelf_id`, `category_id`, `price`, `condition_id`, `notes`, `internal_notes`, `year`, `publisher`, `special_price`, `recommended`, `rare`, `date_added`, `language_id`) VALUES
+(1, 'Harry Potter och De Vises Sten', 1, 5, 1, 24.95, 2, 'Första boken i Harry Potter-serien', 'Bra skick, populär bland yngre läsare', 1997, 'Tiden', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(2, 'Lysningen', 1, 1, 1, 19.95, 3, NULL, NULL, 1977, 'Bra Böcker', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(3, 'Tjänarinnans berättelse', 1, 1, 1, 22.50, 1, 'Dystopisk roman', NULL, 1985, 'Norstedts', 1, 0, 0, '2025-05-13 12:37:38', 1),
+(4, 'Amerikanska gudar', 1, 1, 1, NULL, 2, 'Fantasyroman', 'Köpt på bokauktion i Helsingfors', 2001, 'Bonnier Carlsen', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(5, 'Älskade', 1, 1, 1, NULL, 2, NULL, NULL, 1987, 'Trevi', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(6, 'Trollvinter', 1, 1, 1, 26.50, 1, 'Mumin-roman', 'En av våra bästsäljare', 1957, 'Schildts', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(7, 'Pippi Långstrump', 1, 5, 1, 18.95, 1, 'Barnklassiker', NULL, 1945, 'Rabén & Sjögren', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(8, 'Män som hatar kvinnor', 1, 1, 1, 23.75, 2, NULL, NULL, 2005, NULL, 0, 0, 0, '2025-05-13 12:37:38', 1),
+(9, 'Min kamp 1', 1, 1, 1, 29.95, 2, 'Självbiografisk roman', 'Kontroversiell titel men efterfrågad', 2009, 'Oktober', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(10, 'Hundraåringen som klev ut genom fönstret och försvann', 1, 1, 1, 22.95, 1, 'Komisk roman', NULL, 2009, 'Piratförlaget', 1, 0, 0, '2025-05-13 12:37:38', 1),
+(11, 'Sinuhe egyptiläinen', 1, 3, 1, 28.50, 2, NULL, NULL, 1945, 'WSOY', 0, 0, 0, '2025-05-13 12:37:38', 2),
+(12, 'Tuntematon sotilas', 1, 3, 1, 24.95, 3, 'Krigsskildring', 'Viktigt historiskt verk, flera på väntelista', 1954, 'WSOY', 0, 0, 0, '2025-05-13 12:37:38', 2),
+(13, 'Kalevala', 1, 3, 1, 32.00, 1, 'Finsk nationalepos', NULL, 1835, 'SKS', 0, 0, 1, '2025-05-13 12:37:38', 2),
+(14, 'Muumipappa ja meri', 1, 5, 1, NULL, 2, NULL, NULL, 1965, 'WSOY', 0, 0, 0, '2025-05-13 12:37:38', 2),
+(15, 'Stolthet och fördom', 1, 1, 1, 15.50, 2, 'Klassisk kärleksroman', 'Originalbindning, värdefull', 1813, NULL, 0, 0, 1, '2025-05-13 12:37:38', 1),
+(16, 'Brott och straff', 1, 1, 1, 20.25, 3, NULL, NULL, 1866, 'Norstedts', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(17, 'Krig och fred', 1, 1, 1, 32.95, 4, 'Episk roman', NULL, 1869, 'Norstedts', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(18, 'Fru Dalloway', 1, 1, 1, 17.95, 2, 'Modernistisk roman', 'Fina understrykningar med blyerts', NULL, 'Bonnier', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(19, 'Wolf Hall', 1, 1, 1, NULL, 1, NULL, NULL, 2009, 'Fourth Estate', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(20, 'Svärdet och spiran', 1, 1, 1, 28.50, 2, 'Medeltida historisk roman', 'Personligt ex från författaren', 1989, 'Bonnier', 1, 0, 0, '2025-05-13 12:37:38', 1),
+(21, 'Dikter', 1, 1, 1, 29.50, 2, 'Diktsamling', 'Sällsynt utgåva, rödkantad', 1916, 'Holger Schildts förlag', 0, 0, 1, '2025-05-13 12:37:38', 1),
+(22, 'Min själ var en stilla sjö', 1, 1, 1, 24.50, 1, NULL, NULL, 1954, 'Schildts', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(23, 'Sapiens: En kort historik över mänskligheten', 1, 3, 1, 28.95, 1, 'Mänsklighetens historia', NULL, 2011, 'Natur & Kultur', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(24, 'Min historia', 1, 3, 1, NULL, 1, NULL, NULL, 2018, 'Bokförlaget Forum', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(25, 'Skärgårdens båtar', 1, 4, 1, 45.00, 2, 'Maritim historia', 'Intressant för lokala båtentusiaster', 2005, 'Wahlström & Widstrand', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(26, 'Östersjöns fyrar', 1, 4, 1, 39.95, 1, NULL, NULL, 2012, 'Nautiska Förlaget', 1, 0, 0, '2025-05-13 12:37:38', 1),
+(27, 'Beethoven: De kompletta symfonierna', 1, 6, 5, 35.99, 1, NULL, NULL, 2003, 'Deutsche Grammophon', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(28, 'Mozart: Pianokonserter', 1, 6, 5, NULL, 2, 'Urval av pianokonserter', 'Speciell inspelning, efterfrågad', 1999, 'Philips', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(29, 'Sibelius: Symfonier nr 1-7', 1, 6, 5, 29.95, 1, 'Kompletta symfonier', NULL, 2001, 'BIS Records', 1, 0, 0, '2025-05-13 12:37:38', 3),
+(30, 'ABBA Gold: Greatest Hits', 1, 6, 5, 18.50, 2, 'ABBA-samling', 'Nära nyskick, original', 1992, 'Polar', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(31, '25', 1, 6, 5, 15.95, 1, NULL, NULL, 2015, 'XL Recordings', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(32, '÷ (Divide)', 1, 6, 5, 17.99, 1, NULL, NULL, 2017, 'Asylum Records', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(33, 'Vespertine', 1, 6, 5, NULL, 2, 'Björk-album', 'Limiterad upplaga', 2001, 'One Little Indian', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(34, 'Abbey Road', 1, 6, 6, 45.99, 2, NULL, NULL, 1969, 'Apple Records', 0, 0, 1, '2025-05-13 12:37:38', 3),
+(35, 'Thriller', 1, 6, 6, 39.95, 3, 'Michael Jackson-album', 'Originalpressning, samlarobjekt', 1982, 'Epic Records', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(36, 'Waterloo', 1, 6, 6, 42.50, 2, NULL, NULL, 1974, 'Polar', 1, 0, 0, '2025-05-13 12:37:38', 3),
+(37, 'Inception', 1, 7, 7, 14.99, 1, NULL, NULL, 2010, 'Warner Bros.', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(38, 'Det sjunde inseglet', 1, 7, 7, 22.50, 2, 'Klassisk svensk film', 'Restaurerad utgåva', 1957, 'Criterion Collection', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(39, 'Schindlers lista', 1, 7, 7, NULL, 2, 'Historiskt drama', NULL, 1993, 'Universal Pictures', 0, 0, 0, '2025-05-13 12:37:38', 3),
+(40, 'Watchmen', 1, 1, 8, 29.99, 1, NULL, NULL, 1986, 'DC Comics', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(41, 'Maus', 1, 1, 8, 24.95, 2, 'Grafisk roman', 'Prisbelönt och eftersökt', 1991, 'Bonnier Carlsen', 0, 0, 0, '2025-05-13 12:37:38', 1),
+(42, 'Tintin: Den blå lotus', 1, 1, 8, 18.50, 3, NULL, NULL, 1936, NULL, 0, 0, 0, '2025-05-13 12:37:38', 1),
+(43, 'Första utgåvan Ulysses', 2, 1, 9, 2500.00, 4, 'Sällsynt första utgåva', 'Extremt sällsynt, har verifierats äkta', 1922, 'Sylvia Beach', 0, 0, 1, '2025-05-13 12:37:38', 1),
+(44, 'Limiterad vinyl-boxupplaga', 1, 6, 9, 199.95, 1, NULL, NULL, 2022, 'Rhino Records', 0, 0, 1, '2025-05-13 12:37:38', 3),
+(45, 'Antika bokstöd', 1, 1, 9, NULL, 2, 'Dekorativa bokstöd', NULL, 1930, '', 0, 0, 0, '2025-05-13 12:37:38', 1);
 
 -- --------------------------------------------------------
 
@@ -424,6 +442,20 @@ INSERT INTO `product_genre` (`product_genre_id`, `product_id`, `genre_id`) VALUE
 -- --------------------------------------------------------
 
 --
+-- Table structure for table `product_image`
+--
+
+CREATE TABLE `product_image` (
+  `product_image_id` int(11) NOT NULL,
+  `product_id` int(11) NOT NULL,
+  `image_id` int(11) NOT NULL,
+  `is_primary` tinyint(1) DEFAULT 0,
+  `display_order` int(11) DEFAULT 0
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+-- --------------------------------------------------------
+
+--
 -- Table structure for table `shelf`
 --
 
@@ -529,6 +561,13 @@ ALTER TABLE `genre`
   ADD UNIQUE KEY `genre_name` (`genre_sv_name`);
 
 --
+-- Indexes for table `image`
+--
+ALTER TABLE `image`
+  ADD PRIMARY KEY (`image_id`),
+  ADD UNIQUE KEY `image_path` (`image_path`);
+
+--
 -- Indexes for table `language`
 --
 ALTER TABLE `language`
@@ -551,7 +590,8 @@ ALTER TABLE `product`
   ADD KEY `shelf_id` (`shelf_id`),
   ADD KEY `category_id` (`category_id`),
   ADD KEY `condition_id` (`condition_id`),
-  ADD KEY `idx_product_status` (`status`);
+  ADD KEY `idx_product_status` (`status`),
+  ADD KEY `fk_product_language` (`language_id`);
 
 --
 -- Indexes for table `product_author`
@@ -568,6 +608,14 @@ ALTER TABLE `product_genre`
   ADD PRIMARY KEY (`product_genre_id`),
   ADD UNIQUE KEY `unique_product_genre` (`product_id`,`genre_id`),
   ADD KEY `genre_id` (`genre_id`);
+
+--
+-- Indexes for table `product_image`
+--
+ALTER TABLE `product_image`
+  ADD PRIMARY KEY (`product_image_id`),
+  ADD UNIQUE KEY `unique_product_image` (`product_id`,`image_id`),
+  ADD KEY `image_id` (`image_id`);
 
 --
 -- Indexes for table `shelf`
@@ -605,7 +653,7 @@ ALTER TABLE `author`
 -- AUTO_INCREMENT for table `category`
 --
 ALTER TABLE `category`
-  MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=12;
+  MODIFY `category_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
 
 --
 -- AUTO_INCREMENT for table `condition`
@@ -626,10 +674,16 @@ ALTER TABLE `genre`
   MODIFY `genre_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=13;
 
 --
+-- AUTO_INCREMENT for table `image`
+--
+ALTER TABLE `image`
+  MODIFY `image_id` int(11) NOT NULL AUTO_INCREMENT;
+
+--
 -- AUTO_INCREMENT for table `language`
 --
 ALTER TABLE `language`
-  MODIFY `language_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=5;
+  MODIFY `language_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=9;
 
 --
 -- AUTO_INCREMENT for table `newsletter_subscriber`
@@ -654,6 +708,12 @@ ALTER TABLE `product_author`
 --
 ALTER TABLE `product_genre`
   MODIFY `product_genre_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=48;
+
+--
+-- AUTO_INCREMENT for table `product_image`
+--
+ALTER TABLE `product_image`
+  MODIFY `product_image_id` int(11) NOT NULL AUTO_INCREMENT;
 
 --
 -- AUTO_INCREMENT for table `shelf`
@@ -688,6 +748,7 @@ ALTER TABLE `event_log`
 -- Constraints for table `product`
 --
 ALTER TABLE `product`
+  ADD CONSTRAINT `fk_product_language` FOREIGN KEY (`language_id`) REFERENCES `language` (`language_id`),
   ADD CONSTRAINT `product_ibfk_1` FOREIGN KEY (`shelf_id`) REFERENCES `shelf` (`shelf_id`),
   ADD CONSTRAINT `product_ibfk_2` FOREIGN KEY (`category_id`) REFERENCES `category` (`category_id`),
   ADD CONSTRAINT `product_ibfk_3` FOREIGN KEY (`condition_id`) REFERENCES `condition` (`condition_id`),
@@ -706,6 +767,13 @@ ALTER TABLE `product_author`
 ALTER TABLE `product_genre`
   ADD CONSTRAINT `product_genre_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `product` (`prod_id`),
   ADD CONSTRAINT `product_genre_ibfk_2` FOREIGN KEY (`genre_id`) REFERENCES `genre` (`genre_id`);
+
+--
+-- Constraints for table `product_image`
+--
+ALTER TABLE `product_image`
+  ADD CONSTRAINT `product_image_ibfk_1` FOREIGN KEY (`product_id`) REFERENCES `product` (`prod_id`) ON DELETE CASCADE,
+  ADD CONSTRAINT `product_image_ibfk_2` FOREIGN KEY (`image_id`) REFERENCES `image` (`image_id`) ON DELETE CASCADE;
 COMMIT;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;

@@ -31,6 +31,8 @@ $sessionCheckUrl = "/prog23/lagerhanteringssystem/includes/session_check.php";
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title><?php echo isset($pageTitle) ? $pageTitle : 'Admin - Karis Antikvariat'; ?></title>
+    <link rel="icon" type="image/png" href="/prog23/lagerhanteringssystem/assets/images/favicon.png">
+    <link rel="icon" type="image/x-icon" href="/prog23/lagerhanteringssystem/assets/images/favicon.ico">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Font Awesome for icons -->
@@ -38,6 +40,7 @@ $sessionCheckUrl = "/prog23/lagerhanteringssystem/includes/session_check.php";
     <!-- Custom CSS -->
     <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/styles.css">
     <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/admin.css">
+    <link rel="stylesheet" href="/prog23/lagerhanteringssystem/assets/css/pagination.css">
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0-alpha1/dist/js/bootstrap.bundle.min.js"></script>
     
     <!-- Session check script -->

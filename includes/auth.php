@@ -205,7 +205,7 @@ function logout() {
             session_name(),
             '',
             time() - 42000,
-            $params["path"],
+            '/',  // Ensure the cookie path is root
             $params["domain"],
             $params["secure"],
             $params["httponly"]

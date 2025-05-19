@@ -31,7 +31,6 @@ function initializeSearch() {
 /**
  * Initialize public search on index.php
  */
-// Add this to main.js - Initialize public search with pagination
 function initializePublicSearch() {
     const searchForm = document.getElementById('search-form');
     const searchInput = document.getElementById('public-search');
@@ -43,31 +42,42 @@ function initializePublicSearch() {
     // Handle search form submission
     searchForm.addEventListener('submit', function(e) {
         e.preventDefault();
-        performPublicSearch(1); // Start with page 1 on new search
+        
+        // If TablePagination is available, use it
+        if (typeof TablePagination !== 'undefined') {
+            const container = document.querySelector('.table-pagination-container');
+            if (container) {
+                TablePagination.setFilters({
+                    search: searchInput.value,
+                    category: categorySelect.value
+                }).loadPage(1);
+                
+                // Scroll to search results
+                document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
+            } else {
+                // Fallback if container not found
+                performPublicSearch(1);
+            }
+        } else {
+            // Fallback if TablePagination not available
+            performPublicSearch(1);
+        }
     });
     
     // Add change event listener to category dropdown
     categorySelect.addEventListener('change', function() {
-        performPublicSearch(1); // Start with page 1 on category change
+        // Trigger form submission to update results
+        searchForm.dispatchEvent(new Event('submit'));
     });
     
-    // Initialize pagination links
-    initializePublicPagination();
-    
-    // Initial load of products
-    const urlParams = new URLSearchParams(window.location.search);
-    const currentPage = urlParams.get('page') || 1;
-    
-    if (!searchInput.value && categorySelect.value === 'all') {
-        // If no search filters, load default products with pagination
-        performPublicSearch(currentPage);
-    } else {
-        // If there are search filters, use them
-        performPublicSearch(currentPage);
-    }
+    // Initialize rows as clickable
+    makeRowsClickable();
 }
 
-// Function to perform public search with pagination
+/**
+ * Legacy function to perform public search
+ * @param {number} page Page number
+ */
 function performPublicSearch(page = 1) {
     const targetElem = document.getElementById('public-inventory-body');
     const searchParams = {
@@ -79,11 +89,6 @@ function performPublicSearch(page = 1) {
     
     // Perform AJAX search
     ajaxSearch('/prog23/lagerhanteringssystem/admin/search.php', 'public', searchParams, targetElem, function() {
-
-        
-        // Update pagination UI
-        updatePublicPaginationUI(page);
-        
         // Scroll to search results
         document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
         
@@ -92,79 +97,51 @@ function performPublicSearch(page = 1) {
     });
 }
 
-// Initialize pagination for public page
-function initializePublicPagination() {
-    document.addEventListener('click', function(e) {
-        // Check if clicked element is a pagination link
-        if (e.target.classList.contains('page-link') && e.target.closest('#public-pagination')) {
-            e.preventDefault();
-            
-            // Get page number from the link
-            const pageNum = e.target.getAttribute('data-page');
-            if (pageNum) {
-                performPublicSearch(pageNum);
-            }
-        }
-    });
-    updateUrlParams(searchParams);
-}
-
-// Update pagination UI on the public page
-function updatePublicPaginationUI(currentPage) {
-    const paginationContainer = document.getElementById('public-pagination');
-    if (!paginationContainer) return;
-    
-    // Get total from data attribute or API call
-    // For this example, we'll assume the server sends back total in a data attribute
-    const totalItems = parseInt(paginationContainer.getAttribute('data-total') || 0);
-    const totalPages = Math.ceil(totalItems / 20);
-    
-    // Create pagination HTML
-    let paginationHTML = '';
-    
-    // Previous button
-    paginationHTML += `<li class="page-item ${currentPage <= 1 ? 'disabled' : ''}">
-        <a class="page-link" href="#" data-page="${parseInt(currentPage) - 1}" ${currentPage <= 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>&laquo;</a>
-    </li>`;
-    
-    // Page numbers
-    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, parseInt(currentPage) + 2); i++) {
-        paginationHTML += `<li class="page-item ${i == currentPage ? 'active' : ''}">
-            <a class="page-link" href="#" data-page="${i}">${i}</a>
-        </li>`;
-    }
-    
-    // Next button
-    paginationHTML += `<li class="page-item ${currentPage >= totalPages ? 'disabled' : ''}">
-        <a class="page-link" href="#" data-page="${parseInt(currentPage) + 1}" ${currentPage >= totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>&raquo;</a>
-    </li>`;
-    
-    // Update pagination container
-    paginationContainer.innerHTML = paginationHTML;
-}
-
+/**
+ * Make table rows clickable
+ */
 function makeRowsClickable() {
-    const clickableRows = document.querySelectorAll('.clickable-row');
+    console.log('Making rows clickable - testing with modified URL');
     
-    clickableRows.forEach(row => {
-        // Remove any existing click event listeners first to prevent duplicates
-        row.removeEventListener('click', rowClickHandler);
-        
-        // Add the click event listener
-        row.addEventListener('click', rowClickHandler);
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Only navigate if not clicking on a control element
+            if (!e.target.closest('a, button, input, select, .no-click')) {
+                const href = this.dataset.href;
+                if (href) {
+                    // Add a dummy parameter to prevent caching or interception
+                    const modifiedHref = href + (href.includes('?') ? '&' : '?') + '_=' + Date.now();
+                    console.log('Navigating to modified URL:', modifiedHref);
+                    window.location.href = modifiedHref;
+                }
+            }
+        });
     });
 }
 
-// Separate the handler function to avoid duplicating anonymous functions
+/**
+ * Row click handler
+ * @param {Event} event Click event
+ */
 function rowClickHandler(event) {
-    // Only navigate if click wasn't on a button or link
-    if (!event.target.closest('a') && !event.target.closest('button')) {
-        window.location.href = this.dataset.href;
+    console.log('Row clicked!', event.target, this.dataset.href);
+    
+    // Only navigate if click wasn't on a button, link, or other interactive element
+    if (!event.target.closest('a, button, input, select, .no-click')) {
+        const href = this.dataset.href;
+        if (href) {
+            console.log('Navigating to:', href);
+            window.location.href = href;
+        } else {
+            console.log('No href found on this row');
+        }
+    } else {
+        console.log('Click was on an interactive element, not navigating');
     }
 }
 
 /**
- * Generic AJAX search function (used by both admin.js and main.js)
+ * Generic AJAX search function
  * 
  * @param {string} url - URL to send the request to
  * @param {string} type - Type of search ('public', 'admin', 'lists')
@@ -172,11 +149,9 @@ function rowClickHandler(event) {
  * @param {HTMLElement} targetElem - Element to update with results
  * @param {Function} successCallback - Callback to run on success
  */
-// Revised AJAX search function in main.js
 function ajaxSearch(url, type, params, targetElem, successCallback) {
     // Check if we have a valid target element
     if (!targetElem) {
-        console.error('Target element not found');
         return;
     }
     
@@ -210,20 +185,18 @@ function ajaxSearch(url, type, params, targetElem, successCallback) {
             }
         } else {
             targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Försök igen senare. Status: ${xhr.status}</td></tr>`;
-            console.error('Error response:', xhr.responseText);
         }
     };
     
     xhr.onerror = function() {
         targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Kontrollera din internetanslutning.</td></tr>`;
-        console.error('Network error occurred');
     };
     
     xhr.send();
 }
 
 /**
- * Change product status (sell/return) - shared function
+ * Change product status (sell/return)
  * 
  * @param {number} productId - Product ID
  * @param {number} newStatus - New status (1=Available, 2=Sold)
@@ -273,7 +246,6 @@ function changeProductStatus(productId, newStatus) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
         showMessage('Ett fel inträffade. Försök igen senare.', 'danger');
     });
 }
@@ -326,7 +298,6 @@ function showMessage(message, type, containerId = 'message-container') {
         }
         
         if (!parent) {
-            console.error('Cannot find suitable parent for message container');
             return;
         }
         
@@ -355,7 +326,9 @@ function showMessage(message, type, containerId = 'message-container') {
     setTimeout(() => {
         alert.classList.remove('show');
         setTimeout(() => {
-            alert.remove();
+            if (alert.parentNode) {
+                alert.remove();
+            }
             
             // If no alerts left, hide container
             if (messageContainer.children.length === 0) {
@@ -364,141 +337,3 @@ function showMessage(message, type, containerId = 'message-container') {
         }, 150);
     }, 5000);
 }
-
-
-// Add event listener for pagination links in admin and lists views
-$(document).on('click', '.pagination-link', function(e) {
-    e.preventDefault();
-    
-    const page = $(this).data('page');
-    const searchForm = $('#admin-search-form, #lists-search-form').first();
-    const searchTerm = searchForm.find('input[name="search"]').val();
-    const category = searchForm.find('select').val();
-    
-    // Determine which tab we're on
-    const isListsTab = document.querySelector('.tab-pane[id="lists"]') !== null;
-    const type = isListsTab ? 'lists' : 'admin';
-    
-    // Find the target element to update
-    const targetElem = isListsTab ? $('#lists-body') : $('#inventory-body');
-    
-    // Construct search parameters
-    const searchParams = {
-        search: searchTerm,
-        category: category,
-        page: page
-    };
-    
-    // Perform AJAX search with pagination
-    ajaxSearch('admin/search.php', type, searchParams, targetElem, function() {
-        // Success callback
-        if (type === 'admin') {
-            attachActionListeners();
-        } else if (type === 'lists') {
-            attachListsActionListeners();
-        }
-        
-        // Update URL without reloading
-        updateUrlParams(Object.assign({}, searchParams, { tab: type }));
-    });
-});
-
-
-// Add to main.js - Event handler for pagination links on the homepage
-$(document).on('click', '.public-pagination-link', function(e) {
-    e.preventDefault();
-    
-    const page = $(this).data('page');
-    const searchForm = $('#search-form');
-    const searchTerm = searchForm.find('input[name="search"]').val();
-    const category = searchForm.find('select').val();
-    
-    // Find the target element to update
-    const targetElem = $('#public-inventory-body');
-    
-    // Construct search parameters
-    const searchParams = {
-        search: searchTerm,
-        category: category,
-        page: page,
-        limit: 10 // Always use 10 for public view
-    };
-    
-    // Show loading indicator
-    targetElem.html('<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-    
-    // Perform AJAX request
-    $.ajax({
-        url: 'admin/search.php',
-        data: {
-            ajax: 'public',
-            ...searchParams
-        },
-        method: 'GET',
-        success: function(response) {
-            // Update the table body with the new results
-            targetElem.html(response);
-            
-            // Update pagination
-            updatePublicPagination(searchParams);
-            
-            
-            // Update URL without reloading
-            updateUrlParams(searchParams);
-            
-            // Scroll to search results
-            document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
-        },
-        error: function() {
-            targetElem.html('<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
-        }
-    });
-});
-
-// Function to update pagination controls on the homepage
-function updatePublicPagination(searchParams) {
-    $.ajax({
-        url: 'admin/search.php',
-        data: {
-            ajax: 'public_pagination',
-            ...searchParams
-        },
-        method: 'GET',
-        success: function(response) {
-            $('#pagination-container').html(response);
-        }
-    });
-}
-
-// Admin page product rows
-$(document).off('click', '.product-row');
-$(document).on('click', '.product-row', function(event) {
-    // Only navigate if we didn't click on a link or button
-    if (!$(event.target).closest('a, button, .btn, input, select').length) {
-        const productId = $(this).data('id');
-        window.location.href = 'admin/adminsingleproduct.php?id=' + productId;
-    }
-});
-
-// Public page clickable rows 
-$(document).off('click', '.clickable-row');
-$(document).on('click', '.clickable-row', function(event) {
-    // Only navigate if we didn't click on a link or button
-    if (!$(event.target).closest('a, button, .btn, input, select').length) {
-        window.location.href = $(this).data('href');
-    }
-});
-
-// 3. Ensure category dropdown triggers immediate search on the public page too
-
-// Make public category dropdown trigger search immediately (same as admin)
-$(document).on('change', '#public-category', function() {
-    // If using a form submit approach:
-    $('#search-form').submit();
-    
-    // If using a direct function call approach:
-    // This is needed only if your public page uses a different approach
-    if (typeof performPublicSearch === 'function') {
-        performPublicSearch();
-    }
-});

@@ -6,15 +6,22 @@
  * - Feature items display
  * - Search functionality
  * - Language switching
+ * 
+ * @package    KarisAntikvariat
+ * @subpackage Frontend
+ * @author     Axxell
+ * @version    3.0
  */
 
 // Include necessary files
 require_once 'config/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/db_functions.php';
+require_once 'includes/auth.php';
 require_once 'includes/ui.php';
-require_once 'admin/search.php';
+require_once 'includes/Formatter.php';
 
+// Clean URL for default view
 if (empty($_GET['search']) && 
     (empty($_GET['category']) || $_GET['category'] === 'all') &&
     isset($_GET['page']) && 
@@ -24,75 +31,76 @@ if (empty($_GET['search']) &&
     exit;
 }
 
-$categories = getCategories($pdo);
-$specialProducts = getSpecialPriceProducts($pdo, 4); // 3 produkter på rea
-
-// Check if language change is requested
-if (isset($_GET['lang'])) {
-    changeLanguage($_GET['lang']);
-}
-
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Get current language
+// Determine current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
 
-// Load language strings
-$strings = loadLanguageStrings($language);
+// Load language strings using the existing function from ui.php
+$lang_strings = loadLanguageStrings($language);
 
-// Get categories for the search dropdown
-$categories = getCategories($pdo);
-
-// Handle search form
-$page = isset($_GET['page']) ? max(1, intval($_GET['page'])) : 1;
-$limit = 10; // Always 10 for homepage
-
-$searchResults = [];
-if (isset($_GET['search']) || (isset($_GET['category']) && $_GET['category'] !== 'all')) {
-    // User has performed a search, show search results
-    $searchResults = searchProducts([
-        'search' => $_GET['search'] ?? '',
-        'category' => $_GET['category'] ?? 'all'
-    ]);
-} else {
-    // No search performed, show rare or special items
-    $searchResults = searchProducts([
-        'special' => true  // Add this parameter to the existing function
-    ]);
+// Get categories for search dropdown
+try {
+    $categories = getCategories();
+} catch (Exception $e) {
+    error_log('Error fetching categories: ' . $e->getMessage());
+    $categories = [];
 }
+
+// Create formatter instance
+$formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
+
+/**
+ * Get featured products for the homepage
+ * 
+ * @param PDO $pdo Database connection
+ * @param int $limit Number of featured products to retrieve
+ * @return array Featured products
+ */
+function getFeaturedProducts(PDO $pdo, int $limit = 4): array 
+{
+    try {
+        // Get recommended or special price products
+        $sql = "SELECT 
+                    p.prod_id, 
+                    p.title, 
+                    p.price, 
+                    p.special_price,
+                    p.recommended,
+                    p.image,
+                    a.author_name,
+                    c.category_sv_name AS category_name
+                FROM product p
+                LEFT JOIN product_author pa ON p.prod_id = pa.product_id
+                LEFT JOIN author a ON pa.author_id = a.author_id
+                JOIN category c ON p.category_id = c.category_id
+                WHERE p.status = 1 AND (p.special_price = 1 OR p.recommended = 1)
+                GROUP BY p.prod_id
+                ORDER BY p.special_price DESC, RAND()
+                LIMIT :limit";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    } catch (PDOException $e) {
+        error_log('Error fetching featured products: ' . $e->getMessage());
+        return [];
+    }
+}
+
+// Get special products for the featured section
+$specialProducts = getFeaturedProducts($pdo, 4);
 
 // Page title
 $pageTitle = "Karis Antikvariat";
 
-// For the homepage, we always want to show the non-logged in view
-// Store the original login state
-$originalLoggedIn = isset($_SESSION['logged_in']) ? $_SESSION['logged_in'] : false;
-$originalUserId = isset($_SESSION['user_id']) ? $_SESSION['user_id'] : null;
-$originalUsername = isset($_SESSION['user_username']) ? $_SESSION['user_username'] : null;
-$originalUserRole = isset($_SESSION['user_role']) ? $_SESSION['user_role'] : null;
-$originalUserEmail = isset($_SESSION['user_email']) ? $_SESSION['user_email'] : null;
-
-// Temporarily unset login information for the header display
-unset($_SESSION['logged_in']);
-unset($_SESSION['user_id']);
-unset($_SESSION['user_username']);
-unset($_SESSION['user_role']);
-unset($_SESSION['user_email']);
-
 // Include header
 include 'templates/header.php';
-
-// Restore the original login state after header is rendered
-if ($originalLoggedIn) {
-    $_SESSION['logged_in'] = $originalLoggedIn;
-    $_SESSION['user_id'] = $originalUserId;
-    $_SESSION['user_username'] = $originalUsername;
-    $_SESSION['user_role'] = $originalUserRole;
-    $_SESSION['user_email'] = $originalUserEmail;
-}
 ?>
 
 <!-- Hero Banner with Full Width Image -->
@@ -101,9 +109,9 @@ if ($originalLoggedIn) {
     <div class="container">
         <div class="hero-content position-absolute">
             <div class="hero-text-container p-5 rounded text-center">
-                <h1><?php echo $strings['welcome']; ?></h1>
-                <p class="lead"><?php echo $strings['subtitle']; ?></p>
-                <a href="#browse" class="btn btn-primary btn-lg mt-3 border-light"><?php echo $strings['browse_button']; ?></a>
+                <h1><?php echo $lang_strings['welcome'] ?? 'Välkommen till Karis Antikvariat'; ?></h1>
+                <p class="lead"><?php echo $lang_strings['subtitle'] ?? 'Din källa för nordisk litteratur, musik och samlarobjekt'; ?></p>
+                <a href="#browse" class="btn btn-primary btn-lg mt-3 border-light"><?php echo $lang_strings['browse_button'] ?? 'Bläddra i vårt sortiment'; ?></a>
             </div>
         </div>
     </div>
@@ -111,328 +119,539 @@ if ($originalLoggedIn) {
 
 <!-- Main Content Container -->
 <div class="container my-4">
-    <!-- Homepage Content -->
-    <div id="homepage" class="mb-5">
-        <!-- About Section -->
-        <section id="about" class="my-5">
-            <div class="row">
-                <div class="col-lg-6">
-                    <h2><?php echo $strings['about_heading']; ?></h2>
-                    <p><?php echo $strings['about_p1']; ?></p>
-                    <p><?php echo $strings['about_p2']; ?></p>
-                    <p><?php echo $strings['about_p3']; ?></p>
-                </div>
-                <div class="col-lg-6">
-                    <!-- Image Carousel -->
-                    <div id="storeCarousel" class="carousel slide" data-bs-ride="carousel">
-                        <div class="carousel-indicators">
-                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
-                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="2" aria-label="Slide 3"></button>
-                            <button type="button" data-bs-target="#storeCarousel" data-bs-slide-to="3" aria-label="Slide 4"></button>
-                        </div>
-                        <div class="carousel-inner rounded">
-                            <div class="carousel-item active">
-                                <img src="assets/images/bild1.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 1">
-                            </div>
-                            <div class="carousel-item">
-                                <img src="assets/images/bild2.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 2">
-                            </div>
-                            <div class="carousel-item">
-                                <img src="assets/images/bild3.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 3">
-                            </div>
-                            <div class="carousel-item">
-                                <img src="assets/images/bild4.webp" class="d-block w-100" alt="Karis Antikvariat butiksbild 4">
-                            </div>
-                        </div>
-                        <button class="carousel-control-prev" type="button" data-bs-target="#storeCarousel" data-bs-slide="prev">
-                            <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden"><?php echo $strings['previous']; ?></span>
-                        </button>
-                        <button class="carousel-control-next" type="button" data-bs-target="#storeCarousel" data-bs-slide="next">
-                            <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                            <span class="visually-hidden"><?php echo $strings['next']; ?></span>
+    <!-- Browse Section -->
+    <section id="browse" class="my-5">
+        <h2 class="mb-4"><?php echo $lang_strings['browse_heading'] ?? 'Bläddra & Sök'; ?></h2>
+        
+        <!-- Search Form -->
+        <div class="search-bar mb-4">
+            <form method="get" action="" id="search-form">
+                <div class="row">
+                    <div class="col-md-6 mb-3 mb-md-0">
+                        <input type="text" class="form-control" id="public-search" name="search" 
+                            placeholder="<?php echo $lang_strings['search_placeholder'] ?? 'Sök'; ?>" 
+                            value="<?= isset($_GET['search']) ? safeEcho($_GET['search']) : '' ?>">
+                    </div>
+                    <div class="col-md-4 mb-3 mb-md-0">
+                        <select class="form-select" id="public-category" name="category">
+                            <option value="all"><?php echo $lang_strings['all_categories'] ?? 'Alla kategorier'; ?></option>
+                            <?php foreach ($categories as $category): ?>
+                            <option value="<?= safeEcho($category['category_id']) ?>" 
+                            <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
+                                <?= safeEcho($category['category_name']) ?>
+                            </option>
+                            <?php endforeach; ?>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100" id="public-search-btn">
+                            <?php echo $lang_strings['search_button'] ?? 'Sök'; ?>
                         </button>
                     </div>
                 </div>
-            </div>
-        </section>
-
-        <!-- Browse Section -->
-        <section id="browse" class="my-5">
-            <h2 class="mb-4"><?php echo $strings['browse_heading']; ?></h2>
-            
-            <div class="search-bar mb-4">
-    <form method="get" action="" id="search-form">
-        <div class="row">
-            <div class="col-md-6 mb-3 mb-md-0">
-                <input type="text" class="form-control" id="public-search" name="search" 
-                    placeholder="<?php echo $strings['search_placeholder']; ?>" 
-                    value="<?= isset($_GET['search']) ? safeEcho($_GET['search']) : '' ?>">
-            </div>
-            <div class="col-md-4 mb-3 mb-md-0">
-                <select class="form-select" id="public-category" name="category">
-                    <option value="all"><?php echo $strings['all_categories']; ?></option>
-                    <?php foreach ($categories as $category): ?>
-                    <option value="<?= safeEcho($category['category_id']) ?>" 
-                    <?= (isset($_GET['category']) && $_GET['category'] == $category['category_id']) ? 'selected' : '' ?>>
-                        <?= safeEcho($category['category_name']) ?>
-                    </option>
-                    <?php endforeach; ?>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <button type="submit" class="btn btn-primary w-100" id="public-search-btn">
-                    <?php echo $strings['search_button']; ?>
-                </button>
-            </div>
+                <input type="hidden" name="sort" id="public-sort-column" value="<?= safeEcho($_GET['sort'] ?? '') ?>">
+                <input type="hidden" name="order" id="public-sort-direction" value="<?= safeEcho($_GET['order'] ?? 'asc') ?>">
+            </form>
         </div>
-        <!-- Do not include hidden page/limit fields unless explicitly needed -->
-    </form>
-</div>
-            
+        
+        <!-- Table with Pagination -->
+        <div>
             <div class="table-responsive">
-                <table class="table table-hover" id="public-inventory-table">
+                <table class="table table-hover table-paginated-table" id="public-inventory-table">
                     <thead class="table-light">
                         <tr>
-                            <th><?php echo $strings['title']; ?></th>
-                            <th><?php echo $strings['author_artist']; ?></th>
-                            <th><?php echo $strings['category']; ?></th>
-                            <th><?php echo $strings['genre']; ?></th>
-                            <th><?php echo $strings['condition']; ?></th>
-                            <th><?php echo $strings['price']; ?></th>
+                            <th data-sort="title"><?php echo $lang_strings['title'] ?? 'Titel'; ?></th>
+                            <th data-sort="author_name"><?php echo $lang_strings['author_artist'] ?? 'Författare/Artist'; ?></th>
+                            <th data-sort="category_name"><?php echo $lang_strings['category'] ?? 'Kategori'; ?></th>
+                            <th data-sort="genre_names"><?php echo $lang_strings['genre'] ?? 'Genre'; ?></th>
+                            <th data-sort="condition_name"><?php echo $lang_strings['condition'] ?? 'Skick'; ?></th>
+                            <th data-sort="price"><?php echo $lang_strings['price'] ?? 'Pris'; ?></th>
                             <th></th>
                         </tr>
                     </thead>
-                    <tbody id="public-inventory-body">
-                        <?= renderIndexProducts($searchResults) ?>
+                    <tbody class="table-paginated-content" id="public-inventory-body">
+                        <tr>
+                            <td colspan="7" class="text-center">
+                                <div class="spinner-border text-primary" role="status">
+                                    <span class="visually-hidden">Laddar...</span>
+                                </div>
+                            </td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
             
-            <!-- Pagination container for AJAX pagination -->
-            <div id="pagination-container" class="mt-4">
-                <?php if (!empty($searchResults) && isset($searchResults[0]->pagination) && $searchResults[0]->pagination['totalPages'] > 1): 
-                    $pagination = $searchResults[0]->pagination;
-                ?>
-                <nav aria-label="Search results pagination">
-                    <ul class="pagination justify-content-center">
-                        <!-- Previous page button -->
-                        <li class="page-item <?= ($pagination['currentPage'] <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link public-pagination-link" href="javascript:void(0);" data-page="<?= $pagination['currentPage'] - 1 ?>" aria-label="Previous">
-                                <span aria-hidden="true">&laquo;</span>
-                            </a>
-                        </li>
-                        
-                        <?php
-                        // Calculate range of page numbers to display
-                        $startPage = max(1, $pagination['currentPage'] - 2);
-                        $endPage = min($pagination['totalPages'], $pagination['currentPage'] + 2);
-                        
-                        // Ensure we always show at least 5 pages if available
-                        if ($endPage - $startPage + 1 < 5) {
-                            if ($startPage == 1) {
-                                $endPage = min($pagination['totalPages'], $startPage + 4);
-                            } elseif ($endPage == $pagination['totalPages']) {
-                                $startPage = max(1, $endPage - 4);
-                            }
-                        }
-                        
-                        // Display page numbers
-                        for ($i = $startPage; $i <= $endPage; $i++):
-                        ?>
-                        <li class="page-item <?= ($i == $pagination['currentPage']) ? 'active' : '' ?>">
-                            <a class="page-link public-pagination-link" href="javascript:void(0);" data-page="<?= $i ?>"><?= $i ?></a>
-                        </li>
-                        <?php endfor; ?>
-                        
-                        <!-- Next page button -->
-                        <li class="page-item <?= ($pagination['currentPage'] >= $pagination['totalPages']) ? 'disabled' : '' ?>">
-                            <a class="page-link public-pagination-link" href="javascript:void(0);" data-page="<?= $pagination['currentPage'] + 1 ?>" aria-label="Next">
-                                <span aria-hidden="true">&raquo;</span>
-                            </a>
-                        </li>
-                    </ul>
-                </nav>
-                <?php endif; ?>
+            <!-- Pagination controls -->
+<div class="mt-3" id="pagination-controls">
+    <div class="row align-items-center">
+        <!-- Page size selector -->
+        <div class="col-md-4 mb-2 mb-md-0">
+            <div class="d-flex align-items-center">
+                <label class="me-2"><?php echo $lang_strings['show'] ?? 'Visa'; ?></label>
+                <select class="form-select form-select-sm" id="page-size-selector" style="width: auto;">
+                    <option value="10" selected>10</option>
+                    <option value="20">20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span class="ms-2"><?php echo $lang_strings['items'] ?? 'objekt'; ?></span>
             </div>
-        </section>
+        </div>
+        
+        <!-- Page info -->
+        <div class="col-md-4 text-center mb-2 mb-md-0">
+            <div id="pagination-info">
+                <?php echo $lang_strings['showing'] ?? 'Visar'; ?> <span id="showing-start">0</span> 
+                <?php echo $lang_strings['to'] ?? 'till'; ?> 
+                <span id="showing-end">0</span> 
+                <?php echo $lang_strings['of'] ?? 'av'; ?> 
+                <span id="total-items">0</span> 
+                <?php echo $lang_strings['items'] ?? 'objekt'; ?>
+            </div>
+        </div>
+        
+        <!-- Page navigation -->
+        <div class="col-md-4 d-flex justify-content-md-end">
+            <ul class="pagination mb-0" id="pagination-links">
+                <!-- Pagination links will be inserted here by JS -->
+            </ul>
+        </div>
+    </div>
+</div>
+        </div>
+    </section>
 
-        <section class="my-5">
-            <h2 class="mb-4"><?php echo $strings['on_sale']; ?></h2>
-            <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="featured-items">
-                <?php foreach ($specialProducts as $product): ?>
-                <div class="col">
-                    <div class="card h-100">
-                        <!-- For mobile: horizontal layout -->
-                        <div class="d-block d-md-none">
-                            <div class="row g-0 h-100">
-                                <div class="col-6">
-                                    <?php
-                                    // Check if product image exists
-                                    $productImagePath = 'uploads/products/' . $product->prod_id . '.jpg';
-                                    $productDefaultImage = 'assets/images/src-book.webp'; // Default image
-                                    $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
-                                    ?>
-                                    <img src="<?php echo $productImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($product->title); ?>">
-                                </div>
-                                <div class="col-6">
-                                    <div class="card-body d-flex flex-column h-100">
-                                        <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
-                                        <p class="card-text text-muted flex-grow-1"><?php echo safeEcho($product->author_name); ?></p>
-                                        <p class="text-success fw-bold mb-2"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- For laptop/desktop: vertical layout -->
-                        <div class="d-none d-md-block">
-                            <?php
-                            // Check if product image exists
-                            $productImagePath = 'uploads/products/' . $product->prod_id . '.jpg';
-                            $productDefaultImage = 'assets/images/src-book.webp'; // Default image
-                            $productImageToShow = file_exists($productImagePath) ? $productImagePath : $productDefaultImage;
-                            ?>
-                            <img src="<?php echo $productImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($product->title); ?>">
-                            <div class="card-body">
-                                <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
-                                <p class="card-text text-muted"><?php echo safeEcho($product->author_name); ?></p>
-                                <p class="text-success fw-bold"><?php echo number_format($product->price, 2, ',', ' ') . ' €'; ?></p>
-                            </div>
-                        </div>
-                       
+    <!-- Special Products Section -->
+    <section class="my-5">
+        <h2 class="mb-4"><?php echo $lang_strings['on_sale'] ?? 'På rea / Rekommenderas'; ?></h2>
+        <div class="row row-cols-1 row-cols-md-2 row-cols-lg-4 g-4" id="featured-items">
+            <?php foreach ($specialProducts as $product): ?>
+            <div class="col">
+                <div class="card h-100">
+                    <?php
+                    // Image handling
+                    $productImagePath = !empty($product->image) 
+                        ? '/prog23/lagerhanteringssystem/' . str_replace('../', '', $product->image)
+                        : 'assets/images/src-book.webp';
+                    ?>
+                    <img src="<?php echo safeEcho($productImagePath); ?>" 
+                         class="card-img-top" 
+                         style="height: 180px; object-fit: cover;" 
+                         alt="<?php echo safeEcho($product->title); ?>">
+                    <div class="card-body">
+                        <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
+                        <p class="card-text text-muted"><?php echo safeEcho($product->author_name); ?></p>
+                        <p class="text-success fw-bold">
+                            <?php echo $formatter->formatPrice($product->price); ?>
+                            <?php if ($product->special_price): ?>
+                                <span class="badge bg-danger ms-2">Rea</span>
+                            <?php endif; ?>
+                            <?php if ($product->recommended): ?>
+                                <span class="badge bg-info ms-2">Rekommenderas</span>
+                            <?php endif; ?>
+                        </p>
                         <a href="singleproduct.php?id=<?php echo safeEcho($product->prod_id); ?>" class="stretched-link"></a>
                     </div>
                 </div>
-                <?php endforeach; ?>
             </div>
-        </section>
-    </div>
+            <?php endforeach; ?>
+        </div>
+    </section>
 </div>
 
 <?php
-// Temporarily unset login info again for the footer
-unset($_SESSION['logged_in']);
-unset($_SESSION['user_id']);
-unset($_SESSION['user_username']);
-unset($_SESSION['user_role']);
-unset($_SESSION['user_email']);
-
 // Include footer
 include 'templates/footer.php';
-
-// Restore the original login state after footer is rendered
-if ($originalLoggedIn) {
-    $_SESSION['logged_in'] = $originalLoggedIn;
-    $_SESSION['user_id'] = $originalUserId;
-    $_SESSION['user_username'] = $originalUsername;
-    $_SESSION['user_role'] = $originalUserRole;
-    $_SESSION['user_email'] = $originalUserEmail;
-}
 ?>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/ui-components.js"></script>
-<script src="assets/js/ajax.js"></script>
+<!-- <script src="assets/js/pagination.js"></script> -->
 <script src="assets/js/main.js"></script>
 
 
+
 <script>
-    document.addEventListener('DOMContentLoaded', function() {
-        // Handle search form submission with AJAX
-        $('#search-form').on('submit', function(e) {
-            e.preventDefault();
-            performPublicSearch(1); // Page 1 for new searches
-        });
-
-        // Handle pagination clicks
-        $(document).on('click', '.public-pagination-link', function(e) {
-            e.preventDefault();
-            const page = $(this).data('page');
-            $('#current-page').val(page);
-            performPublicSearch(page);
-        });
-
-        // Perform search
-        function performPublicSearch(page) {
-            const searchTerm = $('#public-search').val();
-            const category = $('#public-category').val();
-            const limit = 10; // Fixed limit for public view
-            
-            // Update the hidden page input
-            $('#current-page').val(page);
-            
-            // Show loading indicator
-            $('#public-inventory-body').html('<tr><td colspan="7" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-            
-            // Perform AJAX request
-            $.ajax({
-                url: 'admin/search.php',
-                data: {
-                    ajax: 'public',
-                    search: searchTerm,
-                    category: category,
-                    page: page,
-                    limit: limit
-                },
-                type: 'GET',
-                success: function(data) {
-                    // Update results
-                    $('#public-inventory-body').html(data);
-                    
-                    // Get pagination
-                    $.ajax({
-                        url: 'admin/search.php',
-                        data: {
-                            ajax: 'public_pagination',
-                            search: searchTerm,
-                            category: category,
-                            page: page,
-                            limit: limit
-                        },
-                        type: 'GET',
-                        success: function(paginationData) {
-                            $('#pagination-container').html(paginationData);
-                            
-                            // Update URL for bookmarking without page reload
-                            const url = new URL(window.location);
-                            url.searchParams.set('search', searchTerm);
-                            url.searchParams.set('category', category);
-                            url.searchParams.set('page', page);
-                            url.searchParams.set('limit', limit);
-                            window.history.pushState({}, '', url);
-                            
-                            
-                            // Scroll to results
-                            document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
-                        }
-                    });
-                },
-                error: function() {
-                    $('#public-inventory-body').html('<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
-                }
-            });
-            
-        }
-
-        // Auto-execute search if there are search parameters in URL
-        const urlParams = new URLSearchParams(window.location.search);
-        if (urlParams.has('search') || (urlParams.has('category') && urlParams.get('category') !== 'all')) {
-            // Set form values from URL parameters
-            $('#public-search').val(urlParams.get('search') || '');
-            $('#public-category').val(urlParams.get('category') || 'all');
-            $('#current-page').val(urlParams.get('page') || '1');
-            
-            
-            // Scroll to results section
-            const browseSection = document.getElementById('browse');
-            if (browseSection) {
-                browseSection.scrollIntoView({ behavior: 'smooth' });
-            }
+document.addEventListener('DOMContentLoaded', function() {
+    console.log("Initializing public search...");
+    
+    // Make table rows clickable
+    makeRowsClickable();
+    
+// Handle search form submission
+const searchForm = document.getElementById('search-form');
+if (searchForm) {
+    searchForm.addEventListener('submit', function(e) {
+        e.preventDefault();
+        
+        const searchInput = document.getElementById('public-search');
+        const categorySelect = document.getElementById('public-category');
+        
+        const searchTerm = searchInput ? searchInput.value.trim() : '';
+        const category = categorySelect ? categorySelect.value : 'all';
+        const limit = document.getElementById('page-size-selector').value || 10;
+        
+        // If search is empty and category is all, load random samples
+        if (searchTerm === '' && (category === 'all' || category === '')) {
+            console.log('Empty search and category - loading random samples');
+            loadProducts('', 'all', 1, limit, '', 'asc', true); // The true parameter loads random samples
+        } else {
+            loadProducts(searchTerm, category, 1, limit);
         }
     });
+}
+    
+    // Handle category filter change
+    const categorySelect = document.getElementById('public-category');
+    if (categorySelect) {
+        categorySelect.addEventListener('change', function() {
+            searchForm.dispatchEvent(new Event('submit'));
+        });
+    }
+    
+    // Handle page size change
+    const pageSizeSelector = document.getElementById('page-size-selector');
+    if (pageSizeSelector) {
+        pageSizeSelector.addEventListener('change', function() {
+            searchForm.dispatchEvent(new Event('submit'));
+        });
+    }
+    
+    // Handle table header sorting
+    const sortHeaders = document.querySelectorAll('th[data-sort]');
+    sortHeaders.forEach(header => {
+        header.addEventListener('click', function() {
+            const sortColumn = this.dataset.sort;
+            
+            // Get current sort direction or default to asc
+            const currentSortColumn = document.getElementById('public-sort-column').value;
+            let currentSortDirection = document.getElementById('public-sort-direction').value;
+            
+            // Toggle sort direction if clicking the same column
+            let newSortDirection = 'asc';
+            if (sortColumn === currentSortColumn) {
+                newSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
+            }
+            
+            // Update hidden sort inputs
+            document.getElementById('public-sort-column').value = sortColumn;
+            document.getElementById('public-sort-direction').value = newSortDirection;
+            
+            // Update visual indicators of sort
+            sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+            this.classList.add(`sort-${newSortDirection}`);
+            
+            // Get current search parameters
+            const searchInput = document.getElementById('public-search');
+            const categorySelect = document.getElementById('public-category');
+            
+            const searchTerm = searchInput ? searchInput.value : '';
+            const category = categorySelect ? categorySelect.value : 'all';
+            const limit = pageSizeSelector ? pageSizeSelector.value : 10;
+            
+            // Always use normal search for sorting
+            loadProducts(searchTerm, category, 1, limit, sortColumn, newSortDirection);
+        });
+    });
+    
+// Load initial products
+const urlParams = new URLSearchParams(window.location.search);
+const searchTerm = urlParams.get('search') || '';
+const category = urlParams.get('category') || 'all';
+const page = parseInt(urlParams.get('page')) || 1;
+const limit = parseInt(urlParams.get('limit')) || 10;
+const sort = urlParams.get('sort') || '';
+const order = urlParams.get('order') || 'asc';
+
+if (searchTerm || category !== 'all' || page > 1) {
+    loadProducts(searchTerm, category, page, limit, sort, order);
+} else {
+    // Load random samples on initial page load
+    loadProducts('', 'all', 1, 10, '', 'asc', true);
+}
+});
 
 
+/**
+ * Load products via AJAX
+ * 
+ * @param {string} searchTerm - Search term
+ * @param {string} category - Category ID or 'all'
+ * @param {number} page - Page number
+ * @param {number} limit - Items per page
+ * @param {string} sort - Sort column
+ * @param {string} order - Sort direction
+ * @param {boolean} randomSamples - Whether to load random samples
+ */
+function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, sort = '', order = 'asc', randomSamples = false) {
+    console.log('Loading products with parameters:', { searchTerm, category, page, limit, sort, order, randomSamples });
+    
+    // Show loading indicator
+    const tableBody = document.getElementById('public-inventory-body');
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Laddar...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+    
+    // Update URL without reloading (for bookmark/history purposes)
+    // Only update URL for explicit searches, not for random samples
+    if (!randomSamples) {
+        const url = new URL(window.location.href);
+        url.searchParams.set('search', searchTerm);
+        url.searchParams.set('category', category);
+        url.searchParams.set('page', page);
+        url.searchParams.set('limit', limit);
+        if (sort) {
+            url.searchParams.set('sort', sort);
+            url.searchParams.set('order', order);
+        } else {
+            url.searchParams.delete('sort');
+            url.searchParams.delete('order');
+        }
+        window.history.pushState({}, '', url);
+    }
+    
+    // Set request parameters
+    const requestParams = {
+        search: searchTerm,
+        category: category !== 'all' ? category : '',
+        page: page,
+        limit: limit,
+        sort: sort,
+        order: order
+    };
+    
+    // Explicitly set random_samples parameter if requested
+    if (randomSamples) {
+        requestParams.random_samples = 'true';
+    }
+    
+    // Make AJAX request to the api endpoint
+    fetch('api/get_public_products.php?' + new URLSearchParams(requestParams))
+    .then(response => {
+        if (!response.ok) {
+            throw new Error('Network response was not ok');
+        }
+        return response.json();
+    })
+    .then(data => {
+        console.log('API response data:', data);
+        
+        if (data.success) {
+            // Update table with products
+            if (data.html && tableBody) {
+                tableBody.innerHTML = data.html;
+makeRowsClickable();
+
+            }
+            
+            // Update pagination info
+            if (data.pagination) {
+                updatePaginationInfo(data.pagination);
+            }
+            
+            // Scroll to browse section if this was a search (not random samples)
+            if ((searchTerm || category !== 'all') && !randomSamples) {
+                document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
+            }
+        } else {
+            // Show error message
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message || 'Ett fel inträffade'}</td></tr>`;
+            }
+        }
+    })
+    .catch(error => {
+        console.error('Fetch Error:', error);
+        if (tableBody) {
+            tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade vid hämtning av data</td></tr>';
+        }
+    });
+}
+
+
+
+/**
+ * Update pagination information
+ * 
+ * @param {object} pagination - Pagination data
+ */
+function updatePaginationInfo(pagination) {
+    // Update showing range
+    const showingStart = document.getElementById('showing-start');
+    if (showingStart) {
+        showingStart.textContent = pagination.firstRecord;
+    }
+    
+    const showingEnd = document.getElementById('showing-end');
+    if (showingEnd) {
+        showingEnd.textContent = pagination.lastRecord;
+    }
+    
+    const totalItems = document.getElementById('total-items');
+    if (totalItems) {
+        totalItems.textContent = pagination.totalItems;
+    }
+    
+    // Update pagination links
+    const paginationLinks = document.getElementById('pagination-links');
+    if (paginationLinks) {
+        let html = '';
+        
+        // Previous page button
+        html += `
+            <li class="page-item ${pagination.currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${pagination.currentPage - 1}" aria-label="Previous" ${pagination.currentPage <= 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+        
+        // Calculate range of page numbers to display
+        const startPage = Math.max(1, pagination.currentPage - 2);
+        const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+        
+        // First page link if not in range
+        if (startPage > 1) {
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="1">1</a>
+                </li>
+            `;
+            
+            // Add ellipsis if needed
+            if (startPage > 2) {
+                html += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+        }
+        
+        // Page number links
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === pagination.currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        // Last page link if not in range
+        if (endPage < pagination.totalPages) {
+            // Add ellipsis if needed
+            if (endPage < pagination.totalPages - 1) {
+                html += `
+                    <li class="page-item disabled">
+                        <span class="page-link">...</span>
+                    </li>
+                `;
+            }
+            
+            html += `
+                <li class="page-item">
+                    <a class="page-link" href="#" data-page="${pagination.totalPages}">${pagination.totalPages}</a>
+                </li>
+            `;
+        }
+        
+        // Next page button
+        html += `
+            <li class="page-item ${pagination.currentPage >= pagination.totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${pagination.currentPage + 1}" aria-label="Next" ${pagination.currentPage >= pagination.totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+        
+        paginationLinks.innerHTML = html;
+        
+        // Attach event listeners to pagination links
+        const links = paginationLinks.querySelectorAll('.page-link');
+        links.forEach(link => {
+            link.addEventListener('click', function(e) {
+                e.preventDefault();
+                
+                const page = parseInt(this.dataset.page, 10);
+                if (!isNaN(page)) {
+                    // Get current search parameters
+                    const searchInput = document.getElementById('public-search');
+                    const categorySelect = document.getElementById('public-category');
+                    const pageSizeSelector = document.getElementById('page-size-selector');
+                    
+                    const searchTerm = searchInput ? searchInput.value : '';
+                    const category = categorySelect ? categorySelect.value : 'all';
+                    const limit = pageSizeSelector ? pageSizeSelector.value : 10;
+                    
+                    // Get sort parameters
+                    const sortColumn = document.getElementById('public-sort-column').value;
+                    const sortDirection = document.getElementById('public-sort-direction').value;
+                    
+                    // Always use normal search for pagination
+                    loadProducts(searchTerm, category, page, limit, sortColumn, sortDirection);
+                }
+            });
+        });
+    }
+    
+    // Update page size selector if available
+    const pageSizeSelector = document.getElementById('page-size-selector');
+    if (pageSizeSelector && pagination.pageSizeOptions) {
+        let options = '';
+        pagination.pageSizeOptions.forEach(size => {
+            const selected = size == pagination.itemsPerPage ? 'selected' : '';
+            options += `<option value="${size}" ${selected}>${size}</option>`;
+        });
+        pageSizeSelector.innerHTML = options;
+    }
+}
+
+document.addEventListener('click', function(event) {
+    // Find the closest clickable row to the click target
+    const row = event.target.closest('.clickable-row');
+    if (row && row.dataset.href) {
+        // Don't navigate if clicking on a control element
+        if (!event.target.closest('a, button, input, select, .no-click')) {
+            console.log('Global handler navigating to:', row.dataset.href);
+            window.location.href = row.dataset.href;
+        }
+    }
+});
 </script>
+
+<?php
+/**
+ * Get categories for dropdown
+ * 
+ * @return array Array of categories
+ */
+function getCategories() {
+    global $pdo;
+    
+    try {
+        // Get language from session or default to Swedish
+        $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+        
+        // Determine field name based on language
+        $nameField = ($language === 'fi') ? 'category_fi_name' : 'category_sv_name';
+        
+        // Prepare and execute query
+        $stmt = $pdo->prepare("SELECT category_id, {$nameField} as category_name FROM category ORDER BY {$nameField} ASC");
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Error fetching categories: ' . $e->getMessage());
+        return [];
+    }
+}
+?>
+
