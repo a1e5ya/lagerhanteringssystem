@@ -87,8 +87,8 @@ function performPublicSearch(page = 1) {
         limit: 20
     };
     
-    // Perform AJAX search
-    ajaxSearch(BASE_URL + '/admin/search.php', 'public', searchParams, targetElem, function() {
+    // Use ajaxPublicSearch instead of ajaxSearch with admin/search.php
+    ajaxPublicSearch(searchParams.search, searchParams.category, searchParams.page, searchParams.limit, targetElem, function() {
         // Scroll to search results
         document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
         
@@ -138,6 +138,84 @@ function rowClickHandler(event) {
     } else {
         console.log('Click was on an interactive element, not navigating');
     }
+}
+
+/**
+ * AJAX search function for public products
+ * 
+ * @param {string} searchTerm - Search term
+ * @param {string} category - Category ID or 'all'
+ * @param {number} page - Page number
+ * @param {number} limit - Items per page
+ * @param {HTMLElement} targetElem - Target element to update
+ * @param {Function} successCallback - Callback on success
+ */
+function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, successCallback) {
+    // Check if we have a valid target element
+    if (!targetElem) {
+        console.error('Target element not specified for ajaxPublicSearch');
+        return;
+    }
+    
+    // Show loading indicator
+    const cols = 7; // Public table has 7 columns
+    targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>`;
+    
+    // Build query string
+    const queryParams = new URLSearchParams({
+        search: searchTerm || '',
+        category: category !== 'all' ? category : '',
+        page: page || 1,
+        limit: limit || 20
+    });
+    
+    // Create AJAX request
+    const xhr = new XMLHttpRequest();
+    xhr.open('GET', `${BASE_URL}/api/get_public_products.php?${queryParams}`, true);
+    
+    xhr.onload = function() {
+        if (xhr.status === 200) {
+            try {
+                const response = JSON.parse(xhr.responseText);
+                
+                if (response.success) {
+                    // Update table with products
+                    if (response.html) {
+                        targetElem.innerHTML = response.html;
+                    } else {
+                        targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center">Inga produkter hittades</td></tr>`;
+                    }
+                    
+                    // Make rows clickable for public search results
+                    makeRowsClickable();
+                    
+                    // Update pagination info if available
+                    if (response.pagination && typeof updatePaginationInfo === 'function') {
+                        updatePaginationInfo(response.pagination);
+                    }
+                    
+                    // Execute callback if provided
+                    if (typeof successCallback === 'function') {
+                        successCallback(response);
+                    }
+                } else {
+                    // Show error message
+                    targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">${response.message || 'Ett fel inträffade'}</td></tr>`;
+                }
+            } catch (e) {
+                console.error('Error parsing JSON response:', e);
+                targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade vid tolkning av svaret</td></tr>`;
+            }
+        } else {
+            targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Status: ${xhr.status}</td></tr>`;
+        }
+    };
+    
+    xhr.onerror = function() {
+        targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center text-danger">Ett fel inträffade. Kontrollera din internetanslutning.</td></tr>`;
+    };
+    
+    xhr.send();
 }
 
 /**

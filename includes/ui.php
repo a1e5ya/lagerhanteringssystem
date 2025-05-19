@@ -4,7 +4,6 @@
  * 
  * Contains:
  * - changeLanguage() - Sets UI language
-
  */
 ?>
 
@@ -28,8 +27,6 @@ function loadLanguageStrings($language) {
         return $lang_strings;
     }
 }
-
-
 
 /**
  * Changes the user interface language
@@ -81,4 +78,8 @@ function changeLanguage($language) {
     exit;
 }
 
+// Handle language switching request if present
+if (isset($_GET['lang'])) {
+    changeLanguage($_GET['lang']);
+}
 ?>

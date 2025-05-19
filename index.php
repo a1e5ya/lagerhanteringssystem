@@ -588,8 +588,7 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
         `;
     }
     
-    // Update URL without reloading (for bookmark/history purposes)
-    // Only update URL for explicit searches, not for random samples
+    // Update URL for bookmarking/history (only for explicit searches)
     if (!randomSamples) {
         const url = new URL(window.location.href);
         url.searchParams.set('search', searchTerm);
@@ -616,12 +615,12 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
         order: order
     };
     
-    // Explicitly set random_samples parameter if requested
+    // Add random_samples parameter if needed
     if (randomSamples) {
         requestParams.random_samples = 'true';
     }
     
-    // Make AJAX request to the api endpoint
+    // FIXED: Always use api/get_public_products.php instead of admin/search.php
     fetch('api/get_public_products.php?' + new URLSearchParams(requestParams))
     .then(response => {
         if (!response.ok) {
@@ -636,8 +635,7 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
             // Update table with products
             if (data.html && tableBody) {
                 tableBody.innerHTML = data.html;
-makeRowsClickable();
-
+                makeRowsClickable(); // Re-initialize clickable rows
             }
             
             // Update pagination info
@@ -663,7 +661,6 @@ makeRowsClickable();
         }
     });
 }
-
 
 
 /**
