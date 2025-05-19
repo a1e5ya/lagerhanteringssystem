@@ -68,8 +68,7 @@ try {
                 // Define the product URL first
                 $productUrl = "singleproduct.php?id=" . $product['prod_id'];
                 ?>
-                <tr class="clickable-row" data-href="<?= $productUrl ?>" 
-                    onclick="window.location.href='<?= $productUrl ?>'" style="cursor:pointer;">
+<tr class="clickable-row" data-href="<?= $productUrl ?>">
                     <td><?= safeEcho($product['title']) ?></td>
                     <td><?= safeEcho($product['author_name']) ?></td>
                     <td><?= safeEcho($product['category_name']) ?></td>
@@ -462,18 +461,15 @@ function renderProductsHTML(array $products): string {
 function renderPublicProductRow(array $product): void {
     // Format the price using a fallback if formatted_price doesn't exist
     $formattedPrice = $product['formatted_price'] ?? (isset($product['price']) ? number_format($product['price'], 2, ',', ' ') . ' €' : '');
-    
-    // Define product URL
     $productUrl = "singleproduct.php?id=" . $product['prod_id'];
     ?>
-    <tr class="clickable-row" data-href="<?= $productUrl ?>" 
-        onclick="window.location.href='<?= $productUrl ?>'" style="cursor:pointer;">
-        <td><?= safeEcho($product['title']) ?></td>
-        <td><?= safeEcho($product['author_name']) ?></td>
-        <td><?= safeEcho($product['category_name']) ?></td>
-        <td><?= safeEcho($product['genre_names']) ?></td>
-        <td><?= safeEcho($product['condition_name']) ?></td>
-        <td><?= safeEcho($formattedPrice) ?></td>
+<tr class="clickable-row" data-href="<?= $productUrl ?>">
+        <td data-label="Titel"><?= safeEcho($product['title']) ?></td>
+        <td data-label="Författare/Artist"><?= safeEcho($product['author_name']) ?></td>
+        <td data-label="Kategori"><?= safeEcho($product['category_name']) ?></td>
+        <td data-label="Genre"><?= safeEcho($product['genre_names']) ?></td>
+        <td data-label="Skick"><?= safeEcho($product['condition_name']) ?></td>
+        <td data-label="Pris"><?= safeEcho($formattedPrice) ?></td>
         <td onclick="event.stopPropagation();">
             <?php if (isset($product['is_special']) && $product['is_special']): ?>
                 <span class="badge bg-danger">Rea</span>
@@ -484,7 +480,7 @@ function renderPublicProductRow(array $product): void {
             <?php if (isset($product['is_recommended']) && $product['is_recommended']): ?>
                 <span class="badge bg-info">Rekommenderas</span>
             <?php endif; ?>
-            <a class="btn btn-success d-block d-md-none" href="<?= $productUrl ?>">Visa detaljer</a>
+            <a class="btn btn-success d-block d-md-none" href="<?= safeEcho($productUrl) ?>">Visa detaljer</a>
         </td>
     </tr>
     <?php

@@ -85,15 +85,8 @@ if (!isset($strings)) {
             });
         }
         
-        // Make rows clickable
-        const clickableRows = document.querySelectorAll('.clickable-row');
-        clickableRows.forEach(row => {
-            row.addEventListener('click', function(event) {
-                if (!event.target.closest('a')) {
-                    window.location.href = this.dataset.href;
-                }
-            });
-        });
+
+
     });
 </script>
 

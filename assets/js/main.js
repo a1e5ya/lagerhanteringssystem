@@ -101,25 +101,21 @@ function performPublicSearch(page = 1) {
  * Make table rows clickable
  */
 function makeRowsClickable() {
-    console.log('Making rows clickable (jQuery version)');
+    console.log('Making rows clickable - testing with modified URL');
     
-    // Remove any existing click handlers first
-    $('.clickable-row').off('click');
-    
-    // Add the click event using jQuery
-    $('.clickable-row').on('click', function(e) {
-        console.log('Row clicked with jQuery!', $(this).data('href'));
-        
-        // Only navigate if click wasn't on a button, link, or other interactive element
-        if (!$(e.target).closest('a, button, input, select, .no-click').length) {
-            const href = $(this).data('href');
-            if (href) {
-                console.log('Navigating to:', href);
-                window.location.href = href;
+    document.querySelectorAll('.clickable-row').forEach(row => {
+        row.addEventListener('click', function(e) {
+            // Only navigate if not clicking on a control element
+            if (!e.target.closest('a, button, input, select, .no-click')) {
+                const href = this.dataset.href;
+                if (href) {
+                    // Add a dummy parameter to prevent caching or interception
+                    const modifiedHref = href + (href.includes('?') ? '&' : '?') + '_=' + Date.now();
+                    console.log('Navigating to modified URL:', modifiedHref);
+                    window.location.href = modifiedHref;
+                }
             }
-        } else {
-            console.log('Click was on an interactive element, not navigating');
-        }
+        });
     });
 }
 

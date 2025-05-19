@@ -11,16 +11,16 @@
  * - getRelatedProducts()
  */
 
+// Add error reporting for debugging
+error_reporting(E_ALL);
+ini_set('display_errors', 1);
+
 // Include necessary files
 require_once 'config/config.php';
 require_once 'includes/functions.php';
 require_once 'includes/db_functions.php';
 require_once 'includes/ui.php';
-
-// Check if language change is requested
-if (isset($_GET['lang'])) {
-    changeLanguage($_GET['lang']);
-}
+require_once 'includes/Formatter.php';
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -43,58 +43,60 @@ if ($productId <= 0) {
     exit;
 }
 
-// Function to get product by ID
+// Create formatter instance
+$formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
+
+/**
+ * Gets complete product data by ID
+ * 
+ * @param int $productId Product ID to fetch
+ * @return object|null Product data or null if not found
+ */
 function getProductById($productId) {
-    global $pdo;
+    global $pdo, $language;
+    
+    // Determine which field to use based on language
+    $categoryNameField = ($language === 'fi') ? 'cat.category_fi_name' : 'cat.category_sv_name';
+    $shelfNameField = ($language === 'fi') ? 'sh.shelf_fi_name' : 'sh.shelf_sv_name';
+    $statusNameField = ($language === 'fi') ? 's.status_fi_name' : 's.status_sv_name';
+    $conditionNameField = ($language === 'fi') ? 'con.condition_fi_name' : 'con.condition_sv_name';
     
     try {
+        // SQL to fetch product with related data
         $sql = "SELECT
                 p.prod_id,
                 p.title,
+                p.status,
+                p.shelf_id,
+                p.category_id,
                 p.price,
+                p.condition_id,
                 p.notes,
+                p.internal_notes,
                 p.year,
                 p.publisher,
-                p.language,
                 p.special_price,
                 p.rare,
+                p.recommended,
                 p.date_added,
-                s.status_name,
+                p.language_id,
+                {$statusNameField} as status_name,
                 s.status_id,
-                cat.category_name,
-                cat.category_id,
-                sh.shelf_name,
-                sh.shelf_id,
-                con.condition_name,
+                {$categoryNameField} as category_name,
+                {$shelfNameField} as shelf_name,
+                {$conditionNameField} as condition_name,
                 con.condition_code,
-                GROUP_CONCAT(DISTINCT a.first_name SEPARATOR '|') AS first_names,
-                GROUP_CONCAT(DISTINCT a.last_name SEPARATOR '|') AS last_names,
-                GROUP_CONCAT(DISTINCT a.author_id SEPARATOR '|') AS author_ids,
-                GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR '|') AS genre_names,
-                GROUP_CONCAT(DISTINCT g.genre_id SEPARATOR '|') AS genre_ids
+                IFNULL(lang.language_sv_name, '') as language_name
             FROM
                 product p
-            LEFT JOIN
-                product_author pa ON p.prod_id = pa.product_id
-            LEFT JOIN
-                author a ON pa.author_id = a.author_id
-            LEFT JOIN
-                product_genre pg ON p.prod_id = pg.product_id
-            LEFT JOIN
-                genre g ON pg.genre_id = g.genre_id
-            JOIN
-                category cat ON p.category_id = cat.category_id
-            JOIN
-                shelf sh ON p.shelf_id = sh.shelf_id
-            JOIN
-                `condition` con ON p.condition_id = con.condition_id
-            JOIN
-                `status` s ON p.status = s.status_id
+            JOIN category cat ON p.category_id = cat.category_id
+            JOIN shelf sh ON p.shelf_id = sh.shelf_id
+            JOIN `condition` con ON p.condition_id = con.condition_id
+            JOIN `status` s ON p.status = s.status_id
+            LEFT JOIN `language` lang ON p.language_id = lang.language_id
             WHERE
-                p.prod_id = :productId
-            GROUP BY
-                p.prod_id";
-                
+                p.prod_id = :productId";
+        
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(':productId', $productId, PDO::PARAM_INT);
         $stmt->execute();
@@ -102,53 +104,99 @@ function getProductById($productId) {
         $product = $stmt->fetch(PDO::FETCH_OBJ);
         
         if ($product) {
-            // Process concatenated fields
-            $product->first_names_array = !empty($product->first_names) ? explode('|', $product->first_names) : [];
-            $product->last_names_array = !empty($product->last_names) ? explode('|', $product->last_names) : [];
-            $product->author_ids_array = !empty($product->author_ids) ? explode('|', $product->author_ids) : [];
-            $product->genre_names_array = !empty($product->genre_names) ? explode('|', $product->genre_names) : [];
-            $product->genre_ids_array = !empty($product->genre_ids) ? explode('|', $product->genre_ids) : [];
+            // Get authors for this product
+            $authorSql = "SELECT a.author_id, a.author_name
+                         FROM author a
+                         JOIN product_author pa ON a.author_id = pa.author_id
+                         WHERE pa.product_id = :productId";
             
-            // Create full author names
-            $authorNames = [];
-            for ($i = 0; $i < count($product->first_names_array); $i++) {
-                $firstName = $product->first_names_array[$i] ?? '';
-                $lastName = $product->last_names_array[$i] ?? '';
-                if (!empty($firstName) || !empty($lastName)) {
-                    $authorNames[] = trim($firstName . ' ' . $lastName);
-                }
-            }
+            $authorStmt = $pdo->prepare($authorSql);
+            $authorStmt->bindParam(':productId', $productId, PDO::PARAM_INT);
+            $authorStmt->execute();
+            
+            $authors = $authorStmt->fetchAll(PDO::FETCH_OBJ);
+            $product->authors = $authors;
+            
+            // Create formatted author list
+            $authorNames = array_map(function($author) {
+                return $author->author_name;
+            }, $authors);
+            
             $product->author_names = !empty($authorNames) ? implode(', ', $authorNames) : '';
+            
+            // Get genres for this product
+            $genreSql = "SELECT g.genre_id, " . 
+                       ($language === 'fi' ? 'g.genre_fi_name' : 'g.genre_sv_name') . " as genre_name
+                       FROM genre g
+                       JOIN product_genre pg ON g.genre_id = pg.genre_id
+                       WHERE pg.product_id = :productId";
+            
+            $genreStmt = $pdo->prepare($genreSql);
+            $genreStmt->bindParam(':productId', $productId, PDO::PARAM_INT);
+            $genreStmt->execute();
+            
+            $genres = $genreStmt->fetchAll(PDO::FETCH_OBJ);
+            $product->genres = $genres;
+            
+            // Create genre arrays for use in templates and related products
+            $product->genre_ids_array = array_map(function($genre) {
+                return $genre->genre_id;
+            }, $genres);
+            
+            $product->genre_names_array = array_map(function($genre) {
+                return $genre->genre_name;
+            }, $genres);
         }
         
         return $product;
     } catch (PDOException $e) {
-        error_log("Databasfel vid hämtning av produkt: " . $e->getMessage());
+        error_log("Database error in getProductById: " . $e->getMessage());
+        error_log("SQL query: " . $sql);
         return null;
     }
 }
 
-// Function to get related products based on category and genre
+/**
+ * Gets related products based on category and genre
+ * 
+ * @param int $productId Current product ID 
+ * @param int $categoryId Category ID
+ * @param array $genreIds Array of genre IDs
+ * @param int $limit Maximum number of related products
+ * @return array Related products
+ */
 function getRelatedProducts($productId, $categoryId, $genreIds, $limit = 4) {
-    global $pdo;
+    global $pdo, $language;
     
     try {
-        // Convert genre IDs array to a comma-separated string for SQL IN clause
+        // If no genre IDs, use an empty array
+        if (empty($genreIds)) {
+            $genreIds = [0]; // Use a dummy value to prevent SQL error
+        }
+        
+        // Convert genre IDs array to comma-separated string
         $genreIdList = implode(',', array_map('intval', $genreIds));
+        
+        // Get language-specific field names
+        $categoryNameField = ($language === 'fi') ? 'c.category_fi_name' : 'c.category_sv_name';
         
         $sql = "SELECT DISTINCT
                     p.prod_id,
                     p.title,
                     p.price,
-                    GROUP_CONCAT(DISTINCT a.first_name SEPARATOR ' ') AS first_names,
-                    GROUP_CONCAT(DISTINCT a.last_name SEPARATOR ' ') AS last_names
+                    p.special_price,
+                    p.rare,
+                    p.recommended,
+                    {$categoryNameField} as category_name,
+                    (SELECT GROUP_CONCAT(a.author_name SEPARATOR ', ') 
+                     FROM product_author pa 
+                     JOIN author a ON pa.author_id = a.author_id 
+                     WHERE pa.product_id = p.prod_id) as author_names
                 FROM
                     product p
-                LEFT JOIN
-                    product_author pa ON p.prod_id = pa.product_id
-                LEFT JOIN
-                    author a ON pa.author_id = a.author_id
                 JOIN
+                    category c ON p.category_id = c.category_id
+                LEFT JOIN
                     product_genre pg ON p.prod_id = pg.product_id
                 WHERE
                     p.prod_id != :productId
@@ -169,7 +217,7 @@ function getRelatedProducts($productId, $categoryId, $genreIds, $limit = 4) {
         
         return $stmt->fetchAll(PDO::FETCH_OBJ);
     } catch (PDOException $e) {
-        error_log("Databasfel vid hämtning av relaterade produkter: " . $e->getMessage());
+        error_log("Database error in getRelatedProducts: " . $e->getMessage());
         return [];
     }
 }
@@ -177,9 +225,20 @@ function getRelatedProducts($productId, $categoryId, $genreIds, $limit = 4) {
 // Get product data
 $product = getProductById($productId);
 
+// Test database connection and product retrieval
+try {
+    $testQuery = $pdo->query("SELECT 1");
+    error_log("Database connection test: " . ($testQuery ? 'successful' : 'failed'));
+} catch (PDOException $e) {
+    error_log("Database error in connection test: " . $e->getMessage());
+}
+
+error_log("Product ID: $productId, Result: " . ($product ? 'found' : 'not found'));
+
 // If product not found, redirect to home page
 if (!$product) {
-    header("Location: index.php");
+    error_log("Redirecting to index.php because product not found");
+    header("Location: index.php?error=product_not_found&id=" . $productId);
     exit;
 }
 
@@ -190,10 +249,10 @@ if (!empty($product->genre_ids_array)) {
 }
 
 // Format the price with two decimal places
-$formattedPrice = number_format($product->price, 2, ',', ' ') . ' €';
+$formattedPrice = $formatter->formatPrice($product->price);
 
 // Format the date
-$formattedDate = date('d.m.Y', strtotime($product->date_added));
+$formattedDate = $formatter->formatDate($product->date_added);
 
 // Determine status class
 $statusClass = '';
@@ -222,7 +281,6 @@ include 'templates/header.php';
 <!-- Main Content Container -->
 <div class="container my-5 pb-5">
     <div class="row">
-
         
         <!-- Three-column layout: Image, Details, Price/Status -->
         <div class="row mb-5">
@@ -259,12 +317,16 @@ include 'templates/header.php';
                 
                 <ul class="list-unstyled">
                     <li><strong><?php echo $strings['category']; ?>:</strong> <span id="item-category"><?php echo safeEcho($product->category_name); ?></span></li>
+                    
+                    <?php if (!empty($product->genre_names_array)): ?>
                     <li><strong><?php echo $strings['genre']; ?>:</strong> <span id="item-genre"><?php echo safeEcho(implode(', ', $product->genre_names_array)); ?></span></li>
+                    <?php endif; ?>
+                    
                     <li><strong><?php echo $strings['condition']; ?>:</strong> <span id="item-condition"><?php echo safeEcho($product->condition_name); ?></span></li>
                     <li><strong><?php echo $strings['shelf']; ?>:</strong> <span id="item-shelf"><?php echo safeEcho($product->shelf_name); ?></span></li>
                     
-                    <?php if (!empty($product->language)): ?>
-                    <li><strong><?php echo $strings['language']; ?>:</strong> <span id="item-language"><?php echo safeEcho($product->language); ?></span></li>
+                    <?php if (!empty($product->language_name)): ?>
+                    <li><strong><?php echo $strings['language']; ?>:</strong> <span id="item-language"><?php echo safeEcho($product->language_name); ?></span></li>
                     <?php endif; ?>
                     
                     <?php if (!empty($product->year)): ?>
@@ -298,6 +360,10 @@ include 'templates/header.php';
                     
                     <?php if ($product->rare): ?>
                         <span class="badge bg-warning text-dark fs-6 mt-2 d-block"><?php echo $strings['rare_item']; ?></span>
+                    <?php endif; ?>
+                    
+                    <?php if ($product->recommended): ?>
+                        <span class="badge bg-info fs-6 mt-2 d-block"><?php echo $strings['recommended'] ?? 'Recommended'; ?></span>
                     <?php endif; ?>
                     
                     <h3 class="text-success mt-3" id="item-price"><?php echo $formattedPrice; ?></h3>
@@ -350,9 +416,9 @@ include 'templates/header.php';
                                 <div class="card-body d-flex flex-column h-100">
                                     <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                                     <p class="card-text text-muted flex-grow-1">
-                                        <?php echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names)); ?>
+                                        <?php echo safeEcho($relatedProduct->author_names); ?>
                                     </p>
-                                    <p class="text-success fw-bold mb-2"><?php echo number_format($relatedProduct->price, 2, ',', ' ') . ' €'; ?></p>
+                                    <p class="text-success fw-bold mb-2"><?php echo $formatter->formatPrice($relatedProduct->price); ?></p>
                                 </div>
                             </div>
                         </div>
@@ -370,9 +436,9 @@ include 'templates/header.php';
                         <div class="card-body">
                             <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                             <p class="card-text text-muted">
-                                <?php echo safeEcho(trim($relatedProduct->first_names . ' ' . $relatedProduct->last_names)); ?>
+                                <?php echo safeEcho($relatedProduct->author_names); ?>
                             </p>
-                            <p class="text-success fw-bold"><?php echo number_format($relatedProduct->price, 2, ',', ' ') . ' €'; ?></p>
+                            <p class="text-success fw-bold"><?php echo $formatter->formatPrice($relatedProduct->price); ?></p>
                         </div>
                     </div>
                     

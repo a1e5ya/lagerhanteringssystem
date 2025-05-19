@@ -447,15 +447,8 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
             // Update table with products
             if (data.html && tableBody) {
                 tableBody.innerHTML = data.html;
+makeRowsClickable();
 
-                            // DEBUG: Log the HTML structure after insertion
-            console.log('Inserted HTML structure:');
-            const rows = tableBody.querySelectorAll('.clickable-row');
-            rows.forEach((row, i) => {
-                console.log(`Row ${i}:`, row.outerHTML.substring(0, 100) + '...', 
-                            'data-href:', row.dataset.href);
-            });
-                makeRowsClickable(); 
             }
             
             // Update pagination info
@@ -619,6 +612,18 @@ function updatePaginationInfo(pagination) {
         pageSizeSelector.innerHTML = options;
     }
 }
+
+document.addEventListener('click', function(event) {
+    // Find the closest clickable row to the click target
+    const row = event.target.closest('.clickable-row');
+    if (row && row.dataset.href) {
+        // Don't navigate if clicking on a control element
+        if (!event.target.closest('a, button, input, select, .no-click')) {
+            console.log('Global handler navigating to:', row.dataset.href);
+            window.location.href = row.dataset.href;
+        }
+    }
+});
 </script>
 
 <?php
