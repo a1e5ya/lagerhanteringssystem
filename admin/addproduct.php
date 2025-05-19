@@ -205,6 +205,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Content-Type: application/json');
     }
 
+    
     // Get form data
     $formData = [
         'title' => $_POST['title'] ?? null,

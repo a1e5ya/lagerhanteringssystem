@@ -7,6 +7,7 @@
  * - Authentication check
  */
 
+ 
 // Include initialization file
 require_once 'init.php';
 
