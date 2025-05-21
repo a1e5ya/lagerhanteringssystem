@@ -36,6 +36,31 @@ function createProduct($data, $pdo) {
     try {
         // Start transaction to ensure data integrity
         $pdo->beginTransaction();
+
+        // Set default values for non-required fields
+        $status_id = !empty($data['status_id']) ? $data['status_id'] : 1;
+        $shelf_id = !empty($data['shelf_id']) ? $data['shelf_id'] : null;
+        $category_id = !empty($data['category_id']) ? $data['category_id'] : null;
+        $price = !empty($data['price']) ? $data['price'] : 0;
+        $condition_id = !empty($data['condition_id']) ? $data['condition_id'] : null;
+        $notes = !empty($data['notes']) ? $data['notes'] : '';
+        $internal_notes = !empty($data['internal_notes']) ? $data['internal_notes'] : '';
+        $language_id = !empty($data['language_id']) ? $data['language_id'] : null;
+        $year = !empty($data['year']) ? $data['year'] : null;
+        $publisher = !empty($data['publisher']) ? $data['publisher'] : '';
+        
+        // Only set to 1 if explicitly checked
+        $special_price = isset($data['special_price']) && $data['special_price'] == 1 ? 1 : 0;
+        $rare = isset($data['rare']) && $data['rare'] == 1 ? 1 : 0;
+        $recommended = isset($data['recommended']) && $data['recommended'] == 1 ? 1 : 0;
+        
+        // Debug log
+        error_log("Creating product with data: " . print_r([
+            'title' => $data['title'],
+            'special_price' => $special_price,
+            'rare' => $rare,
+            'recommended' => $recommended
+        ], true));
         
         $stmt = $pdo->prepare("INSERT INTO product (
             title, 
@@ -56,19 +81,19 @@ function createProduct($data, $pdo) {
 
         $stmt->execute([
             $data['title'], 
-            $data['status_id'], 
-            $data['shelf_id'], 
-            $data['category_id'], 
-            $data['price'], 
-            $data['condition_id'], 
-            $data['notes'], 
-            $data['internal_notes'], 
-            $data['language_id'], 
-            $data['year'], 
-            $data['publisher'], 
-            $data['special_price'], 
-            $data['rare'],
-            $data['recommended']
+            $status_id, 
+            $shelf_id, 
+            $category_id, 
+            $price, 
+            $condition_id, 
+            $notes, 
+            $internal_notes, 
+            $language_id, 
+            $year, 
+            $publisher, 
+            $special_price, 
+            $rare,
+            $recommended
         ]);
 
         // Get the inserted product's ID
@@ -194,6 +219,19 @@ $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
 // Get user locale preference (default to 'en')
 $locale = $_SESSION['locale'] ?? 'en';
 
+function getAvailableStatusId($pdo) {
+    try {
+        $sql = "SELECT status_id FROM status WHERE status_sv_name = 'Tillgänglig' OR status_en_name = 'Available'";
+        $stmt = $pdo->query($sql);
+        return $stmt->fetchColumn() ?: 1; // Default to 1 if not found
+    } catch (Exception $e) {
+        error_log("Error getting available status ID: " . $e->getMessage());
+        return 1; // Default to 1 if there's an error
+    }
+}
+
+$availableStatusId = getAvailableStatusId($pdo);
+
 // Only process POST data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Turn off output buffering
@@ -209,7 +247,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get form data
     $formData = [
         'title' => $_POST['title'] ?? null,
-        'status_id' => $_POST['status_id'] ?? null,
+        'status_id' => $_POST['status_id'] ?? 1,
         'shelf_id' => $_POST['shelf_id'] ?? null,
         'category_id' => $_POST['category_id'] ?? null,
         'price' => $_POST['price'] ?? null,
@@ -250,8 +288,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
     $formData['genres'] = $genres;
 
-    // Check if the required field (title) is filled
-    if ($formData['title']) {
+      // Check if the required fields are filled
+      if ($formData['title'] && $formData['category_id']) {
         try {
             // Create the product
             $result = createProduct($formData, $pdo);
@@ -291,6 +329,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
     }
+    
 }
 ?>
 
@@ -327,20 +366,42 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                 <input type="text" class="form-control" id="item-title" name="title" required>
                             </div>
                             <div class="col-md-4">
-                                <label for="item-status" class="form-label">Status</label>
-                                <select class="form-select" id="item-status" name="status_id" required>
-                                    <option value="">Välj Status</option>
-                                    <?php renderInputAlternatives($pdo, 'status', 'status_id', 'status', '', $locale); ?>
-                                </select>
+                            <label for="item-status" class="form-label">Status</label>
+                            <select class="form-select" id="item-status" name="status_id">
+                            <?php 
+                                // Get available status ID
+                                $availableId = 1;
+                                try {
+                                    $statusStmt = $pdo->query("SELECT status_id FROM status WHERE status_sv_name = 'Tillgänglig' LIMIT 1");
+                                    if ($result = $statusStmt->fetch(PDO::FETCH_ASSOC)) {
+                                        $availableId = $result['status_id'];
+                                    }
+                                } catch(Exception $e) {
+                                }
+                                // Render options with available status pre-selected
+                                renderInputAlternatives($pdo, 'status', 'status_id', 'status', $availableId, $locale); 
+                                ?>
+                            </select>
                             </div>
                         </div>
 
-                        <div class="row mb-3">
-                            <div class="col-md-12 position-relative">
-                                <label for="author-name" class="form-label">Författare</label>
-                                <input type="text" class="form-control" id="author-name" name="author_name" 
-                                    autocomplete="off" placeholder="Ange författarens namn">
-                                <div id="suggest-author" class="list-group position-absolute w-100 zindex-dropdown"></div>
+                        <div class="mb-3">
+                            <label class="form-label">Författare</label>
+                            <div class="selected-authors mb-2">
+                                <em class="text-muted">Ingen författare vald</em>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-12 position-relative mb-2">
+                                    <div class="input-group">
+                                        <input type="text" class="form-control" id="author-name" name="author_name" 
+                                            autocomplete="off" placeholder="Ange författarens namn">
+                                        <button type="button" class="btn btn-outline-secondary" id="add-author-btn">
+                                            <i class="fas fa-plus"></i> Lägg till
+                                        </button>
+                                    </div>
+                                    <div id="suggest-author" class="list-group position-absolute w-100 zindex-dropdown"></div>
+                                </div>
                             </div>
                         </div>
 
@@ -359,6 +420,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <option value="">Välj Genre</option>
                                     <?php renderInputAlternatives($pdo, 'genre', 'genre_id', 'genre', '', $locale); ?>
                                 </select>
+                                <div class="selected-genres mt-2"></div>
+                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="add-genre-btn">
+                                    <i class="fas fa-plus"></i> Lägg till genre
+                                </button>
                             </div>
                         </div>
 
@@ -369,14 +434,14 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="col-md-4">
                                 <label for="item-condition" class="form-label">Skick</label>
-                                <select class="form-select" id="item-condition" name="condition_id" required>
+                                <select class="form-select" id="item-condition" name="condition_id">
                                     <option value="">Välj Skick</option>
                                     <?php renderInputAlternatives($pdo, 'condition', 'condition_id', 'condition', '', $locale); ?>
                                 </select>
                             </div>
                             <div class="col-md-4">
                                 <label for="item-shelf" class="form-label">Hylla</label>
-                                <select class="form-select" id="item-shelf" name="shelf_id" required>
+                                <select class="form-select" id="item-shelf" name="shelf_id">
                                     <option value="">Välj Hylla</option>
                                     <?php renderInputAlternatives($pdo, 'shelf', 'shelf_id', 'shelf', '', $locale); ?>
                                 </select>
@@ -454,116 +519,3 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </form>
 </div>
-
-<script>
-/**
- * Initializes the add product form and its features
- * 
- * @return {void}
- */
-document.addEventListener('DOMContentLoaded', function() {
-    const authorInput = document.getElementById('author-name');
-    const authorSuggestions = document.getElementById('suggest-author');
-    const publisherInput = document.getElementById('item-publisher');
-    const publisherSuggestions = document.getElementById('suggest-publisher');
-    const imageUpload = document.getElementById('item-image-upload');
-    const imagePreview = document.getElementById('new-item-image');
-    const authorsJsonInput = document.getElementById('authors-json');
-    const genresJsonInput = document.getElementById('genres-json');
-    
-    let authors = [];
-    let genres = [];
-    
-    /**
-     * Loads author suggestions based on user input
-     * 
-     * @param {string} query The search query
-     * @return {void}
-     */
-    function loadAuthorSuggestions(query) {
-        if (query.length < 2) {
-            authorSuggestions.innerHTML = '';
-            return;
-        }
-        
-        fetch(`api/authors.php?query=${encodeURIComponent(query)}`)
-            .then(response => response.json())
-            .then(data => {
-                authorSuggestions.innerHTML = '';
-                data.forEach(author => {
-                    const item = document.createElement('a');
-                    item.href = '#';
-                    item.className = 'list-group-item list-group-item-action';
-                    item.textContent = author.author_name;
-                    item.addEventListener('click', function(e) {
-                        e.preventDefault();
-                        authorInput.value = author.author_name;
-                        authors.push(author.author_name);
-                        updateAuthorsJson();
-                        authorSuggestions.innerHTML = '';
-                    });
-                    authorSuggestions.appendChild(item);
-                });
-            })
-            .catch(error => console.error('Error fetching authors:', error));
-    }
-    
-    /**
-     * Updates the hidden JSON field for authors
-     * 
-     * @return {void}
-     */
-    function updateAuthorsJson() {
-        authorsJsonInput.value = JSON.stringify(authors);
-    }
-    
-    /**
-     * Updates the hidden JSON field for genres
-     * 
-     * @return {void}
-     */
-    function updateGenresJson() {
-        genresJsonInput.value = JSON.stringify(genres);
-    }
-    
-    // Set up author input event listener
-    authorInput.addEventListener('input', function() {
-        loadAuthorSuggestions(this.value);
-    });
-    
-    // Document click handler to close suggestion lists when clicking outside
-    document.addEventListener('click', function(e) {
-        if (e.target !== authorInput && e.target !== authorSuggestions) {
-            authorSuggestions.innerHTML = '';
-        }
-        if (e.target !== publisherInput && e.target !== publisherSuggestions) {
-            publisherSuggestions.innerHTML = '';
-        }
-    });
-    
-    // Handle image preview
-    imageUpload.addEventListener('change', function() {
-        if (this.files && this.files[0]) {
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                imagePreview.src = e.target.result;
-            };
-            reader.readAsDataURL(this.files[0]);
-        }
-    });
-    
-    // Genre selection handler
-    document.getElementById('item-genre').addEventListener('change', function() {
-        if (this.value) {
-            const genreId = this.value;
-            const genreName = this.options[this.selectedIndex].text;
-            
-            // Add to genres array if not already present
-            if (!genres.includes(genreId)) {
-                genres.push(genreId);
-                updateGenresJson();
-            }
-        }
-    });
-});
-</script>
