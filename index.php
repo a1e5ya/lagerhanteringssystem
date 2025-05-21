@@ -154,7 +154,7 @@ function renderProductCard(object $product): void {
                                 <?php echo htmlspecialchars($product->author_name ?? ''); ?>
                             </p>
                             <?php if (isset($product->price) && $product->price !== null): ?>
-                            <p class="text-success fw-bold mb-2"><?php echo number_format((float)$product->price, 2); ?> kr</p>
+                            <p class="text-success fw-bold mb-2"><?php echo number_format((float)$product->price, 2); ?> €</p>
                             <?php else: ?>
                             <p class="text-secondary fw-bold mb-2">Pris på förfrågan</p>
                             <?php endif; ?>
@@ -172,7 +172,7 @@ function renderProductCard(object $product): void {
                         <?php echo htmlspecialchars($product->author_name ?? ''); ?>
                     </p>
                     <?php if (isset($product->price) && $product->price !== null): ?>
-                    <p class="text-success fw-bold"><?php echo number_format((float)$product->price, 2); ?> kr</p>
+                    <p class="text-success fw-bold"><?php echo number_format((float)$product->price, 2); ?> €</p>
                     <?php else: ?>
                     <p class="text-secondary fw-bold">Pris på förfrågan</p>
                     <?php endif; ?>
