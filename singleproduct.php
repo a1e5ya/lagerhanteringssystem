@@ -40,40 +40,39 @@ function getProductById($productId) {
     $conditionNameField = ($language === 'fi') ? 'con.condition_fi_name' : 'con.condition_sv_name';
     
     try {
-        // SQL to fetch product with related data
         $sql = "SELECT
-                p.prod_id,
-                p.title,
-                p.status,
-                p.shelf_id,
-                p.category_id,
-                p.price,
-                p.condition_id,
-                p.notes,
-                p.internal_notes,
-                p.year,
-                p.publisher,
-                p.special_price,
-                p.rare,
-                p.recommended,
-                p.date_added,
-                p.language_id,
-                {$statusNameField} as status_name,
-                s.status_id,
-                {$categoryNameField} as category_name,
-                {$shelfNameField} as shelf_name,
-                {$conditionNameField} as condition_name,
-                con.condition_code,
-                IFNULL(lang.language_sv_name, '') as language_name
-            FROM
-                product p
-            JOIN category cat ON p.category_id = cat.category_id
-            JOIN shelf sh ON p.shelf_id = sh.shelf_id
-            JOIN `condition` con ON p.condition_id = con.condition_id
-            JOIN `status` s ON p.status = s.status_id
-            LEFT JOIN `language` lang ON p.language_id = lang.language_id
-            WHERE
-                p.prod_id = :productId";
+        p.prod_id,
+        p.title,
+        p.status,
+        p.shelf_id,
+        p.category_id,
+        p.price,
+        p.condition_id,
+        p.notes,
+        p.internal_notes,
+        p.year,
+        p.publisher,
+        p.special_price,
+        p.rare,
+        p.recommended,
+        p.date_added,
+        p.language_id,
+        {$statusNameField} as status_name,
+        s.status_id,
+        {$categoryNameField} as category_name,
+        IFNULL({$shelfNameField}, '') as shelf_name,
+        IFNULL({$conditionNameField}, '') as condition_name,
+        IFNULL(con.condition_code, '') as condition_code,
+        IFNULL(lang.language_sv_name, '') as language_name
+    FROM
+        product p
+    JOIN category cat ON p.category_id = cat.category_id
+    JOIN `status` s ON p.status = s.status_id
+    LEFT JOIN shelf sh ON p.shelf_id = sh.shelf_id
+    LEFT JOIN `condition` con ON p.condition_id = con.condition_id
+    LEFT JOIN `language` lang ON p.language_id = lang.language_id
+    WHERE
+        p.prod_id = :productId";
         
         $stmt = $pdo->prepare($sql);
         $stmt->bindParam(':productId', $productId, PDO::PARAM_INT);
