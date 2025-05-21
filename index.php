@@ -172,7 +172,6 @@ function renderProductCard(object $product): void {
                         <?php echo htmlspecialchars($product->author_name ?? ''); ?>
                     </p>
                     <?php if (isset($product->price) && $product->price !== null): ?>
-                    <p class="text-success fw-bold"><?php echo number_format((float)$product->price, 2); ?> €</p>
                     <?php else: ?>
                     <p class="text-secondary fw-bold">Pris på förfrågan</p>
                     <?php endif; ?>
@@ -382,9 +381,10 @@ include 'templates/header.php';
                 <label class="me-2"><?php echo $lang_strings['show'] ?? 'Visa'; ?></label>
                 <select class="form-select form-select-sm" id="page-size-selector" style="width: auto;">
                     <option value="10" selected>10</option>
-                    <option value="20">20</option>
+                    <option value="25">25</option>
                     <option value="50">50</option>
                     <option value="100">100</option>
+                    <option value="200">200</option> <!-- Maximum value -->
                 </select>
                 <span class="ms-2"><?php echo $lang_strings['items'] ?? 'objekt'; ?></span>
             </div>

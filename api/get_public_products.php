@@ -19,7 +19,8 @@ header('Content-Type: application/json');
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+// In get_public_products.php, modify the limit validation
+$limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 200) : 25; // Add a hard cap of 200
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'title';
 $order = isset($_GET['order']) && strtolower($_GET['order']) === 'desc' ? 'desc' : 'asc';
 $randomSamples = isset($_GET['random_samples']) && $_GET['random_samples'] === 'true';
@@ -70,7 +71,7 @@ try {
                 'itemsPerPage' => $limit, // Still pass limit to preserve page size selector behavior if any
                 'firstRecord' => $firstRecord,
                 'lastRecord' => $lastRecord,
-                'pageSizeOptions' => [10, 20, 50, 100]
+                'pageSizeOptions' => [10, 25, 50, 100, 200]
             ]
         ];
         
@@ -225,7 +226,7 @@ try {
             'itemsPerPage' => $limit,
             'firstRecord' => $firstRecord,
             'lastRecord' => $lastRecord,
-            'pageSizeOptions' => [10, 20, 50, 100]
+            'pageSizeOptions' => [10, 25, 50, 100, 200]
         ]
     ];
     

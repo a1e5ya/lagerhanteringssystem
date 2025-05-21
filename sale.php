@@ -2,12 +2,7 @@
 
 // Add the viewport meta tag to the <head> of the HTML document to ensure responsive layout on mobile devices.
 // Include necessary files
-require_once 'config/config.php';
-require_once 'includes/functions.php';
-require_once 'includes/db_functions.php';
-require_once 'includes/auth.php';
-require_once 'includes/ui.php';
-require_once 'includes/Formatter.php';
+require_once 'init.php';
 
 // Clean URL for default view (redirect to self with sale-specific parameters)
 // We are explicitly setting the initial state for the sale page
