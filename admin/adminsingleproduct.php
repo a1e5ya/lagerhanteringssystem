@@ -810,6 +810,9 @@ include '../templates/admin_header.php';
 function getProductById($productId) {
     global $pdo, $language;
     
+    // Debug
+    error_log("Attempting to get product with ID: $productId");
+    
     // Determine which field to use based on language
     $categoryNameField = ($language === 'fi') ? 'cat.category_fi_name' : 'cat.category_sv_name';
     $shelfNameField = ($language === 'fi') ? 'sh.shelf_fi_name' : 'sh.shelf_sv_name';
@@ -823,20 +826,20 @@ function getProductById($productId) {
                 {$statusNameField} as status_name,
                 s.status_id,
                 {$categoryNameField} as category_name,
-                {$shelfNameField} as shelf_name,
-                {$conditionNameField} as condition_name,
-                con.condition_code,
+                IFNULL({$shelfNameField}, '') as shelf_name,
+                IFNULL({$conditionNameField}, '') as condition_name,
+                IFNULL(con.condition_code, '') as condition_code,
                 IFNULL(lang.language_sv_name, '') as language_name
             FROM
                 product p
             JOIN
                 category cat ON p.category_id = cat.category_id
             JOIN
-                shelf sh ON p.shelf_id = sh.shelf_id
-            JOIN
-                `condition` con ON p.condition_id = con.condition_id
-            JOIN
                 `status` s ON p.status = s.status_id
+            LEFT JOIN
+                shelf sh ON p.shelf_id = sh.shelf_id
+            LEFT JOIN
+                `condition` con ON p.condition_id = con.condition_id
             LEFT JOIN
                 `language` lang ON p.language_id = lang.language_id
             WHERE
@@ -849,6 +852,9 @@ function getProductById($productId) {
         $product = $stmt->fetch(PDO::FETCH_OBJ);
         
         if ($product) {
+            // Log success
+            error_log("Successfully retrieved product: " . $product->title);
+            
             // Get authors for this product
             $authorSql = "SELECT a.author_id, a.author_name
                          FROM author a
@@ -860,7 +866,7 @@ function getProductById($productId) {
             $authorStmt->execute();
             
             $authors = $authorStmt->fetchAll(PDO::FETCH_OBJ);
-            $product->authors = $authors;
+            $product->authors = $authors ?: []; // Ensure it's at least an empty array
             
             // Create formatted author list
             $authorNames = array_map(function($author) {
@@ -881,7 +887,7 @@ function getProductById($productId) {
             $genreStmt->execute();
             
             $genres = $genreStmt->fetchAll(PDO::FETCH_OBJ);
-            $product->genres = $genres;
+            $product->genres = $genres ?: []; // Ensure it's at least an empty array
             
             // Create genre arrays for use in templates
             $product->genre_ids_array = array_map(function($genre) {
@@ -891,6 +897,9 @@ function getProductById($productId) {
             $product->genre_names_array = array_map(function($genre) {
                 return $genre->genre_name;
             }, $genres);
+        } else {
+            // Log failure
+            error_log("Product not found with ID: $productId");
         }
         
         return $product;
