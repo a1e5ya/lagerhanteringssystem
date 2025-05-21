@@ -466,28 +466,16 @@ document.addEventListener('DOMContentLoaded', function() {
     // Make table rows clickable
     makeRowsClickable();
     
-// Handle search form submission
-const searchForm = document.getElementById('search-form');
-if (searchForm) {
-    searchForm.addEventListener('submit', function(e) {
-        e.preventDefault();
-        
-        const searchInput = document.getElementById('public-search');
-        const categorySelect = document.getElementById('public-category');
-        
-        const searchTerm = searchInput ? searchInput.value.trim() : '';
-        const category = categorySelect ? categorySelect.value : 'all';
-        const limit = document.getElementById('page-size-selector').value || 10;
-        
-        // If search is empty and category is all, load random samples
-        if (searchTerm === '' && (category === 'all' || category === '')) {
-            console.log('Empty search and category - loading random samples');
-            loadProducts('', 'all', 1, limit, '', 'asc', true); // The true parameter loads random samples
-        } else {
-            loadProducts(searchTerm, category, 1, limit);
-        }
-    });
-}
+    // Handle search form submission
+    const searchForm = document.getElementById('search-form');
+    if (searchForm) {
+        searchForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            
+            // Regular search - not random samples
+            performPublicSearch(1, false);
+        });
+    }
     
     // Handle category filter change
     const categorySelect = document.getElementById('public-category');
@@ -497,12 +485,10 @@ if (searchForm) {
         });
     }
     
-    // Handle page size change
+    // Handle page size selector
     const pageSizeSelector = document.getElementById('page-size-selector');
     if (pageSizeSelector) {
-        pageSizeSelector.addEventListener('change', function() {
-            searchForm.dispatchEvent(new Event('submit'));
-        });
+        pageSizeSelector.addEventListener('change', pageSizeSelectorHandler);
     }
     
     // Handle table header sorting
@@ -525,38 +511,26 @@ if (searchForm) {
             document.getElementById('public-sort-column').value = sortColumn;
             document.getElementById('public-sort-direction').value = newSortDirection;
             
-            // Update visual indicators of sort
-            sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-            this.classList.add(`sort-${newSortDirection}`);
+            // Check if we're in random samples mode
+            const isRandomSamples = document.getElementById('pagination-links').getAttribute('data-random-samples') === 'true';
             
-            // Get current search parameters
-            const searchInput = document.getElementById('public-search');
-            const categorySelect = document.getElementById('public-category');
-            
-            const searchTerm = searchInput ? searchInput.value : '';
-            const category = categorySelect ? categorySelect.value : 'all';
-            const limit = pageSizeSelector ? pageSizeSelector.value : 10;
-            
-            // Always use normal search for sorting
-            loadProducts(searchTerm, category, 1, limit, sortColumn, newSortDirection);
+            // Use performPublicSearch with sort parameters and maintain random samples mode
+            performPublicSearch(1, isRandomSamples);
         });
     });
     
-// Load initial products
-const urlParams = new URLSearchParams(window.location.search);
-const searchTerm = urlParams.get('search') || '';
-const category = urlParams.get('category') || 'all';
-const page = parseInt(urlParams.get('page')) || 1;
-const limit = parseInt(urlParams.get('limit')) || 10;
-const sort = urlParams.get('sort') || '';
-const order = urlParams.get('order') || 'asc';
-
-if (searchTerm || category !== 'all' || page > 1) {
-    loadProducts(searchTerm, category, page, limit, sort, order);
-} else {
-    // Load random samples on initial page load
-    loadProducts('', 'all', 1, 10, '', 'asc', true);
-}
+    // Load initial products - always use random samples on initial load
+    const urlParams = new URLSearchParams(window.location.search);
+    const searchTerm = urlParams.get('search') || '';
+    const category = urlParams.get('category') || 'all';
+    
+    if (searchTerm || (category !== 'all' && category !== '')) {
+        // If search or category filter is applied, use regular search
+        performPublicSearch(1, false);
+    } else {
+        // Otherwise, use random samples
+        performPublicSearch(1, true);
+    }
 });
 
 
@@ -667,8 +641,9 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
  * Update pagination information
  * 
  * @param {object} pagination - Pagination data
+ * @param {boolean} randomSamples - Whether we're in random samples mode
  */
-function updatePaginationInfo(pagination) {
+function updatePaginationInfo(pagination, randomSamples = false) {
     // Update showing range
     const showingStart = document.getElementById('showing-start');
     if (showingStart) {
@@ -759,6 +734,13 @@ function updatePaginationInfo(pagination) {
         
         paginationLinks.innerHTML = html;
         
+        // Add random samples flag to data attributes
+        if (randomSamples) {
+            paginationLinks.setAttribute('data-random-samples', 'true');
+        } else {
+            paginationLinks.removeAttribute('data-random-samples');
+        }
+        
         // Attach event listeners to pagination links
         const links = paginationLinks.querySelectorAll('.page-link');
         links.forEach(link => {
@@ -767,21 +749,11 @@ function updatePaginationInfo(pagination) {
                 
                 const page = parseInt(this.dataset.page, 10);
                 if (!isNaN(page)) {
-                    // Get current search parameters
-                    const searchInput = document.getElementById('public-search');
-                    const categorySelect = document.getElementById('public-category');
-                    const pageSizeSelector = document.getElementById('page-size-selector');
+                    // Check if we're in random samples mode
+                    const isRandomSamples = paginationLinks.getAttribute('data-random-samples') === 'true';
                     
-                    const searchTerm = searchInput ? searchInput.value : '';
-                    const category = categorySelect ? categorySelect.value : 'all';
-                    const limit = pageSizeSelector ? pageSizeSelector.value : 10;
-                    
-                    // Get sort parameters
-                    const sortColumn = document.getElementById('public-sort-column').value;
-                    const sortDirection = document.getElementById('public-sort-direction').value;
-                    
-                    // Always use normal search for pagination
-                    loadProducts(searchTerm, category, page, limit, sortColumn, sortDirection);
+                    // Use performPublicSearch with appropriate random samples flag
+                    performPublicSearch(page, isRandomSamples);
                 }
             });
         });
@@ -796,7 +768,32 @@ function updatePaginationInfo(pagination) {
             options += `<option value="${size}" ${selected}>${size}</option>`;
         });
         pageSizeSelector.innerHTML = options;
+        
+        // Add random samples flag to data attributes
+        if (randomSamples) {
+            pageSizeSelector.setAttribute('data-random-samples', 'true');
+        } else {
+            pageSizeSelector.removeAttribute('data-random-samples');
+        }
+        
+        // Reinitialize event listener
+        pageSizeSelector.removeEventListener('change', pageSizeSelectorHandler);
+        pageSizeSelector.addEventListener('change', pageSizeSelectorHandler);
     }
+}
+
+/**
+ * Handler for page size selector changes
+ */
+function pageSizeSelectorHandler() {
+    // Get current page
+    const currentPage = 1; // Always go back to page 1 when changing page size
+    
+    // Check if we're in random samples mode
+    const isRandomSamples = this.getAttribute('data-random-samples') === 'true';
+    
+    // Use performPublicSearch with appropriate random samples flag
+    performPublicSearch(currentPage, isRandomSamples);
 }
 
 document.addEventListener('click', function(event) {

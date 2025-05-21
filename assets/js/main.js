@@ -77,24 +77,33 @@ function initializePublicSearch() {
 /**
  * Legacy function to perform public search
  * @param {number} page Page number
+ * @param {boolean} randomSamples Whether to load random samples
  */
-function performPublicSearch(page = 1) {
+function performPublicSearch(page = 1, randomSamples = false) {
     const targetElem = document.getElementById('public-inventory-body');
     const searchParams = {
-        search: document.getElementById('public-search').value,
-        category: document.getElementById('public-category').value,
+        search: document.getElementById('public-search').value || '',
+        category: document.getElementById('public-category').value || 'all',
         page: page,
-        limit: 20
+        limit: parseInt(document.getElementById('page-size-selector')?.value || 20)
     };
     
-    // Use ajaxPublicSearch instead of ajaxSearch with admin/search.php
-    ajaxPublicSearch(searchParams.search, searchParams.category, searchParams.page, searchParams.limit, targetElem, function() {
-        // Scroll to search results
-        document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
-        
-        // Update URL without reloading (for bookmark/history purposes)
-        updateUrlParams(Object.assign({}, searchParams));
-    });
+    // Use ajaxPublicSearch with random samples flag
+    ajaxPublicSearch(
+        searchParams.search, 
+        searchParams.category, 
+        searchParams.page, 
+        searchParams.limit, 
+        targetElem, 
+        function() {
+            // Scroll to search results
+            document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
+            
+            // Update URL without reloading (for bookmark/history purposes)
+            updateUrlParams(Object.assign({}, searchParams, {random_samples: randomSamples ? 'true' : null}));
+        },
+        randomSamples
+    );
 }
 
 /**
@@ -149,8 +158,9 @@ function rowClickHandler(event) {
  * @param {number} limit - Items per page
  * @param {HTMLElement} targetElem - Target element to update
  * @param {Function} successCallback - Callback on success
+ * @param {boolean} randomSamples - Whether to load random samples mode
  */
-function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, successCallback) {
+function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, successCallback, randomSamples = false) {
     // Check if we have a valid target element
     if (!targetElem) {
         console.error('Target element not specified for ajaxPublicSearch');
@@ -161,13 +171,21 @@ function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, success
     const cols = 7; // Public table has 7 columns
     targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>`;
     
+    // Safety limit - never load more than 200 products
+    const safeLimit = Math.min(limit || 20, 200);
+    
     // Build query string
     const queryParams = new URLSearchParams({
         search: searchTerm || '',
         category: category !== 'all' ? category : '',
         page: page || 1,
-        limit: limit || 20
+        limit: safeLimit
     });
+    
+    // Add random_samples parameter if specified
+    if (randomSamples) {
+        queryParams.append('random_samples', 'true');
+    }
     
     // Create AJAX request
     const xhr = new XMLHttpRequest();
@@ -191,7 +209,7 @@ function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, success
                     
                     // Update pagination info if available
                     if (response.pagination && typeof updatePaginationInfo === 'function') {
-                        updatePaginationInfo(response.pagination);
+                        updatePaginationInfo(response.pagination, randomSamples);
                     }
                     
                     // Execute callback if provided
