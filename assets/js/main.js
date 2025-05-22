@@ -161,6 +161,8 @@ function rowClickHandler(event) {
  * @param {boolean} randomSamples - Whether to load random samples mode
  */
 function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, successCallback, randomSamples = false) {
+    // Safety limit - never load more than 200 products
+    const safeLimit = Math.min(limit || 20, 200);
     // Check if we have a valid target element
     if (!targetElem) {
         console.error('Target element not specified for ajaxPublicSearch');
@@ -171,8 +173,7 @@ function ajaxPublicSearch(searchTerm, category, page, limit, targetElem, success
     const cols = 7; // Public table has 7 columns
     targetElem.innerHTML = `<tr><td colspan="${cols}" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>`;
     
-    // Safety limit - never load more than 200 products
-    const safeLimit = Math.min(limit || 20, 200);
+    
     
     // Build query string
     const queryParams = new URLSearchParams({
