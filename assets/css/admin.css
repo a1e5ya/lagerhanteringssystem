@@ -2,7 +2,7 @@
  * Admin Interface Styles
  */
 
- /* CSS for autocomplete suggestion */
+ /* autocomplete suggestion */
 #suggest-author-first,
 #suggest-author-last,
 #suggest-publisher {
@@ -15,8 +15,7 @@
     border: 1px solid #dee2e6;
     background-color: #ffffff;
 }
-#suggest-author-first:empty,
-#suggest-author-last:empty,
+
 #suggest-publisher:empty {
     display: none;
 }
@@ -34,4 +33,36 @@
 
 .nav-link {
     cursor: pointer;
+}
+
+.product-image {
+    max-height: 300px;
+    object-fit: contain;
+}
+
+.image-thumbnail {
+    width: 60px;
+    height: 60px;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 2px solid transparent;
+}
+
+.image-thumbnail:hover {
+    opacity: 0.9;
+    transform: scale(1.05);
+}
+
+.image-thumbnail img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.primary-thumbnail {
+    border: 2px solid #0d6efd;
+}
+
+.selected-author {
+    display: inline-block;
 }
