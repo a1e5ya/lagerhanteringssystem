@@ -215,30 +215,31 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
     </div>
 
     <!-- Edit Author Modal -->
-<div class="modal fade" id="editAuthorModal" tabindex="-1" aria-labelledby="editAuthorModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h5 class="modal-title" id="editAuthorModalLabel">Redigera författare</h5>
-                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Stäng"></button>
-            </div>
-            <div class="modal-body">
-                <!-- Hidden fields -->
-                <input type="hidden" id="edit-author-id">
-                
-                <!-- Author fields -->
-                <div class="mb-3">
-                    <label for="edit-author-name" class="form-label">Namn</label>
-                    <input type="text" class="form-control" id="edit-author-name" required>
+    <div class="modal fade" id="editAuthorModal" tabindex="-1" aria-labelledby="editAuthorModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="editAuthorModalLabel">Redigera författare</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Stäng"></button>
                 </div>
-            </div>
-            <div class="modal-footer">
-                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
-                <button type="button" class="btn btn-primary" id="save-author-edit">Spara ändringar</button>
+                <div class="modal-body">
+                    <!-- Hidden fields -->
+                    <input type="hidden" id="edit-author-id">
+
+                    <!-- Author fields -->
+                    <div class="mb-3">
+                        <label for="edit-author-name" class="form-label">Namn</label>
+                        <input type="text" class="form-control" id="edit-author-name" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
+                    <button type="button" class="btn btn-primary" id="save-author-edit">Spara ändringar</button>
+                </div>
             </div>
         </div>
     </div>
-</div>
 </div>
 
 <script>
@@ -284,7 +285,7 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
             $('head').append('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">');
         }
     });
-    $(document).ready(function() {
+    $(document).ready(function () {
         // Initialize the author form functionality
         initializeAddAuthor();
     });
@@ -295,7 +296,7 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
         const page = urlParams.get('page') || 1;
         const sort = urlParams.get('sort') || 'author_id';
         const order = urlParams.get('order') || 'asc';
-        
+
         // Fetch the updated table content
         $.ajax({
             url: BASE_URL + '/admin/addauthor.php',
@@ -304,17 +305,17 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                 sort: sort,
                 order: order
             },
-            success: function(response) {
+            success: function (response) {
                 // Extract just the table content
                 const $tempDiv = $('<div>').html(response);
                 const tableContent = $tempDiv.find('#authors-list').html();
-                
+
                 // Update just the table body
                 $('#authors-list').html(tableContent);
-                
+
                 console.log('Authors table refreshed');
             },
-            error: function() {
+            error: function () {
                 console.error('Failed to refresh table');
             }
         });
