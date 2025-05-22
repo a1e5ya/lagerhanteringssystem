@@ -149,51 +149,72 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             case 'edit':
                 $id = isset($_POST['id']) ? (int)$_POST['id'] : 0;
                 $type = isset($_POST['type']) ? $_POST['type'] : '';
-                $sv_name = trim($_POST['sv_name'] ?? '');
-                $fi_name = trim($_POST['fi_name'] ?? '');
-                
-                if ($id <= 0 || empty($type) || empty($sv_name) || empty($fi_name)) {
-                    $response['message'] = 'Ogiltiga värden. ID, typ, och namn krävs.';
+
+                if ($id <= 0 || empty($type)) {
+                    $response['message'] = 'Ogiltiga värden. ID och typ krävs.';
                     break;
                 }
-                
-                switch ($type) {
-                    case 'category':
-                        $stmt = $pdo->prepare("UPDATE category SET category_sv_name = ?, category_fi_name = ? WHERE category_id = ?");
-                        $result = $stmt->execute([$sv_name, $fi_name, $id]);
-                        $message = 'Kategori uppdaterad!';
+
+                // Handle author separately since it has different structure
+                if ($type === 'author') {
+                    $author_name = trim($_POST['author_name'] ?? '');
+                    
+                    if (empty($author_name)) {
+                        $response['message'] = 'Författarnamn krävs.';
                         break;
-                        
-                    case 'shelf':
-                        $stmt = $pdo->prepare("UPDATE shelf SET shelf_sv_name = ?, shelf_fi_name = ? WHERE shelf_id = ?");
-                        $result = $stmt->execute([$sv_name, $fi_name, $id]);
-                        $message = 'Hyllplats uppdaterad!';
+                    }
+                    
+                    $stmt = $pdo->prepare("UPDATE author SET author_name = ? WHERE author_id = ?");
+                    $result = $stmt->execute([$author_name, $id]);
+                    $message = 'Författare uppdaterad!';
+                } else {
+                    // Handle other types with sv/fi names
+                    $sv_name = trim($_POST['sv_name'] ?? '');
+                    $fi_name = trim($_POST['fi_name'] ?? '');
+                    
+                    if (empty($sv_name) || empty($fi_name)) {
+                        $response['message'] = 'Ogiltiga värden. Svenska och finska namn krävs.';
                         break;
-                        
-                    case 'genre':
-                        $stmt = $pdo->prepare("UPDATE genre SET genre_sv_name = ?, genre_fi_name = ? WHERE genre_id = ?");
-                        $result = $stmt->execute([$sv_name, $fi_name, $id]);
-                        $message = 'Genre uppdaterad!';
-                        break;
-                        
-                    case 'language':
-                        $stmt = $pdo->prepare("UPDATE language SET language_sv_name = ?, language_fi_name = ? WHERE language_id = ?");
-                        $result = $stmt->execute([$sv_name, $fi_name, $id]);
-                        $message = 'Språk uppdaterat!';
-                        break;
-                        
-                    case 'condition':
-                        $code = trim($_POST['code'] ?? '');
-                        $description = trim($_POST['description'] ?? '');
-                        
-                        $stmt = $pdo->prepare("UPDATE `condition` SET condition_sv_name = ?, condition_fi_name = ?, condition_code = ?, condition_description = ? WHERE condition_id = ?");
-                        $result = $stmt->execute([$sv_name, $fi_name, $code, $description, $id]);
-                        $message = 'Skick uppdaterat!';
-                        break;
-                        
-                    default:
-                        $response['message'] = 'Ogiltig typ: ' . $type;
-                        break;
+                    }
+                    
+                    switch ($type) {
+                        case 'category':
+                            $stmt = $pdo->prepare("UPDATE category SET category_sv_name = ?, category_fi_name = ? WHERE category_id = ?");
+                            $result = $stmt->execute([$sv_name, $fi_name, $id]);
+                            $message = 'Kategori uppdaterad!';
+                            break;
+                            
+                        case 'shelf':
+                            $stmt = $pdo->prepare("UPDATE shelf SET shelf_sv_name = ?, shelf_fi_name = ? WHERE shelf_id = ?");
+                            $result = $stmt->execute([$sv_name, $fi_name, $id]);
+                            $message = 'Hyllplats uppdaterad!';
+                            break;
+                            
+                        case 'genre':
+                            $stmt = $pdo->prepare("UPDATE genre SET genre_sv_name = ?, genre_fi_name = ? WHERE genre_id = ?");
+                            $result = $stmt->execute([$sv_name, $fi_name, $id]);
+                            $message = 'Genre uppdaterad!';
+                            break;
+                            
+                        case 'language':
+                            $stmt = $pdo->prepare("UPDATE language SET language_sv_name = ?, language_fi_name = ? WHERE language_id = ?");
+                            $result = $stmt->execute([$sv_name, $fi_name, $id]);
+                            $message = 'Språk uppdaterat!';
+                            break;
+                            
+                        case 'condition':
+                            $code = trim($_POST['code'] ?? '');
+                            $description = trim($_POST['description'] ?? '');
+                            
+                            $stmt = $pdo->prepare("UPDATE `condition` SET condition_sv_name = ?, condition_fi_name = ?, condition_code = ?, condition_description = ? WHERE condition_id = ?");
+                            $result = $stmt->execute([$sv_name, $fi_name, $code, $description, $id]);
+                            $message = 'Skick uppdaterat!';
+                            break;
+                            
+                        default:
+                            $response['message'] = 'Ogiltig typ: ' . $type;
+                            break;
+                    }
                 }
                 
                 if (isset($result) && $result) {
@@ -229,6 +250,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 
                 // If no dependencies, proceed with deletion
                 switch ($type) {
+                    case 'author':
+                        $stmt = $pdo->prepare("DELETE FROM author WHERE author_id = ?");
+                        $result = $stmt->execute([$id]);
+                        $message = 'Författare har tagits bort!';
+                        break;
+                        
                     case 'category':
                         $stmt = $pdo->prepare("DELETE FROM category WHERE category_id = ?");
                         $result = $stmt->execute([$id]);
@@ -322,6 +349,17 @@ function checkDependencies($type, $id, $pdo) {
     
     try {
         switch ($type) {
+            case 'author':
+                $stmt = $pdo->prepare("SELECT COUNT(*) FROM product_author WHERE author_id = ?");
+                $stmt->execute([$id]);
+                $count = $stmt->fetchColumn();
+                
+                if ($count > 0) {
+                    $result['hasDependencies'] = true;
+                    $result['message'] = 'Kan inte ta bort eftersom författaren används av ' . $count . ' produkt(er).';
+                }
+                break;
+                
             case 'category':
                 $stmt = $pdo->prepare("SELECT COUNT(*) FROM product WHERE category_id = ?");
                 $stmt->execute([$id]);
