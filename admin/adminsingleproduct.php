@@ -233,40 +233,46 @@ include '../templates/admin_header.php';
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label">Författare</label>
-                            <div class="selected-authors mb-2">
-                                <?php if (!empty($product->authors)): ?>
-                                    <?php foreach ($product->authors as $author): ?>
-                                        <div class="selected-author badge bg-secondary p-2 me-2 mb-2">
-                                            <?php echo htmlspecialchars($author->author_name); ?>
-                                        </div>
-                                    <?php endforeach; ?>
-                                <?php else: ?>
-                                    <em class="text-muted">Ingen författare vald</em>
-                                <?php endif; ?>
-                            </div>
-                            
-                            <div class="row">
-                                <div class="col-md-6 mb-2">
-                                    <select class="form-select" id="edit-authors" name="edit-authors[]" multiple>
-                                        <?php foreach ($authors as $author): ?>
-                                            <option value="<?php echo $author['author_id']; ?>" 
-                                                <?php echo in_array($author['author_id'], array_map(function($a) { return $a->author_id; }, $product->authors ?? [])) ? 'selected' : ''; ?>>
-                                                <?php echo htmlspecialchars($author['author_name']); ?>
-                                            </option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                </div>
-                                <div class="col-md-6 mb-2">
-                                    <div class="input-group">
-                                        <input type="text" class="form-control" id="new-author-name" name="new-author-name" placeholder="Lägg till ny författare">
-                                        <button type="button" class="btn btn-outline-secondary" id="add-author-btn">
-                                            <i class="fas fa-plus"></i>
-                                        </button>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
+    <label class="form-label">Författare</label>
+    <div class="selected-authors mb-2" data-authors='<?php echo json_encode(array_map(function($author) {
+        return [
+            'id' => $author->author_id,
+            'name' => $author->author_name
+        ];
+    }, $product->authors ?? [])); ?>'>
+        <?php if (!empty($product->authors)): ?>
+            <?php foreach ($product->authors as $author): ?>
+                <div class="selected-author badge bg-secondary p-2 me-2 mb-2" data-id="<?php echo $author->author_id; ?>">
+                    <?php echo htmlspecialchars($author->author_name); ?>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <em class="text-muted">Ingen författare vald</em>
+        <?php endif; ?>
+    </div>
+    
+    <div class="row">
+        <div class="col-md-12 position-relative mb-2">
+            <div class="input-group">
+                <input type="text" class="form-control" id="author-name" name="author_name" 
+                    autocomplete="off" placeholder="Ange författarens namn">
+                <button type="button" class="btn btn-outline-secondary" id="add-author-btn">
+                    <i class="fas fa-plus"></i> Lägg till
+                </button>
+            </div>
+            <div id="suggest-author" class="list-group position-absolute w-100 zindex-dropdown"></div>
+        </div>
+    </div>
+    
+    <!-- Hidden select field to store selected authors -->
+    <select class="d-none" id="edit-authors" name="edit-authors[]" multiple>
+        <?php foreach ($product->authors as $author): ?>
+            <option value="<?php echo $author->author_id; ?>" selected>
+                <?php echo htmlspecialchars($author->author_name); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
 
                         <div class="row mb-3">
                             <div class="col-md-6">
@@ -281,15 +287,47 @@ include '../templates/admin_header.php';
                                 </select>
                             </div>
                             <div class="col-md-6">
-                                <label for="edit-genres" class="form-label">Genrer</label>
-                                <select class="form-select" id="edit-genres" name="edit-genres[]" multiple>
-                                    <?php foreach ($genres as $genre): ?>
-                                    <option value="<?php echo $genre['genre_id']; ?>" <?php echo in_array($genre['genre_id'], $product->genre_ids_array ?? []) ? 'selected' : ''; ?>>
-                                        <?php echo htmlspecialchars($genre['genre_name']); ?>
-                                    </option>
-                                    <?php endforeach; ?>
-                                </select>
-                            </div>
+    <label for="item-genre" class="form-label">Genrer</label>
+    <div class="selected-genres mb-2" data-genres='<?php echo json_encode(array_map(function($genre) {
+        return [
+            'id' => $genre->genre_id,
+            'name' => $genre->genre_name
+        ];
+    }, $product->genres ?? [])); ?>'>
+        <?php if (!empty($product->genres)): ?>
+            <?php foreach ($product->genres as $genre): ?>
+                <div class="selected-genre badge bg-secondary p-2 me-2 mb-2" data-id="<?php echo $genre->genre_id; ?>">
+                    <?php echo htmlspecialchars($genre->genre_name); ?>
+                </div>
+            <?php endforeach; ?>
+        <?php else: ?>
+            <em class="text-muted">Ingen genre vald</em>
+        <?php endif; ?>
+    </div>
+    
+    <div class="input-group">
+        <select class="form-select" id="item-genre" name="genre_id">
+            <option value="">Välj Genre</option>
+            <?php foreach ($genres as $genre): ?>
+                <option value="<?php echo $genre['genre_id']; ?>">
+                    <?php echo htmlspecialchars($genre['genre_name']); ?>
+                </option>
+            <?php endforeach; ?>
+        </select>
+        <button type="button" class="btn btn-outline-secondary" id="add-genre-btn">
+            <i class="fas fa-plus"></i>
+        </button>
+    </div>
+    
+    <!-- Hidden select field to store selected genres -->
+    <select class="d-none" id="edit-genres" name="edit-genres[]" multiple>
+        <?php foreach ($product->genres as $genre): ?>
+            <option value="<?php echo $genre->genre_id; ?>" selected>
+                <?php echo htmlspecialchars($genre->genre_name); ?>
+            </option>
+        <?php endforeach; ?>
+    </select>
+</div>
                         </div>
 
                         <div class="row mb-3">
@@ -550,34 +588,6 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
     
-    // Add new author button
-    const addAuthorBtn = document.getElementById('add-author-btn');
-    if (addAuthorBtn) {
-        addAuthorBtn.addEventListener('click', function() {
-            const newAuthorInput = document.getElementById('new-author-name');
-            const authorName = newAuthorInput.value.trim();
-            
-            if (authorName) {
-                // Add to the visual list
-                const selectedAuthorsDiv = document.querySelector('.selected-authors');
-                const newAuthorBadge = document.createElement('div');
-                newAuthorBadge.className = 'selected-author badge bg-success p-2 me-2 mb-2';
-                newAuthorBadge.textContent = authorName;
-                
-                // Remove "no author" message if it exists
-                const noAuthorMessage = selectedAuthorsDiv.querySelector('em');
-                if (noAuthorMessage) {
-                    selectedAuthorsDiv.removeChild(noAuthorMessage);
-                }
-                
-                selectedAuthorsDiv.appendChild(newAuthorBadge);
-                
-                // Clear the input
-                newAuthorInput.value = '';
-            }
-        });
-    }
-    
     // Confirm deletion when delete form is submitted
     const deleteForm = document.querySelector('form[name="delete-item"]');
     if (deleteForm) {
@@ -648,70 +658,11 @@ function saveImageChanges() {
 }
 </script>
 
-<style>
-/* Custom styles for this page */
-.product-image {
-    max-height: 300px;
-    object-fit: contain;
-}
-
-.image-thumbnail {
-    width: 60px;
-    height: 60px;
-    cursor: pointer;
-    transition: all 0.2s;
-    border: 2px solid transparent;
-}
-
-.image-thumbnail:hover {
-    opacity: 0.9;
-    transform: scale(1.05);
-}
-
-.image-thumbnail img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-}
-
-.primary-thumbnail {
-    border: 2px solid #0d6efd;
-}
-
-.selected-author {
-    display: inline-block;
-}
-</style>
-
 <?php
 // Include admin footer
 include '../templates/admin_footer.php';
-?><?php
-/**
- * Edit Product
- * 
- * Contains:
- * - Product editing form
- * - Product deletion functionality
- * - Multiple author/genre support
- * - Multiple image support
- * 
- * Functions:
- * - getProductById() - Gets product data by ID
- * - editProduct() - Updates product data
- * - deleteProduct() - Removes a product
- * - uploadImage() - Handles product image uploads
- */
-
-// Include necessary files
-require_once '../config/config.php';
-require_once '../includes/functions.php';
-require_once '../includes/db_functions.php';
-require_once '../includes/auth.php';
-require_once '../includes/ui.php';
-
-// Check authentication - requires admin or editor role
-checkAuth(2); // Role 2 (Editor) or above required
+?>
+<?php
 
 // Initialize variables
 $productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
