@@ -338,7 +338,7 @@ function formatProductsData(array $products, Formatter $formatter): array {
         //     $product['image_url'] = getBasePath() . '/' . $product['image'];
         // } else {
         //     // Default image based on category (this logic is specific to index.php's featured products renderProductCard)
-        //     $defaultImage = 'assets/images/src-book.webp'; // Placeholder
+        //     $defaultImage = 'assets/images/default_antiqe_image.webp'; // Placeholder
         //     $product['image'] = $defaultImage;
         //     $product['image_url'] = asset('images', basename($defaultImage));
         // }

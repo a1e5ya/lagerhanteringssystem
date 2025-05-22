@@ -171,7 +171,7 @@ class Routes {
      * @param string $defaultImage The default image if not found
      * @return string The image URL
      */
-    public static function productImage($productId, $defaultImage = 'src-book.webp') {
+    public static function productImage($productId, $defaultImage = 'default_antiqe_image.webp') {
         $imagePath = self::path('products') . '/' . $productId . '.jpg';
         
         // Check if the file exists (for server-side usage)
@@ -271,7 +271,7 @@ function getBasePath() {
  * @param string $defaultImage The default image if not found
  * @return string The image URL
  */
-function productImage($productId, $defaultImage = 'src-book.webp') {
+function productImage($productId, $defaultImage = 'default_antiqe_image.webp') {
     return Routes::productImage($productId, $defaultImage);
 }
 

@@ -257,16 +257,16 @@ include 'templates/header.php';
                     <?php
                     // Check if product image exists, otherwise use default based on category
                     $imagePath = 'uploads/products/' . $product->prod_id . '.jpg';
-                    $defaultImage = asset('images', 'src-book.webp'); // Default image
+                    $defaultImage = asset('images', 'default_antiqe_image.webp'); // Default image
                     
                     if ($product->category_id == 5) { // CD
-                        $defaultImage = asset('images', 'src-cd.webp');
+                        $defaultImage = asset('images', 'default_antiqe_image.webp');
                     } elseif ($product->category_id == 6) { // Vinyl
-                        $defaultImage = asset('images', 'src-vinyl.webp');
+                        $defaultImage = asset('images', 'default_antiqe_image.webp');
                     } elseif ($product->category_id == 7) { // DVD
-                        $defaultImage = asset('images', 'src-dvd.webp');
+                        $defaultImage = asset('images', 'default_antiqe_image.webp');
                     } elseif ($product->category_id == 8) { // Comics/Magazines
-                        $defaultImage = asset('images', 'src-magazine.webp');
+                        $defaultImage = asset('images', 'default_antiqe_image.webp');
                     }
                     
                     $imageToShow = file_exists($imagePath) ? $imagePath : $defaultImage;
@@ -374,7 +374,7 @@ include 'templates/header.php';
                                 <?php
                                 // Check if related product image exists
                                 $relatedImagePath = 'uploads/products/' . $relatedProduct->prod_id . '.jpg';
-                                $relatedDefaultImage = asset('images', 'src-book.webp'); // Default related image
+                                $relatedDefaultImage = asset('images', 'default_antiqe_image.webp'); // Default related image
                                 $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                                 ?>
                                 <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($relatedProduct->title); ?>">
@@ -396,7 +396,7 @@ include 'templates/header.php';
                         <?php
                         // Check if related product image exists
                         $relatedImagePath = 'uploads/products/' . $relatedProduct->prod_id . '.jpg';
-                        $relatedDefaultImage = asset('images', 'src-book.webp'); // Default related image
+                        $relatedDefaultImage = asset('images', 'default_antiqe_image.webp'); // Default related image
                         $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                         ?>
                         <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($relatedProduct->title); ?>">

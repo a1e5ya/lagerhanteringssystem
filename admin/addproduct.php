@@ -343,7 +343,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <div class="card-body">
                         <h5 class="card-title mb-3">Produktbild</h5>
                         <div class="item-image-container mb-3">
-                            <img src="assets/images/src-book.webp" alt="Produktbild" class="img-fluid rounded shadow"
+                            <img src="assets/images/default_antiqe_image.webp" alt="Produktbild" class="img-fluid rounded shadow"
                                 id="new-item-image">
                         </div>
                         <div class="mb-3">

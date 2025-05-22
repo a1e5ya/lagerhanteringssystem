@@ -122,17 +122,17 @@ include '../templates/admin_header.php';
                             <?php
                             // Check if legacy product image exists
                             $legacyImagePath = '../uploads/products/' . $product->prod_id . '.jpg';
-                            $defaultImage = '../assets/images/src-book.webp'; // Default image
+                            $defaultImage = '../assets/images/default_antiqe_image.webp'; // Default image
                             
                             // Adjust default image based on category
                             if ($product->category_id == 5) { // CD
-                                $defaultImage = '../assets/images/src-cd.webp';
+                                $defaultImage = '../assets/images/default_antiqe_image.webp';
                             } elseif ($product->category_id == 6) { // Vinyl
-                                $defaultImage = '../assets/images/src-vinyl.webp';
+                                $defaultImage = '../assets/images/default_antiqe_image.webp';
                             } elseif ($product->category_id == 7) { // DVD
-                                $defaultImage = '../assets/images/src-dvd.webp';
+                                $defaultImage = '../assets/images/default_antiqe_image.webp';
                             } elseif ($product->category_id == 8) { // Comics/Magazines
-                                $defaultImage = '../assets/images/src-magazine.webp';
+                                $defaultImage = '../assets/images/default_antiqe_image.webp';
                             }
                             
                             $imageToShow = file_exists($legacyImagePath) ? $legacyImagePath : $defaultImage;
