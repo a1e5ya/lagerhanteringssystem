@@ -609,51 +609,7 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 
-/**
- * Image management functions
- */
 
-// Move image up or down in display order
-function moveImage(imageId, direction) {
-    // This would be handled via AJAX in a full implementation
-    console.log(`Move image ${imageId} ${direction}`);
-    
-    // For demo purposes, just show a message
-    alert(`Funktionen för att flytta bild ${direction === 'up' ? 'uppåt' : 'nedåt'} är inte implementerad i denna demo.`);
-}
-
-// Delete a specific image
-function deleteImage(imageId) {
-    if (confirm('Är du säker på att du vill ta bort denna bild?')) {
-        // This would be handled via AJAX in a full implementation
-        console.log(`Delete image ${imageId}`);
-        
-        // For demo purposes, just show a message
-        alert('Funktionen för att ta bort enskilda bilder är inte implementerad i denna demo.');
-    }
-}
-
-// Save image changes (order and primary image)
-function saveImageChanges() {
-    // This would be handled via AJAX in a full implementation
-    console.log('Save image changes');
-    
-    // Get the selected primary image
-    const primaryImageRadio = document.querySelector('input[name="primary_image"]:checked');
-    const primaryImageId = primaryImageRadio ? primaryImageRadio.value : null;
-    
-    console.log(`Set primary image to ${primaryImageId}`);
-    
-    // For demo purposes, just show a message
-    alert('Ändringar sparade!');
-    
-    // Close the modal
-    const modal = bootstrap.Modal.getInstance(document.getElementById('manageImagesModal'));
-    if (modal) {
-        modal.hide();
-    }
-    
-    // Refresh the page to show changes
     location.reload();
 }
 </script>
