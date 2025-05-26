@@ -37,7 +37,8 @@ function getProductById($productId) {
     $categoryNameField = ($language === 'fi') ? 'cat.category_fi_name' : 'cat.category_sv_name';
     $shelfNameField = ($language === 'fi') ? 'sh.shelf_fi_name' : 'sh.shelf_sv_name';
     $statusNameField = ($language === 'fi') ? 's.status_fi_name' : 's.status_sv_name';
-    $conditionNameField = ($language === 'fi') ? 'con.condition_fi_name' : 'con.condition_sv_name';
+    $conditionNameField = ($language === 'fi') ? 'con.condition_fi_name' : 'con.condition_sv_name' ;
+    $languageNameField = ($language === 'fi') ? 'lang.language_fi_name' : 'lang.language_sv_name';
     
     try {
         $sql = "SELECT
@@ -63,7 +64,7 @@ function getProductById($productId) {
         IFNULL({$shelfNameField}, '') as shelf_name,
         IFNULL({$conditionNameField}, '') as condition_name,
         IFNULL(con.condition_code, '') as condition_code,
-        IFNULL(lang.language_sv_name, '') as language_name
+        IFNULL({$languageNameField}, '') as language_name
     FROM
         product p
     JOIN category cat ON p.category_id = cat.category_id

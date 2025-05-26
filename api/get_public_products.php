@@ -43,7 +43,8 @@ $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
 try {
     // Check if we should return random samples (initial page load for index.php)
     if ($randomSamples && empty($search) && ($category === 'all' || empty($category)) && !$isSalePageRequest) {
-        $sampleProducts = getRandomSampleProducts($pdo, 2); // 2 samples per category
+        // FIXED: Pass language parameter to getRandomSampleProducts
+        $sampleProducts = getRandomSampleProducts($pdo, 2, $language); // 2 samples per category
 
         // Format the product data using the dedicated function
         $formattedProducts = formatProductsData($sampleProducts, $formatter);
@@ -80,7 +81,7 @@ try {
         return;
     }
 
-    // Build SQL query for public products (main query path)
+    // Build SQL query for public products (main query path) - ALREADY CORRECT
     $sql = "SELECT 
                 p.prod_id, 
                 p.title, 
@@ -246,12 +247,14 @@ try {
 
 /**
  * Get random sample products from each category
+ * FIXED: Added language parameter for proper multilingual support
  *
  * @param PDO $pdo Database connection
  * @param int $samplesPerCategory Number of samples to get from each category
+ * @param string $language Current language ('sv' or 'fi')
  * @return array Sample products
  */
-function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2): array {
+function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $language = 'sv'): array {
     try {
         // Get all categories first
         $stmtCategories = $pdo->query("SELECT category_id FROM category");
@@ -272,9 +275,9 @@ function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2): array {
                         p.recommended,
                         p.date_added,
                         GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
-                        c.category_sv_name as category_name,
-                        co.condition_sv_name as condition_name,
-                        GROUP_CONCAT(DISTINCT g.genre_sv_name SEPARATOR ', ') AS genre_names
+                        c.category_" . ($language === 'fi' ? 'fi' : 'sv') . "_name as category_name,
+                        co.condition_" . ($language === 'fi' ? 'fi' : 'sv') . "_name as condition_name,
+                        GROUP_CONCAT(DISTINCT g.genre_" . ($language === 'fi' ? 'fi' : 'sv') . "_name SEPARATOR ', ') AS genre_names
                     FROM product p
                     LEFT JOIN product_author pa ON p.prod_id = pa.product_id
                     LEFT JOIN author a ON pa.author_id = a.author_id

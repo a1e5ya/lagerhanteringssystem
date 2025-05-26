@@ -31,11 +31,11 @@ $lang_strings = array(
     'all_rights_reserved' => 'Kaikki oikeudet pidätetään.',
 
     // General 
-    'welcome' => 'Tervetuloa Karis Antikvariaattiin',
+    'welcome' => 'Tervetuloa Karjaan Antikvariaattiin',
     'subtitle' => 'Paikallinen antikvariaattisi, jossa on laaja valikoima kirjoja, musiikkia ja keräilyesineitä',
     'browse_button' => 'Selaa valikoimaamme',
     'about_heading' => 'Liikkeestämme',
-    'about_p1' => 'Karis Antikvariaatilla on erittäin laaja valikoima kirjoja, mutta olemme erikoistuneet suomenruotsalaisiin kirjailijoihin, paikallishistoriaan ja merenkulkuun.',
+    'about_p1' => 'Karjaan Antikvariaatilla on erittäin laaja valikoima kirjoja, mutta olemme erikoistuneet suomenruotsalaisiin kirjailijoihin, paikallishistoriaan ja merenkulkuun.',
     'about_p2' => 'Meillä on lisäksi lasten- ja nuortenkirjoja, sarjakuvalehtiä, sarjakuva-albumeja, DVD-elokuvia, CD- ja vinyylilevyjä sekä keräilyesineitä.',
     'about_p3' => 'Tervetuloa tutustumaan ainutlaatuiseen valikoimaamme!',
     'previous' => 'Edellinen',
@@ -47,21 +47,34 @@ $lang_strings = array(
     'all_categories' => 'Kaikki kategoriat',
     'search_button' => 'Etsi',
 
+    // Sale page specific
+    'sales_heading' => 'Alennustuotteet',
+    'search_sale_placeholder' => 'Etsi alennustuotteista',
+
     // Table headers
     'title' => 'Nimike',
     'author_artist' => 'Kirjailija/Artisti',
     'category' => 'Kategoria',
-    'genre' => 'Genre',
+    'genre' => 'Laji',
     'condition' => 'Kunto',
     'price' => 'Hinta (€)',
     'view_details' => 'Näytä tiedot',
+
+    // Pagination
+    'show' => 'Näytä',
+    'items' => 'kohdetta',
+    'showing' => 'Näytetään',
+    'to' => '-',
+    'of' => '/',
 
     // No results messages
     'no_results' => 'Ei hakua vastaavia tuotteita.',
     'use_search' => 'Käytä yllä olevaa hakukenttää etsiäksesi tuotteita.',
 
-    // Featured section
+    // Featured sections
     'on_sale' => 'Alennuksessa',
+    'go_sale' => 'Alennukset - Klikkaa tästä!',
+    'on_rec' => 'Suositellut',
 
     // Footer
     'contact_us' => 'Ota yhteyttä',

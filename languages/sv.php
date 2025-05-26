@@ -46,6 +46,10 @@ $lang_strings = array(
     'all_categories' => 'Alla kategorier',
     'search_button' => 'Sök',
 
+    // Sale page specific
+    'sales_heading' => 'Produkter på Rea',
+    'search_sale_placeholder' => 'Sök bland reaprodukter',
+
     // Table headers
     'title' => 'Titel',
     'author_artist' => 'Författare/Artist',
@@ -55,12 +59,21 @@ $lang_strings = array(
     'price' => 'Pris (€)',
     'view_details' => 'Visa detaljer',
 
+    // Pagination
+    'show' => 'Visa',
+    'items' => 'objekt',
+    'showing' => 'Visar',
+    'to' => 'till',
+    'of' => 'av',
+
     // No results messages
     'no_results' => 'Inga produkter hittades som matchar din sökning.',
     'use_search' => 'Använd sökfältet ovan för att söka efter produkter.',
 
-    // Featured section
+    // Featured sections
     'on_sale' => 'På rea',
+    'go_sale' => 'Rea - Klicka här!',
+    'on_rec' => 'Rekommenderat',
 
     // Footer
     'contact_us' => 'Kontakta oss',
