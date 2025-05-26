@@ -1,12 +1,12 @@
 <?php
 /**
- * Export functionality for product lists
+ * Export functionality for product lists - UPDATED
  * 
  * Exports data in various formats (CSV, etc.)
+ * Now supports "select all pages" functionality and additional filters
  */
 
 require_once '../init.php';
-
 
 // Check if user is authenticated and has admin or editor permissions
 // Only Admin (1) or Editor (2) roles can access this page
@@ -25,11 +25,23 @@ foreach ($_GET as $key => $value) {
     }
 }
 
+// Handle "select all with filters" scenario
+$selectAllWithFilters = isset($_GET['select_all_with_filters']) && $_GET['select_all_with_filters'] === 'true';
+
 // Handle selected items if provided
-if (isset($_GET['selected_items'])) {
+if (isset($_GET['selected_items']) && !$selectAllWithFilters) {
     $selectedItems = json_decode($_GET['selected_items'], true);
     if (is_array($selectedItems) && !empty($selectedItems)) {
         $filters['selected_items'] = $selectedItems;
+    }
+}
+
+// Handle filters from "select all pages" scenario
+if ($selectAllWithFilters && isset($_GET['filters'])) {
+    $filtersFromSelectAll = json_decode($_GET['filters'], true);
+    if (is_array($filtersFromSelectAll)) {
+        $filters = array_merge($filters, $filtersFromSelectAll);
+        $filters['select_all_with_filters'] = true;
     }
 }
 
@@ -70,9 +82,8 @@ function exportCSV($filters, $filename) {
     // Add UTF-8 BOM for Excel compatibility
     fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
     
-    // Define CSV headers
+    // Define CSV headers - Updated to exclude ID and include new columns
     $headers = [
-        'ID', 
         'Titel', 
         'Författare', 
         'Kategori', 
@@ -83,8 +94,8 @@ function exportCSV($filters, $filename) {
         'Språk',
         'År',
         'Förlag',
-        'Rare',
-        'Special pris',
+        'Märkning',
+        'Bilder',
         'Tillagd datum',
         'Anteckningar'
     ];
@@ -101,11 +112,20 @@ function exportCSV($filters, $filename) {
         $dateAdded = date('Y-m-d', strtotime($product['date_added']));
         
         // Format price
-        $price = number_format($product['price'], 2, '.', '');
+        $price = $product['price'] ? number_format($product['price'], 2, '.', '') : '';
+        
+        // Format marking/tags
+        $markings = [];
+        if ($product['special_price']) $markings[] = 'Rea';
+        if ($product['rare']) $markings[] = 'Sällsynt';
+        if ($product['recommended']) $markings[] = 'Rekommenderas';
+        $markingString = implode(', ', $markings);
+        
+        // Format images - all images comma-separated
+        $imageString = $product['image_paths'] ?? '';
         
         // Create row
         $row = [
-            $product['prod_id'],
             $product['title'],
             $product['author_name'],
             $product['category_name'],
@@ -116,8 +136,8 @@ function exportCSV($filters, $filename) {
             $product['language'],
             $product['year'],
             $product['publisher'],
-            $product['rare'] ? 'Ja' : 'Nej',
-            $product['special_price'] ? 'Ja' : 'Nej',
+            $markingString,
+            $imageString,
             $dateAdded,
             $product['notes']
         ];
@@ -131,7 +151,7 @@ function exportCSV($filters, $filename) {
 }
 
 /**
- * Get products for export based on filters
+ * Get products for export based on filters - UPDATED
  * 
  * @param array $filters Filters to apply
  * @return array Products data
@@ -139,36 +159,39 @@ function exportCSV($filters, $filename) {
 function getProductsForExport($filters) {
     global $pdo;
     
-    // Build SQL query with appropriate filters
+    // Build SQL query with appropriate filters - updated to include new fields and exclude ID
     $sql = "SELECT
-                p.prod_id,
                 p.title,
                 p.status,
-                s.status_name,
+                p.special_price,
+                p.rare,
+                p.recommended,
+                s.status_sv_name as status_name,
                 p.shelf_id,
-                sh.shelf_name,
-                GROUP_CONCAT(DISTINCT CONCAT(a.first_name, ' ', a.last_name) SEPARATOR ', ') AS author_name,
-                cat.category_name,
+                sh.shelf_sv_name as shelf_name,
+                GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
+                c.category_sv_name as category_name,
                 p.category_id,
-                GROUP_CONCAT(DISTINCT g.genre_name SEPARATOR ', ') AS genre_names,
-                con.condition_name,
+                GROUP_CONCAT(DISTINCT g.genre_sv_name SEPARATOR ', ') AS genre_names,
+                con.condition_sv_name as condition_name,
                 p.price,
-                p.language,
+                IFNULL(l.language_sv_name, '') as language,
                 p.year,
                 p.publisher,
-                p.rare,
-                p.special_price,
                 p.date_added,
-                p.notes
+                p.notes,
+                GROUP_CONCAT(DISTINCT img.image_path SEPARATOR ', ') AS image_paths
             FROM product p
             LEFT JOIN product_author pa ON p.prod_id = pa.product_id
             LEFT JOIN author a ON pa.author_id = a.author_id
-            JOIN category cat ON p.category_id = cat.category_id
+            JOIN category c ON p.category_id = c.category_id
             LEFT JOIN shelf sh ON p.shelf_id = sh.shelf_id
             LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
             LEFT JOIN genre g ON pg.genre_id = g.genre_id
+            LEFT JOIN image img ON p.prod_id = img.prod_id
             JOIN `condition` con ON p.condition_id = con.condition_id
             JOIN `status` s ON p.status = s.status_id
+            LEFT JOIN `language` l ON p.language_id = l.language_id
             WHERE 1=1";
     
     $params = [];
@@ -181,6 +204,18 @@ function getProductsForExport($filters) {
     } else {
         // Apply other filters only if not filtering by selected items
         
+        // Default to available products only if no status filter is specified
+        if (!isset($filters['status']) || $filters['status'] === '') {
+            $sql .= " AND p.status = 1";
+        } elseif ($filters['status'] === 'all') {
+            // Show all statuses - no additional filter
+        } elseif ($filters['status'] === 'Såld') {
+            $sql .= " AND p.status = 2";
+        } else {
+            $sql .= " AND s.status_sv_name = ?";
+            $params[] = $filters['status'];
+        }
+        
         // Category filter
         if (!empty($filters['category'])) {
             $sql .= " AND p.category_id = ?";
@@ -189,48 +224,42 @@ function getProductsForExport($filters) {
         
         // Genre filter
         if (!empty($filters['genre'])) {
-            $sql .= " AND g.genre_name = ?";
+            $sql .= " AND g.genre_sv_name = ?";
             $params[] = $filters['genre'];
         }
         
         // Shelf filter
         if (!empty($filters['shelf'])) {
-            $sql .= " AND sh.shelf_name = ?";
+            $sql .= " AND sh.shelf_sv_name = ?";
             $params[] = $filters['shelf'];
         }
         
         // Condition filter
         if (!empty($filters['condition'])) {
-            $sql .= " AND con.condition_name = ?";
+            $sql .= " AND con.condition_sv_name = ?";
             $params[] = $filters['condition'];
         }
         
-        // Status filter
-        if (!empty($filters['status']) && $filters['status'] !== 'all') {
-            $sql .= " AND s.status_name = ?";
-            $params[] = $filters['status'];
-        }
-        
         // Price range
-        if (!empty($filters['min_price'])) {
+        if (!empty($filters['price_min']) && floatval($filters['price_min']) > 0) {
             $sql .= " AND p.price >= ?";
-            $params[] = $filters['min_price'];
+            $params[] = floatval($filters['price_min']);
         }
         
-        if (!empty($filters['max_price'])) {
+        if (!empty($filters['price_max']) && floatval($filters['price_max']) > 0) {
             $sql .= " AND p.price <= ?";
-            $params[] = $filters['max_price'];
+            $params[] = floatval($filters['price_max']);
         }
         
         // Date range
-        if (!empty($filters['min_date'])) {
-            $sql .= " AND p.date_added >= ?";
-            $params[] = $filters['min_date'];
+        if (!empty($filters['date_min'])) {
+            $sql .= " AND DATE(p.date_added) >= ?";
+            $params[] = $filters['date_min'];
         }
         
-        if (!empty($filters['max_date'])) {
-            $sql .= " AND p.date_added <= ?";
-            $params[] = $filters['max_date'];
+        if (!empty($filters['date_max'])) {
+            $sql .= " AND DATE(p.date_added) <= ?";
+            $params[] = $filters['date_max'];
         }
         
         // Year threshold filter
@@ -241,8 +270,9 @@ function getProductsForExport($filters) {
         
         // Search filter
         if (!empty($filters['search'])) {
-            $sql .= " AND (p.title LIKE ? OR a.first_name LIKE ? OR a.last_name LIKE ? OR p.notes LIKE ?)";
+            $sql .= " AND (p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.internal_notes LIKE ? OR p.publisher LIKE ?)";
             $searchTerm = "%{$filters['search']}%";
+            $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -257,13 +287,26 @@ function getProductsForExport($filters) {
         if (isset($filters['poor_condition']) && $filters['poor_condition']) {
             $sql .= " AND p.condition_id = 4"; // Assuming 4 is 'Acceptabelt' (lowest condition)
         }
+        
+        // NEW: Special marking filters
+        if (isset($filters['special_price']) && intval($filters['special_price']) > 0) {
+            $sql .= " AND p.special_price = 1";
+        }
+        
+        if (isset($filters['rare']) && intval($filters['rare']) > 0) {
+            $sql .= " AND p.rare = 1";
+        }
+        
+        if (isset($filters['recommended']) && intval($filters['recommended']) > 0) {
+            $sql .= " AND p.recommended = 1";
+        }
     }
     
     // Group by to avoid duplicates due to JOIN with authors and genres
     $sql .= " GROUP BY p.prod_id";
     
-    // Order by for consistent export ordering
-    $sql .= " ORDER BY p.category_id, p.shelf_id, p.title";
+    // Order by for consistent export ordering - changed from category/shelf to title
+    $sql .= " ORDER BY p.title ASC";
     
     try {
         // Prepare and execute the query
