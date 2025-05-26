@@ -47,13 +47,13 @@ $app_config = [
     'admin_email' => 'admin@example.com',
     'pagination'  => [
         'default_limit' => 10,
-        'max_limit'     => 100,
-        'limit_options' => [10, 20, 50, 100]
+        'max_limit'     => 200,
+        'limit_options' => [10, 20, 50, 100, 200]
     ],
     'uploads' => [
         'max_size' => 5242880, // 5MB
         'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-        'product_images_path' => 'uploads/products'
+        'product_images_path' => 'assets/images'
     ],
     'languages' => [
         'default' => 'sv',

@@ -1,33 +1,26 @@
 <?php
 /**
  * Add Product
- * 
+ *
  * This file contains the form and processing logic for adding new products to the inventory.
- * 
+ *
  * @package Bookstore
  * @author System Administrator
  * @version 1.1
  */
 
-require_once '../config/config.php';
+// init.php already includes config.php and ImageProcessor.php
+require_once '../init.php'; // Correct path
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-/**
- * Safely echoes content with proper HTML escaping and NULL handling
- * 
- * @param mixed $content The content to echo
- * @return void
- */
-function safeEcho($content) {
-    echo htmlspecialchars($content ?? '', ENT_QUOTES, 'UTF-8');
-}
+
 
 /**
  * Creates a new product with related data
- * 
+ *
  * @param array $data Product data array
  * @param PDO $pdo Database connection
  * @return int|bool The product ID on success, false on failure
@@ -48,12 +41,12 @@ function createProduct($data, $pdo) {
         $language_id = !empty($data['language_id']) ? $data['language_id'] : null;
         $year = !empty($data['year']) ? $data['year'] : null;
         $publisher = !empty($data['publisher']) ? $data['publisher'] : '';
-        
+
         // Only set to 1 if explicitly checked
         $special_price = isset($data['special_price']) && $data['special_price'] == 1 ? 1 : 0;
         $rare = isset($data['rare']) && $data['rare'] == 1 ? 1 : 0;
         $recommended = isset($data['recommended']) && $data['recommended'] == 1 ? 1 : 0;
-        
+
         // Debug log
         error_log("Creating product with data: " . print_r([
             'title' => $data['title'],
@@ -61,37 +54,37 @@ function createProduct($data, $pdo) {
             'rare' => $rare,
             'recommended' => $recommended
         ], true));
-        
+
         $stmt = $pdo->prepare("INSERT INTO product (
-            title, 
-            status, 
-            shelf_id, 
-            category_id, 
-            price, 
-            condition_id, 
-            notes, 
-            internal_notes, 
-            language_id, 
-            year, 
-            publisher, 
-            special_price, 
+            title,
+            status,
+            shelf_id,
+            category_id,
+            price,
+            condition_id,
+            notes,
+            internal_notes,
+            language_id,
+            year,
+            publisher,
+            special_price,
             rare,
             recommended
         ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)");
 
         $stmt->execute([
-            $data['title'], 
-            $status_id, 
-            $shelf_id, 
-            $category_id, 
-            $price, 
-            $condition_id, 
-            $notes, 
-            $internal_notes, 
-            $language_id, 
-            $year, 
-            $publisher, 
-            $special_price, 
+            $data['title'],
+            $status_id,
+            $shelf_id,
+            $category_id,
+            $price,
+            $condition_id,
+            $notes,
+            $internal_notes,
+            $language_id,
+            $year,
+            $publisher,
+            $special_price,
             $rare,
             $recommended
         ]);
@@ -152,7 +145,7 @@ function createProduct($data, $pdo) {
 
 /**
  * Renders input alternatives for select fields
- * 
+ *
  * @param PDO $pdo Database connection
  * @param string $table Table name
  * @param string $id_field ID field name
@@ -165,11 +158,11 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
     try {
         // Construct the language-specific field name
         $localized_name_field = $name_field . '_' . $locale;
-        
+
         // Check if the localized column exists
         $stmt = $pdo->query("SHOW COLUMNS FROM `$table` LIKE '$localized_name_field'");
         $column_exists = $stmt->rowCount() > 0;
-        
+
         if ($column_exists) {
             // Use language-specific column
             $sql = "SELECT $id_field, {$localized_name_field} AS display_name FROM `$table`";
@@ -181,11 +174,11 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
             } else {
                 // If neither exists, try a more flexible approach
                 error_log("Could not find column $localized_name_field or $name_field in table $table");
-                
+
                 // Get the first column that might be a name column
                 $stmt = $pdo->query("SHOW COLUMNS FROM `$table` WHERE Field LIKE '%name%' AND Field != '$id_field'");
                 $name_column = $stmt->fetch(PDO::FETCH_ASSOC);
-                
+
                 if ($name_column) {
                     $found_name_field = $name_column['Field'];
                     $sql = "SELECT $id_field, $found_name_field AS display_name FROM `$table`";
@@ -195,10 +188,10 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
                 }
             }
         }
-        
+
         // For DEBUGGING
         error_log("SQL for $table: $sql");
-        
+
         $stmt = $pdo->query($sql);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
             $id = $row[$id_field];
@@ -221,7 +214,7 @@ $locale = $_SESSION['locale'] ?? 'en';
 
 function getAvailableStatusId($pdo) {
     try {
-        $sql = "SELECT status_id FROM status WHERE status_sv_name = 'Tillgänglig' OR status_en_name = 'Available'";
+        $sql = "SELECT status_id FROM status WHERE status_sv_name = 'Tillgänglig' OR status_fi_name = 'Saatavilla'";
         $stmt = $pdo->query($sql);
         return $stmt->fetchColumn() ?: 1; // Default to 1 if not found
     } catch (Exception $e) {
@@ -231,6 +224,11 @@ function getAvailableStatusId($pdo) {
 }
 
 $availableStatusId = getAvailableStatusId($pdo);
+
+// Initialize ImageProcessor (needs the global $pdo and $app_config from init.php)
+global $pdo, $app_config; // Ensure these are accessible if not already by default
+$uploadDir = $app_config['product_images_path'];
+$imageProcessor = new ImageProcessor($pdo, $app_config);
 
 // Only process POST data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
@@ -243,7 +241,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         header('Content-Type: application/json');
     }
 
-    
     // Get form data
     $formData = [
         'title' => $_POST['title'] ?? null,
@@ -292,10 +289,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       if ($formData['title'] && $formData['category_id']) {
         try {
             // Create the product
-            $result = createProduct($formData, $pdo);
-            
-            if ($result) {
+            $product_id = createProduct($formData, $pdo); // Get the product ID
+
+            if ($product_id) {
+                // Process image uploads after product creation
+                // $_FILES['item_images'] will contain an array of files due to name="item_images[]"
+                $imageUploadResult = $imageProcessor->uploadProductImages($_FILES['item_images'], $product_id);
+
                 $successMsg = "Product added successfully!";
+                if (!$imageUploadResult['success']) {
+                    $successMsg .= " However, " . $imageUploadResult['message']; // Append image upload errors
+                    if (!empty($imageUploadResult['errors'])) {
+                        $successMsg .= " Details: " . implode(", ", $imageUploadResult['errors']); // Show detailed image errors
+                    }
+                }
+
                 if ($isAjax) {
                     echo json_encode(['success' => true, 'message' => $successMsg]);
                     exit();
@@ -329,32 +337,60 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             exit();
         }
     }
-    
+
 }
 ?>
 
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Add Product</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+    <style>
+        .zindex-dropdown {
+            z-index: 1000; /* Ensure dropdown is above other elements */
+        }
+        /* Style for image preview container for multiple images */
+        .item-image-previews {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px; /* Space between images */
+            margin-bottom: 15px;
+        }
+        .item-image-previews img {
+            max-width: 100px; /* Smaller thumbnails */
+            height: 100px;
+            object-fit: cover;
+            border: 1px solid #ddd;
+            padding: 2px;
+        }
+        .item-image-previews img.default-preview {
+            max-width: 100%; /* Default image can be larger */
+            height: auto;
+        }
+    </style>
+</head>
+<body>
 
 <div class="tab-pane fade show active" id="add">
     <form id="add-item-form" method="POST" action="" enctype="multipart/form-data">
         <div class="row">
-            <!-- Image upload -->
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title mb-3">Produktbild</h5>
-                        <div class="item-image-container mb-3">
-                            <img src="assets/images/default_antiqe_image.webp" alt="Produktbild" class="img-fluid rounded shadow"
-                                id="new-item-image">
+                        <h5 class="card-title mb-3">Produktbilder</h5> <div class="item-image-previews mb-3" id="item-image-previews">
+                            <img src="assets/images/default_antiqe_image.webp" alt="Default Produktbild" class="img-fluid rounded shadow default-preview"
+                                id="default-image-preview">
                         </div>
                         <div class="mb-3">
-                            <label for="item-image-upload" class="form-label">Ladda upp bild</label>
-                            <input class="form-control" type="file" id="item-image-upload" name="item-image">
+                            <label for="item-image-upload" class="form-label">Ladda upp bilder</label> <input class="form-control" type="file" id="item-image-upload" name="item_images[]" multiple accept="image/*"> <small class="form-text text-muted">Välj en eller flera bilder (Max <?php echo ($app_config['uploads']['max_size'] / (1024 * 1024)); ?>MB per bild, <?php echo strtoupper(implode(', ', $app_config['uploads']['allowed_extensions'])); ?>)</small>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <!-- Product details -->
             <div class="col-md-8">
                 <div class="card">
                     <div class="card-body">
@@ -368,7 +404,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="col-md-4">
                             <label for="item-status" class="form-label">Status</label>
                             <select class="form-select" id="item-status" name="status_id">
-                            <?php 
+                            <?php
                                 // Get available status ID
                                 $availableId = 1;
                                 try {
@@ -377,9 +413,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                         $availableId = $result['status_id'];
                                     }
                                 } catch(Exception $e) {
+                                    error_log("Error getting available status ID: " . $e->getMessage());
                                 }
                                 // Render options with available status pre-selected
-                                renderInputAlternatives($pdo, 'status', 'status_id', 'status', $availableId, $locale); 
+                                renderInputAlternatives($pdo, 'status', 'status_id', 'status', $availableId, $locale);
                                 ?>
                             </select>
                             </div>
@@ -390,11 +427,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <div class="selected-authors mb-2">
                                 <em class="text-muted">Ingen författare vald</em>
                             </div>
-                            
+
                             <div class="row">
                                 <div class="col-md-12 position-relative mb-2">
                                     <div class="input-group">
-                                        <input type="text" class="form-control" id="author-name" name="author_name" 
+                                        <input type="text" class="form-control" id="author-name" name="author_name"
                                             autocomplete="off" placeholder="Ange författarens namn">
                                         <button type="button" class="btn btn-outline-secondary" id="add-author-btn">
                                             <i class="fas fa-plus"></i> Lägg till
@@ -413,7 +450,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                                     <?php renderInputAlternatives($pdo, 'category', 'category_id', 'category', '', $locale); ?>
                                 </select>
                             </div>
-                            
+
                             <div class="col-md-6">
                                 <label for="item-genre" class="form-label">Genre</label>
                                 <select class="form-select" id="item-genre" name="genre_id">
@@ -510,7 +547,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             <button type="submit" class="btn btn-primary">Add Product</button>
                         </div>
 
-                        <!-- Hidden fields for JSON data -->
                         <input type="hidden" id="authors-json" name="authors_json" value="">
                         <input type="hidden" id="genres-json" name="genres_json" value="">
                     </div>
@@ -519,3 +555,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         </div>
     </form>
 </div>
+
+<script src="assets/js/image-handler.js"></script>
+
+</body>
+</html>

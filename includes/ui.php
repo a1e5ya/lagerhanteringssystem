@@ -16,14 +16,14 @@
  * @return array The language strings
  */
 function loadLanguageStrings($language) {
-    $langFile = 'languages/' . $language . '.php';
+    $langFile = __DIR__ . '/../languages/' . $language . '.php'; // <--- CHANGE THIS LINE
     
     if (file_exists($langFile)) {
         include $langFile;
         return $lang_strings;
     } else {
         // Fallback to Swedish if language file doesn't exist
-        include 'languages/sv.php';
+        include __DIR__ . '/../languages/sv.php'; // <--- CHANGE THIS LINE
         return $lang_strings;
     }
 }
