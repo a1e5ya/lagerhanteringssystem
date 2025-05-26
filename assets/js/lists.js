@@ -1,370 +1,513 @@
 /**
- * lists.js - JavaScript functionality for the Lists tab
- * Contains filtering, batch operations, and AJAX functionality
+ * FINAL OPTIMIZED lists.js - Production Ready
+ * - No console logs (fast performance)
+ * - Advanced filters collapsed by default
+ * - Filters only apply on button click
+ * - Batch operations don't clear filters
  */
 
-// Initialize global selectedItems array
+// Global variables
 window.selectedItems = [];
+window.currentFilters = {};
 
 $(document).ready(function() {
-    // Initialize variables for current state
-    let currentFilters = {
-        page: 1,
-        limit: 15
-    };
-    
-    // Make this function globally accessible
-    window.loadProducts = loadProducts;
+    initializeListsPage();
+});
 
-    // Function to load products with filters
-    function loadProducts(filters = {}) {
-        // Merge with current filters
-        currentFilters = {...currentFilters, ...filters};
-        
-        // Show loading indicator
-        const listsBody = document.querySelector('#lists-body');
-        if (!listsBody) {
-            return;
-        }
-        
-        listsBody.innerHTML = 
-            '<tr><td colspan="10" class="text-center"><div class="spinner-border text-primary" role="status">' +
-            '<span class="visually-hidden">Loading...</span></div></td></tr>';
-        
-        // Perform AJAX request
-        $.ajax({
-url: BASE_URL + '/admin/list_ajax_handler.php',
-            type: 'POST',
-            data: {
-                action: 'get_filtered_products',
-                ...currentFilters
-            },
-            dataType: 'json',
-            success: function(data) {
-                if (data.success) {
-                    // Update table body
-                    $('#lists-body').html(data.html);
-                    
-                    // Update pagination info
-                    $('#current-page').text(data.pagination.currentPage);
-                    $('#total-pages').text(data.pagination.totalPages);
-                    $('#total-count').text(data.pagination.totalResults);
-                    
-                    // Enable/disable pagination buttons
-                    $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-                    $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-                    
-                    // Reset selected items
-                    window.selectedItems = [];
-                    updateSelectedCount();
-                    updateBatchButtons();
-                    
-                    // Reset select all checkbox
-                    $('#select-all').prop('checked', false);
-                } else {
-                    // Show error
-                    $('#lists-body').html('<tr><td colspan="10" class="text-center text-danger">' + (data.message || 'Ett fel inträffade') + '</td></tr>');
-                }
-            },
-            error: function(xhr, status, error) {
-                $('#lists-body').html('<tr><td colspan="10" class="text-center text-danger">Ett fel inträffade. Försök igen senare.</td></tr>');
-            }
-        });
+$(document).on('DOMContentLoaded', function() {
+    if ($('#lists').length > 0) {
+        initializeListsPage();
+    }
+});
+
+$(document).on('shown.bs.tab', 'a[data-tab="lists"]', function() {
+    setTimeout(() => {
+        initializeListsPage();
+    }, 100);
+});
+
+function initializeListsPage() {
+    if ($('#list-status').length === 0) {
+        setTimeout(initializeListsPage, 200);
+        return;
     }
     
-    // Helper function to reset filter form fields
-    function resetFilterFields() {
-        $('#list-categories').val('');
-        $('#list-genre').val('');
-        $('#list-condition').val('');
-        $('#list-status').val('all');
+    // Set default status
+    $('#list-status').val('');
+    
+    // FIXED: Collapse advanced filters by default
+    $('#filter-body').hide();
+    $('.toggle-icon').addClass('rotated');
+    
+    attachListsEventHandlers();
+    loadListsProducts();
+    
+    $('#page-size-selector').off('change').on('change', function() {
+        const pageSize = $(this).val();
+        loadListsProducts('', '', 1, pageSize);
+    });
+}
+
+function loadListsProducts(searchTerm = '', category = '', page = 1, limit = 20) {
+    $('#inventory-body').html(`
+        <tr>
+            <td colspan="10" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Laddar...</span>
+                </div>
+            </td>
+        </tr>
+    `);
+    
+    const genre = $('#list-genre').val() || '';
+    const condition = $('#list-condition').val() || '';
+    const status = $('#list-status').val() || '';
+    const shelf = $('#shelf-filter').val() || $('#shelf-selector').val() || '';
+    const priceMin = $('#price-min').val() || '';
+    const priceMax = $('#price-max').val() || '';
+    const dateMin = $('#date-min').val() || '';
+    const dateMax = $('#date-max').val() || '';
+    const yearThreshold = $('#year-threshold').val() || '';
+    
+    window.currentFilters = {
+        search: searchTerm,
+        category: category,
+        genre: genre,
+        condition: condition,
+        status: status,
+        shelf: shelf,
+        price_min: priceMin,
+        price_max: priceMax,
+        date_min: dateMin,
+        date_max: dateMax,
+        year_threshold: yearThreshold,
+        page: page,
+        limit: limit
+    };
+    
+    let requestData = {
+        search: searchTerm,
+        category: category !== '' ? category : '',
+        genre: genre,
+        condition: condition, 
+        status: status === '' ? '' : (status === 'all' ? 'all' : status),
+        shelf: shelf,
+        price_min: priceMin,
+        price_max: priceMax,
+        date_min: dateMin,
+        date_max: dateMax,
+        page: page,
+        limit: limit,
+        show_all_statuses: status === 'all',
+        view_type: 'lists'
+    };
+    
+    if (yearThreshold) {
+        requestData.year_threshold = yearThreshold;
+    }
+    
+    $.ajax({
+        url: BASE_URL + '/admin/get_products.php',
+        type: 'GET',
+        data: requestData,
+        dataType: 'json',
+        success: function(data) {
+            if (data.success) {
+                if (data.items && data.items.length > 0) {
+                    renderListsProducts(data.items);
+                } else {
+                    $('#inventory-body').html('<tr><td colspan="10" class="text-center">Inga produkter hittades</td></tr>');
+                    updateSelectedCount();
+                    updateBatchButtons();
+                    $('#select-all').prop('checked', false);
+                }
+                
+                if (data.pagination) {
+                    updateListsPagination(data.pagination, searchTerm, category, limit);
+                }
+            } else {
+                $('#inventory-body').html(`<tr><td colspan="10" class="text-center text-danger">${data.message || 'Ett fel inträffade'}</td></tr>`);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#inventory-body').html('<tr><td colspan="10" class="text-center text-danger">Ett fel inträffade vid hämtning av data</td></tr>');
+        }
+    });
+}
+
+function loadListsProductsWithSpecialFilter(filterType, value = null) {
+    $('#inventory-body').html(`
+        <tr>
+            <td colspan="10" class="text-center">
+                <div class="spinner-border text-primary" role="status">
+                    <span class="visually-hidden">Laddar...</span>
+                </div>
+            </td>
+        </tr>
+    `);
+    
+    let requestData = {
+        page: 1,
+        limit: $('#page-size-selector').val() || 20,
+        view_type: 'lists'
+    };
+    
+    switch(filterType) {
+        case 'special_price':
+            requestData.special_price = 1;
+            break;
+        case 'rare':
+            requestData.rare = 1;
+            break;
+        case 'recommended':
+            requestData.recommended = 1;
+            break;
+        case 'no_price':
+            requestData.no_price = true;
+            break;
+        case 'poor_condition':
+            requestData.poor_condition = true;
+            break;
+        case 'year_threshold':
+            requestData.year_threshold = value;
+            break;
+    }
+    
+    window.currentFilters = requestData;
+    
+    $.ajax({
+        url: BASE_URL + '/admin/get_products.php',
+        type: 'GET',
+        data: requestData,
+        dataType: 'json',
+        success: function(data) {
+            if (data.success) {
+                if (data.items && data.items.length > 0) {
+                    renderListsProducts(data.items);
+                } else {
+                    $('#inventory-body').html('<tr><td colspan="10" class="text-center">Inga produkter hittades</td></tr>');
+                }
+                
+                if (data.pagination) {
+                    updateListsPagination(data.pagination, '', '', $('#page-size-selector').val() || 20);
+                }
+                
+                window.selectedItems = [];
+                updateSelectedCount();
+                updateBatchButtons();
+                $('#select-all').prop('checked', false);
+            } else {
+                $('#inventory-body').html(`<tr><td colspan="10" class="text-center text-danger">${data.message || 'Ett fel inträffade'}</td></tr>`);
+            }
+        },
+        error: function(xhr, status, error) {
+            $('#inventory-body').html('<tr><td colspan="10" class="text-center text-danger">Ett fel inträffade vid hämtning av data</td></tr>');
+        }
+    });
+}
+
+function renderListsProducts(products) {
+    let html = '';
+    
+    products.forEach(item => {
+        const statusClass = parseInt(item.status) === 1 ? 'text-success' : 'text-danger';
+        const formattedPrice = item.formatted_price || (item.price ? `${parseFloat(item.price).toFixed(2).replace('.', ',')} €` : 'Inget pris');
+        
+        let markings = '';
+        if (item.special_price == 1) {
+            markings += '<span class="badge bg-danger me-1">Rea</span>';
+        }
+        if (item.rare == 1) {
+            markings += '<span class="badge bg-warning text-dark me-1">Sällsynt</span>';
+        }
+        if (item.recommended == 1) {
+            markings += '<span class="badge bg-primary me-1">Rekommenderas</span>';
+        }
+        
+        const productId = parseInt(item.prod_id);
+        const isChecked = window.selectedItems.includes(productId);
+        
+        html += `
+        <tr>
+            <td><input type="checkbox" name="list-item" value="${item.prod_id}" ${isChecked ? 'checked' : ''}></td>
+            <td>${item.title || ''}</td>
+            <td>${item.author_name || ''}</td>
+            <td>${item.category_name || ''}</td>
+            <td>${item.shelf_name || ''}</td>
+            <td>${item.condition_name || ''}</td>
+            <td>${formattedPrice}</td>
+            <td class="${statusClass}">${item.status_name || ''}</td>
+            <td>${markings}</td>
+            <td>${item.formatted_date || item.date_added || ''}</td>
+        </tr>`;
+    });
+    
+    $('#inventory-body').html(html);
+    updateSelectAllCheckbox();
+    updateSelectedCount();
+    updateBatchButtons();
+}
+
+function updateListsPagination(pagination, searchTerm, category, limit) {
+    $('#showing-start').text(pagination.firstRecord || 0);
+    $('#showing-end').text(pagination.lastRecord || 0);
+    $('#total-items').text(pagination.totalItems || 0);
+    $('#page-size-selector').val(pagination.itemsPerPage || limit);
+    
+    if (pagination.totalPages > 0) {
+        let html = '';
+        
+        html += `
+            <li class="page-item ${pagination.currentPage <= 1 ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${pagination.currentPage - 1}" aria-label="Previous">
+                    <span aria-hidden="true">&laquo;</span>
+                </a>
+            </li>
+        `;
+        
+        const startPage = Math.max(1, pagination.currentPage - 2);
+        const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
+        
+        for (let i = startPage; i <= endPage; i++) {
+            html += `
+                <li class="page-item ${i === pagination.currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                </li>
+            `;
+        }
+        
+        html += `
+            <li class="page-item ${pagination.currentPage >= pagination.totalPages ? 'disabled' : ''}">
+                <a class="page-link" href="#" data-page="${pagination.currentPage + 1}" aria-label="Next">
+                    <span aria-hidden="true">&raquo;</span>
+                </a>
+            </li>
+        `;
+        
+        $('#pagination-links').html(html);
+        
+        $('#pagination-links .page-link').off('click').on('click', function(e) {
+            e.preventDefault();
+            const page = parseInt($(this).data('page'), 10);
+            if (!isNaN(page)) {
+                const searchTerm = $('#search-term').val();
+                const category = $('#category-filter').val();
+                const limit = $('#page-size-selector').val();
+                loadListsProducts(searchTerm, category, page, limit);
+            }
+        });
+    } else {
+        $('#pagination-links').html('');
+    }
+}
+
+function attachListsEventHandlers() {
+    // Remove existing handlers
+    $('#apply-filters').off('click');
+    $('#lists-search-form').off('submit');
+    $('#clear-all-filters').off('click');
+    $('#list-special-price, #list-rare, #list-recommended, #list-no-price, #list-poor-condition').off('click');
+    $('#shelf-selector').off('change');
+    $('#year-threshold').off('change keyup');
+    $('#filter-header').off('click');
+    
+    // FIXED: Remove automatic filter changes - only apply on button click
+    $('#category-filter, #list-genre, #list-condition, #list-status, #shelf-filter, #price-min, #price-max, #date-min, #date-max').off('change');
+    $('#search-term').off('keyup');
+    
+    // Apply filters button - ONLY way to apply advanced filters
+    $('#apply-filters').on('click', function(e) {
+        e.preventDefault();
+        const searchTerm = $('#search-term').val();
+        const category = $('#category-filter').val();
+        loadListsProducts(searchTerm, category, 1, $('#page-size-selector').val());
+    });
+    
+    // Search form submit
+    $('#lists-search-form').on('submit', function(e) {
+        e.preventDefault();
+        const searchTerm = $('#search-term').val();
+        const category = $('#category-filter').val();
+        loadListsProducts(searchTerm, category);
+    });
+    
+    // Clear all filters
+    $('#clear-all-filters').on('click', function() {
+        $('#lists-search-form')[0].reset();
+        $('#shelf-selector').val('');
+        $('#year-threshold').val('');
         $('#price-min').val('');
         $('#price-max').val('');
         $('#date-min').val('');
         $('#date-max').val('');
-        $('#list-search').val('');
-    }
-    
-    // Toggle advanced filter visibility - hide by default
-    const filterBody = $('#filter-body');
-    const toggleIcon = $('.toggle-icon');
-    
-    // Hide filter body by default
-    filterBody.hide();
-    toggleIcon.css('transform', 'rotate(0deg)');
-    
-    $('#filter-header').on('click', function() {
-        // Toggle body display
-        const isVisible = filterBody.is(':visible');
-        filterBody.slideToggle();
+        $('#list-status').val('');
         
-        // Rotate icon
-        toggleIcon.css('transform', isVisible ? 'rotate(0deg)' : 'rotate(180deg)');
-    });
-    
-    // Add Clear Filter button
-    const clearFilterBtn = $('<button class="btn btn-outline-secondary w-100" id="clear-all-filters">Rensa alla filter</button>');
-    $('#list-older-than').parent().after($('<div class="col-md-3 mb-2"></div>').append(clearFilterBtn));
-    
-    // Clear Filter button handler
-    $('#clear-all-filters').on('click', function() {
-        resetFilterFields();
-        loadProducts({
-            page: 1,
-            category: '',
-            genre: '',
-            condition: '',
-            status: 'all',
-            min_price: '',
-            max_price: '',
-            min_date: '',
-            max_date: '',
-            search: '',
-            no_price: null,
-            poor_condition: null,
-            shelf: null,
-            year_threshold: null
-        });
-    });
-    
-    // Apply filter button click
-    $('#apply-filter-btn').on('click', function() {
-        // Get all filter values
-        const filters = {
-            category: $('#list-categories').val(),
-            genre: $('#list-genre').val(),
-            condition: $('#list-condition').val(),
-            status: $('#list-status').val(),
-            min_price: $('#price-min').val(),
-            max_price: $('#price-max').val(),
-            min_date: $('#date-min').val(),
-            max_date: $('#date-max').val(),
-            search: $('#list-search').val(),
-            page: 1 // Reset to page 1 for new filter
-        };
+        window.selectedItems = [];
+        $('input[name="list-item"]').prop('checked', false);
+        $('#select-all').prop('checked', false);
+        updateSelectedCount();
+        updateBatchButtons();
         
-        // Load products with filters
-        loadProducts(filters);
+        loadListsProducts('', '', 1, $('#page-size-selector').val());
+        showMessage('Alla filter och val har rensats', 'success');
     });
     
     // Quick filter buttons
+    $('#list-special-price').on('click', function() {
+        clearFormFilters();
+        loadListsProductsWithSpecialFilter('special_price', 1);
+    });
+    
+    $('#list-rare').on('click', function() {
+        clearFormFilters();
+        loadListsProductsWithSpecialFilter('rare', 1);
+    });
+    
+    $('#list-recommended').on('click', function() {
+        clearFormFilters();
+        loadListsProductsWithSpecialFilter('recommended', 1);
+    });
+    
     $('#list-no-price').on('click', function() {
-        loadProducts({
-            no_price: true,
-            page: 1,
-            // Clear other filters
-            category: '',
-            genre: '',
-            condition: '',
-            status: 'all',
-            min_price: '',
-            max_price: '',
-            min_date: '',
-            max_date: '',
-            search: ''
-        });
-        
-        resetFilterFields();
+        clearFormFilters();
+        loadListsProductsWithSpecialFilter('no_price', true);
     });
     
     $('#list-poor-condition').on('click', function() {
-        loadProducts({
-            poor_condition: true,
-            page: 1,
-            // Clear other filters
-            category: '',
-            genre: '',
-            condition: '',
-            status: 'all',
-            min_price: '',
-            max_price: '',
-            min_date: '',
-            max_date: '',
-            search: ''
-        });
-        
-        resetFilterFields();
+        clearFormFilters();
+        loadListsProductsWithSpecialFilter('poor_condition', true);
     });
     
-    // Shelf inventory button - handle button and dropdown
-    $('#list-shelf-check').on('click', function(e) {
-        // Only trigger if click is on the button itself, not the select
-        if (e.target === this || $(e.target).is('span')) {
-            e.preventDefault();
-            const shelfSelector = $('#shelf-selector');
-            shelfSelector.focus();
-        }
-    });
-    
+    // Shelf selector
     $('#shelf-selector').on('change', function() {
         const shelfName = $(this).val();
         if (shelfName) {
-            loadProducts({
-                shelf: shelfName,
-                page: 1,
-                // Clear other filters
-                category: '',
-                genre: '',
-                condition: '',
-                status: 'all',
-                min_price: '',
-                max_price: '',
-                min_date: '',
-                max_date: '',
-                search: ''
-            });
-            
-            resetFilterFields();
+            clearFormFilters();
+            $('#shelf-filter').val(shelfName);
+            loadListsProducts('', '', 1, $('#page-size-selector').val());
         }
     });
     
-    // Older than filter - handle button and input
-    $('#list-older-than').on('click', function(e) {
-        // Only trigger if click is on the button itself, not the input
-        if (e.target === this || $(e.target).is('span')) {
-            e.preventDefault();
-            const yearInput = $('#year-threshold');
-            yearInput.focus();
-        }
-    });
-    
+    // Year threshold
     $('#year-threshold').on('change keyup', function(e) {
-        // If Enter key is pressed or field loses focus
         if (e.type === 'change' || e.keyCode === 13) {
             const yearThreshold = $(this).val();
             if (yearThreshold) {
-                loadProducts({
-                    year_threshold: yearThreshold,
-                    page: 1,
-                    // Clear other filters
-                    category: '',
-                    genre: '',
-                    condition: '',
-                    status: 'all',
-                    min_price: '',
-                    max_price: '',
-                    min_date: '',
-                    max_date: '',
-                    search: ''
-                });
-                
-                resetFilterFields();
+                clearFormFilters();
+                $(this).val(yearThreshold);
+                loadListsProductsWithSpecialFilter('year_threshold', yearThreshold);
             }
         }
     });
     
-    // Pagination buttons
-    $('#prev-page-btn').on('click', function() {
-        if (!$(this).prop('disabled')) {
-            loadProducts({ page: currentFilters.page - 1 });
+    // Toggle filter section
+    $('#filter-header').on('click', function() {
+        const filterBody = $('#filter-body');
+        const toggleIcon = $('.toggle-icon');
+        
+        if (filterBody.is(':visible')) {
+            filterBody.slideUp();
+            toggleIcon.addClass('rotated');
+        } else {
+            filterBody.slideDown();
+            toggleIcon.removeClass('rotated');
         }
     });
-    
-    $('#next-page-btn').on('click', function() {
-        if (!$(this).prop('disabled')) {
-            loadProducts({ page: currentFilters.page + 1 });
-        }
-    });
+}
 
-    // Clear All Filters button handler
-$('#clear-all-filters').on('click', function() {
-    console.log('Clear all filters button clicked');
-    
-    // Reset all form fields
-    $('#list-categories').val('');
+function clearFormFilters() {
+    $('#search-term').val('');
+    $('#category-filter').val('');
     $('#list-genre').val('');
     $('#list-condition').val('');
-    $('#list-status').val('all');
+    $('#list-status').val('');
+    $('#shelf-filter').val('');
     $('#price-min').val('');
     $('#price-max').val('');
     $('#date-min').val('');
     $('#date-max').val('');
-    $('#list-search').val('');
-    $('#year-threshold').val('');
-    $('#shelf-selector').val('');
+}
+
+function updateSelectAllCheckbox() {
+    const allCheckboxes = document.querySelectorAll('input[name="list-item"]');
+    const checkedCount = document.querySelectorAll('input[name="list-item"]:checked').length;
     
-    // Show loading indicator
-    $('#lists-body').html('<tr><td colspan="10" class="text-center"><div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div></td></tr>');
-    
-    // Load products with no filters
-    loadProducts({
-        page: 1,
-        limit: 15,
-        // Clear all filter parameters
-        category: '',
-        genre: '',
-        condition: '',
-        status: 'all',
-        min_price: '',
-        max_price: '',
-        min_date: '',
-        max_date: '',
-        search: '',
-        no_price: null,
-        poor_condition: null,
-        year_threshold: null,
-        shelf: null
-    });
-    
-    // Show success message
-    if (typeof showMessage === 'function') {
-        showMessage('Alla filter har rensats', 'success');
+    if (allCheckboxes.length === 0) {
+        $('#select-all').prop('checked', false);
+        $('#select-all').prop('indeterminate', false);
+    } else if (checkedCount === allCheckboxes.length) {
+        $('#select-all').prop('checked', true);
+        $('#select-all').prop('indeterminate', false);
+    } else if (checkedCount > 0) {
+        $('#select-all').prop('checked', false);
+        $('#select-all').prop('indeterminate', true);
     } else {
-        // Fallback if showMessage function is not available
-        const messageContainer = $('#message-container');
-        if (messageContainer.length === 0) {
-            $('#lists').prepend('<div id="message-container" class="alert alert-success alert-dismissible fade show">Alla filter har rensats<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
-        } else {
-            messageContainer.html('<div class="alert alert-success alert-dismissible fade show">Alla filter har rensats<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button></div>');
+        $('#select-all').prop('checked', false);
+        $('#select-all').prop('indeterminate', false);
+    }
+}
+
+// CHECKBOX HANDLING
+$(document).on('change', '#select-all', function() {
+    const isChecked = this.checked;
+    
+    if (isChecked) {
+        $.ajax({
+            url: BASE_URL + '/admin/get_products.php',
+            type: 'GET',
+            data: {
+                ...window.currentFilters,
+                page: 1,
+                limit: 10000,
+                view_type: 'lists'
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (data.success && data.items) {
+                    window.selectedItems = data.items.map(item => parseInt(item.prod_id));
+                    $('input[name="list-item"]').prop('checked', true);
+                    updateSelectedCount();
+                    updateBatchButtons();
+                }
+            }
+        });
+    } else {
+        window.selectedItems = [];
+        $('input[name="list-item"]').prop('checked', false);
+        updateSelectedCount();
+        updateBatchButtons();
+    }
+});
+
+$(document).off('change', 'input[name="list-item"]').on('change', 'input[name="list-item"]', function() {
+    const productId = parseInt(this.value);
+    const isChecked = this.checked;
+    
+    if (isChecked) {
+        if (!window.selectedItems.includes(productId)) {
+            window.selectedItems.push(productId);
+        }
+    } else {
+        const index = window.selectedItems.indexOf(productId);
+        if (index !== -1) {
+            window.selectedItems.splice(index, 1);
         }
     }
-});
     
-    // Initialize the page
-    updateSelectedItems();
-});
-
-// --- BATCH OPERATIONS AND CHECKBOX HANDLING ---
-
-/**
- * Update the selectedItems array from checked boxes
- */
-function updateSelectedItems() {
-    // Get all checked checkboxes
-    const checkedBoxes = document.querySelectorAll('input[name="list-item"]:checked');
-    
-    // Create a fresh array from the checked boxes
-    window.selectedItems = Array.from(checkedBoxes).map(cb => parseInt(cb.value));
-    
-    // Update UI elements
+    updateSelectAllCheckbox();
     updateSelectedCount();
     updateBatchButtons();
-    
-    return window.selectedItems.length;
-}
+});
 
-/**
- * Update the selected count display
- */
 function updateSelectedCount() {
-    const selectedCountEl = document.getElementById('selected-count');
-    if (selectedCountEl) {
-        selectedCountEl.textContent = window.selectedItems.length;
-    }
+    $('#selected-count').text(window.selectedItems.length);
 }
 
-/**
- * Update batch operation buttons based on selection
- */
 function updateBatchButtons() {
     const hasSelection = window.selectedItems && window.selectedItems.length > 0;
-    
-    // Enable/disable batch action buttons based on selection
     const batchButtons = [
-        'batch-update-price',
-        'batch-update-status',
-        'batch-move-shelf',
-        'batch-delete'
+        'batch-update-price', 'batch-update-status', 'batch-move-shelf',
+        'batch-toggle-sale', 'batch-toggle-rare', 'batch-toggle-recommended', 'batch-delete'
     ];
     
     batchButtons.forEach(btnId => {
@@ -375,191 +518,501 @@ function updateBatchButtons() {
     });
 }
 
-/**
- * Perform a batch operation via AJAX
- */
+// BATCH OPERATIONS
+$(document).on('click', '#batch-update-price', function() {
+    if (hasValidSelection()) {
+        $('#updatePriceModal').modal('show');
+    }
+});
+
+$(document).on('click', '#batch-update-status', function() {
+    if (hasValidSelection()) {
+        $('#updateStatusModal').modal('show');
+    }
+});
+
+$(document).on('click', '#batch-move-shelf', function() {
+    if (hasValidSelection()) {
+        $('#moveShelfModal').modal('show');
+    }
+});
+
+$(document).on('click', '#batch-toggle-sale', function() {
+    if (hasValidSelection()) {
+        const count = getSelectionCount();
+        $('#special-price-count').text(count);
+        $('#toggleSpecialPriceModal').modal('show');
+    }
+});
+
+$(document).on('click', '#batch-toggle-rare', function() {
+    if (hasValidSelection()) {
+        const count = getSelectionCount();
+        $('#rare-count').text(count);
+        $('#toggleRareModal').modal('show');
+    }
+});
+
+$(document).on('click', '#batch-toggle-recommended', function() {
+    if (hasValidSelection()) {
+        const count = getSelectionCount();
+        $('#recommended-count').text(count);
+        $('#toggleRecommendedModal').modal('show');
+    }
+});
+
+$(document).on('click', '#batch-delete', function() {
+    if (hasValidSelection()) {
+        const count = getSelectionCount();
+        $('#delete-count').text(count);
+        $('#deleteConfirmModal').modal('show');
+    }
+});
+
+// Modal confirmations
+$(document).on('click', '#confirm-update-price', function() {
+    const newPrice = $('#new-price').val();
+    if (newPrice && parseFloat(newPrice) > 0) {
+        performBatchAction('update_price', { new_price: newPrice });
+    }
+});
+
+$(document).on('click', '#confirm-update-status', function() {
+    const newStatus = $('#new-status').val();
+    if (newStatus) {
+        performBatchAction('update_status', { new_status: newStatus });
+    }
+});
+
+$(document).on('click', '#confirm-move-shelf', function() {
+    const newShelf = $('#new-shelf').val();
+    if (newShelf) {
+        performBatchAction('move_shelf', { new_shelf: newShelf });
+    }
+});
+
+$(document).on('click', '#confirm-toggle-special-price', function() {
+    const action = $('#special-price-action').val();
+    performBatchAction('set_special_price', { special_price_value: action });
+});
+
+$(document).on('click', '#confirm-toggle-rare', function() {
+    const action = $('#rare-action').val();
+    performBatchAction('set_rare', { rare_value: action });
+});
+
+$(document).on('click', '#confirm-toggle-recommended', function() {
+    const action = $('#recommended-action').val();
+    performBatchAction('set_recommended', { recommended_value: action });
+});
+
+$(document).on('click', '#confirm-delete', function() {
+    performBatchAction('delete');
+});
+
+$(document).on('click', '#export-csv-btn', function() {
+    exportData('csv');
+});
+
+$(document).on('click', '#print-list-btn', function() {
+    printList();
+});
+
+function hasValidSelection() {
+    return window.selectedItems && window.selectedItems.length > 0;
+}
+
+function getSelectionCount() {
+    return window.selectedItems.length;
+}
+
+// FIXED: Batch operations don't clear filters anymore
 function performBatchAction(action, params = {}) {
-    // Make sure we have selections
-    if (!window.selectedItems || window.selectedItems.length === 0) {
+    if (!hasValidSelection()) {
         alert('Inga produkter valda.');
         return;
     }
     
-    // Show a loading indicator
-    const loadingDiv = document.createElement('div');
-    loadingDiv.className = 'loading-overlay';
-    loadingDiv.innerHTML = '<div class="spinner-border text-primary" role="status"><span class="visually-hidden">Loading...</span></div>';
-    loadingDiv.style.position = 'fixed';
-    loadingDiv.style.top = '0';
-    loadingDiv.style.left = '0';
-    loadingDiv.style.width = '100%';
-    loadingDiv.style.height = '100%';
-    loadingDiv.style.backgroundColor = 'rgba(0,0,0,0.3)';
-    loadingDiv.style.display = 'flex';
-    loadingDiv.style.justifyContent = 'center';
-    loadingDiv.style.alignItems = 'center';
-    loadingDiv.style.zIndex = '9999';
-    document.body.appendChild(loadingDiv);
+    const loadingDiv = $('<div class="loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);display:flex;justify-content:center;align-items:center;z-index:9999;"><div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div></div>');
+    $('body').append(loadingDiv);
     
-    // Send the AJAX request
+    // Store current filter state and selections
+    const selectedBeforeOperation = [...window.selectedItems];
+    
+    let requestData = {
+        action: 'batch_action',
+        batch_action: action,
+        product_ids: JSON.stringify(window.selectedItems),
+        ...params
+    };
+    
     $.ajax({
-url: BASE_URL + '/admin/list_ajax_handler.php',
+        url: BASE_URL + '/admin/list_ajax_handler.php',
         type: 'POST',
-        data: {
-            action: 'batch_action',
-            batch_action: action,
-            product_ids: JSON.stringify(window.selectedItems),
-            ...params
-        },
+        data: requestData,
         dataType: 'json',
         success: function(response) {
-            // Remove loading indicator
-            document.body.removeChild(loadingDiv);
-            
-            // Hide modals
+            loadingDiv.remove();
             $('.modal').modal('hide');
             
             if (response.success) {
-                // Show success message
                 showMessage(response.message, 'success');
                 
-                // Reload products to refresh the list
-                if (typeof window.loadProducts === 'function') {
-                    window.loadProducts();
+                // Maintain selections after batch operations (except delete)
+                if (action === 'delete') {
+                    window.selectedItems = [];
                 } else {
-                    // Fallback to page reload if loadProducts not available
-                    window.location.reload();
+                    window.selectedItems = selectedBeforeOperation;
                 }
+                
+                // FIXED: Reload with current filters (don't clear them)
+                const searchTerm = $('#search-term').val();
+                const category = $('#category-filter').val(); 
+                const currentPage = parseInt($('.page-item.active .page-link').text()) || 1;
+                const limit = $('#page-size-selector').val();
+                
+                loadListsProducts(searchTerm, category, currentPage, limit);
             } else {
-                // Show error message
                 showMessage(response.message || 'Ett fel inträffade.', 'danger');
             }
         },
         error: function(xhr, status, error) {
-            // Remove loading indicator
-            document.body.removeChild(loadingDiv);
-            
-            // Hide modals
+            loadingDiv.remove();
             $('.modal').modal('hide');
-            
-            // Show error message
             showMessage('Ett fel inträffade: ' + error, 'danger');
         }
     });
 }
 
-/**
- * Export data to specified format
- */
 function exportData(format) {
-    // Create a form for POST submission
-    const form = document.createElement('form');
-    form.method = 'POST';
-form.action = BASE_URL + '/admin/export.php';
-    form.target = '_blank';
+    const form = $('<form method="GET" target="_blank"></form>');
+    form.attr('action', BASE_URL + '/admin/export.php');
     
-    // Add format parameter
-    const formatInput = document.createElement('input');
-    formatInput.type = 'hidden';
-    formatInput.name = 'format';
-    formatInput.value = format;
-    form.appendChild(formatInput);
+    form.append(`<input type="hidden" name="format" value="${format}">`);
     
-    // Add current filters
-    const currentFilters = window.currentFilters || {};
-    for (const [key, value] of Object.entries(currentFilters)) {
-        if (value) {
-            const input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = key;
-            input.value = value;
-            form.appendChild(input);
-        }
+    const searchTerm = $('#search-term').val();
+    const category = $('#category-filter').val();
+    const genre = $('#list-genre').val();
+    const condition = $('#list-condition').val();
+    const status = $('#list-status').val();
+    const shelf = $('#shelf-filter').val();
+    const priceMin = $('#price-min').val();
+    const priceMax = $('#price-max').val();
+    const dateMin = $('#date-min').val();
+    const dateMax = $('#date-max').val();
+    
+    if (searchTerm) form.append(`<input type="hidden" name="search" value="${searchTerm}">`);
+    if (category) form.append(`<input type="hidden" name="category" value="${category}">`);
+    if (genre) form.append(`<input type="hidden" name="genre" value="${genre}">`);
+    if (condition) form.append(`<input type="hidden" name="condition" value="${condition}">`);
+    if (status) form.append(`<input type="hidden" name="status" value="${status}">`);
+    if (shelf) form.append(`<input type="hidden" name="shelf" value="${shelf}">`);
+    if (priceMin) form.append(`<input type="hidden" name="price_min" value="${priceMin}">`);
+    if (priceMax) form.append(`<input type="hidden" name="price_max" value="${priceMax}">`);
+    if (dateMin) form.append(`<input type="hidden" name="date_min" value="${dateMin}">`);
+    if (dateMax) form.append(`<input type="hidden" name="date_max" value="${dateMax}">`);
+    
+    if (window.selectedItems.length > 0) {
+        form.append(`<input type="hidden" name="selected_items" value="${JSON.stringify(window.selectedItems)}">`);
     }
     
-    // Add selected items if any
-    if (window.selectedItems && window.selectedItems.length > 0) {
-        const input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = 'selected_items';
-        input.value = JSON.stringify(window.selectedItems);
-        form.appendChild(input);
-    }
-    
-    // Submit the form
-    document.body.appendChild(form);
+    $('body').append(form);
     form.submit();
-    document.body.removeChild(form);
+    form.remove();
 }
 
-/**
- * Print the current list
- */
 function printList() {
-    // Create a new window for the printable version
-    const printWindow = window.open('', '_blank');
-    
-    if (!printWindow) {
-        alert('Popup blockers might be preventing the print window. Please allow popups for this site.');
-        return;
+    if (window.selectedItems.length > 0) {
+        // Print ONLY selected items
+        $.ajax({
+            url: BASE_URL + '/admin/get_products.php',
+            type: 'GET',
+            data: {
+                // FIXED: Use a special parameter to get only selected items
+                product_ids: JSON.stringify(window.selectedItems),
+                page: 1,
+                limit: 10000,
+                view_type: 'lists'
+            },
+            dataType: 'json',
+            success: function(data) {
+                if (data.success && data.items) {
+                    // Filter the returned items to only include selected ones
+                    const selectedProductIds = window.selectedItems.map(id => parseInt(id));
+                    const filteredItems = data.items.filter(item => 
+                        selectedProductIds.includes(parseInt(item.prod_id))
+                    );
+                    
+                    if (filteredItems.length > 0) {
+                        createPrintWindow(filteredItems);
+                    } else {
+                        alert('Kunde inte hitta de valda produkterna för utskrift.');
+                    }
+                } else {
+                    alert('Kunde inte hämta valda produkter för utskrift.');
+                }
+            },
+            error: function() {
+                alert('Ett fel inträffade vid hämtning av produktdata.');
+            }
+        });
+    } else {
+        // Print all visible products (current page/filter results)
+        const visibleProducts = [];
+        $('#inventory-body tr').each(function() {
+            const cells = $(this).find('td');
+            if (cells.length >= 9) { // Make sure it's a data row
+                visibleProducts.push({
+                    title: cells.eq(1).text(),
+                    author_name: cells.eq(2).text(),
+                    category_name: cells.eq(3).text(),
+                    shelf_name: cells.eq(4).text(),
+                    condition_name: cells.eq(5).text(),
+                    formatted_price: cells.eq(6).text(),
+                    status_name: cells.eq(7).text(),
+                    markings: cells.eq(8).text(),
+                    formatted_date: cells.eq(9).text()
+                });
+            }
+        });
+        
+        if (visibleProducts.length > 0) {
+            createPrintWindow(visibleProducts);
+        } else {
+            alert('Ingen tabell att skriva ut.');
+        }
     }
+}
+
+function createPrintWindow(products) {
+    let tableHTML = `
+        <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+                <tr style="background-color: #f2f2f2; font-weight: bold;">
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Titel</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Författare</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Kategori</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Hylla</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Skick</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px; width: 80px;">Pris</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Status</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Märkning</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">Tillagd datum</th>
+                    <th style="border: 1px solid #ddd; padding: 4px; font-size: 10px; width: 30px;"></th>
+                </tr>
+            </thead>
+            <tbody>
+    `;
     
-    // Get the current table
-    const table = document.getElementById('lists-table');
-    if (!table) {
-        return;
-    }
-    
-    // Create a clone of the table to modify for printing
-    const tableClone = table.cloneNode(true);
-    
-    // Remove checkboxes from the cloned table
-    tableClone.querySelectorAll('input[type="checkbox"]').forEach(checkbox => {
-        const cell = checkbox.closest('td');
-        if (cell) cell.innerHTML = '';
+    products.forEach((product, index) => {
+        const statusClass = parseInt(product.status) === 1 ? 'color: green;' : 'color: red;';
+        const formattedPrice = product.price ? product.formatted_price : 'Inget pris';
+        
+        let markings = '';
+        if (product.special_price == 1) markings += 'Rea ';
+        if (product.rare == 1) markings += 'Sällsynt ';
+        if (product.recommended == 1) markings += 'Rekommenderas ';
+        
+        const rowStyle = index % 2 === 0 ? 'background-color: #f9f9f9;' : '';
+        
+        tableHTML += `
+            <tr style="${rowStyle}">
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${product.title || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${product.author_name || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${product.category_name || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${product.shelf_name || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${product.condition_name || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${formattedPrice}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px; ${statusClass}">${product.status_name || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${markings}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px;">${product.formatted_date || ''}</td>
+                <td style="border: 1px solid #ddd; padding: 4px; font-size: 10px; width: 80px;"></td>
+            </tr>
+        `;
     });
     
-    // Create the printable HTML
+    tableHTML += '</tbody></table>';
+    
+    printTableContent(tableHTML);
+}
+
+function printTableContent(tableHTML) {
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+        const printContent = `
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <title>Karis Antikvariat - Produktlista</title>
+                <meta charset="utf-8">
+                <style>
+                    * {
+                        margin: 0;
+                        padding: 0;
+                        box-sizing: border-box;
+                    }
+                    html, body {
+                        height: 100%;
+                        width: 100%;
+                    }
+                    body { 
+                        font-family: Arial, sans-serif; 
+                        font-size: 11px;
+                        padding: 15mm;
+                    }
+                    h1 { 
+                        text-align: center; 
+                        margin-bottom: 20px; 
+                        font-size: 18px;
+                    }
+                    table { 
+                        width: 100%; 
+                        border-collapse: collapse; 
+                        margin-top: 10px; 
+                    }
+                    th, td { 
+                        border: 1px solid #ddd; 
+                        padding: 4px; 
+                        text-align: left; 
+                        font-size: 10px; 
+                        word-wrap: break-word;
+                    }
+                    th { 
+                        background-color: #f2f2f2; 
+                        font-weight: bold; 
+                    }
+                    tr:nth-child(even) { 
+                        background-color: #f9f9f9; 
+                    }
+                    .print-header { 
+                        text-align: center; 
+                        margin-bottom: 20px; 
+                    }
+                    @media print {
+                        @page {
+                            size: landscape;
+                            margin: 0;
+                        }
+                        html, body {
+                            width: 100%;
+                            height: 100%;
+                            margin: 0 !important;
+                            padding: 0 !important;
+                        }
+                        body {
+                            padding: 15mm !important;
+                        }
+                        .no-print { 
+                            display: none !important; 
+                        }
+                    }
+                </style>
+            </head>
+            <body>
+                <div class="print-header">
+                    <h1>Karis Antikvariat - Produktlista</h1>
+                    <p>Utskriven: ${new Date().toLocaleDateString('sv-SE')} ${new Date().toLocaleTimeString('sv-SE')}</p>
+                    <p class="no-print">
+                        <button onclick="window.print()">Skriv ut</button>
+                        <button onclick="window.close()">Stäng</button>
+                    </p>
+                </div>
+                ${tableHTML}
+                <script>
+                    window.onload = function() { 
+                        setTimeout(() => window.print(), 500); 
+                    };
+                </script>
+            </body>
+            </html>
+        `;
+        
+        const dataUrl = 'data:text/html;charset=utf-8,' + encodeURIComponent(printContent);
+        window.open(dataUrl, '_blank');
+        return;
+    }
+    
     printWindow.document.write(`
         <!DOCTYPE html>
         <html>
         <head>
             <title>Karis Antikvariat - Produktlista</title>
             <meta charset="utf-8">
-            <meta name="viewport" content="width=device-width, initial-scale=1">
             <style>
-                body { font-family: Arial, sans-serif; margin: 20px; }
-                h1 { text-align: center; margin-bottom: 20px; }
-                table { width: 100%; border-collapse: collapse; }
-                th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                th { background-color: #f2f2f2; }
-                tr:nth-child(even) { background-color: #f9f9f9; }
-                .print-header { display: flex; justify-content: space-between; margin-bottom: 20px; }
-                .print-footer { margin-top: 30px; text-align: center; font-size: 12px; }
-                .no-print { margin: 20px 0; }
+                * {
+                    margin: 0;
+                    padding: 0;
+                    box-sizing: border-box;
+                }
+                html, body {
+                    height: 100%;
+                    width: 100%;
+                }
+                body { 
+                    font-family: Arial, sans-serif; 
+                    font-size: 11px;
+                    padding: 15mm;
+                }
+                h1 { 
+                    text-align: center; 
+                    margin-bottom: 20px; 
+                    font-size: 18px;
+                }
+                table { 
+                    width: 100%; 
+                    border-collapse: collapse; 
+                    margin-top: 10px; 
+                }
+                th, td { 
+                    border: 1px solid #ddd; 
+                    padding: 4px; 
+                    text-align: left; 
+                    font-size: 10px; 
+                    word-wrap: break-word;
+                }
+                th { 
+                    background-color: #f2f2f2; 
+                    font-weight: bold; 
+                }
+                tr:nth-child(even) { 
+                    background-color: #f9f9f9; 
+                }
+                .print-header { 
+                    text-align: center; 
+                    margin-bottom: 20px; 
+                }
                 @media print {
-                    .no-print { display: none; }
+                    @page {
+                        size: landscape;
+                        margin: 0;
+                    }
+                    html, body {
+                        width: 100%;
+                        height: 100%;
+                        margin: 0 !important;
+                        padding: 0 !important;
+                    }
+                    body {
+                        padding: 15mm !important;
+                    }
+                    .no-print { 
+                        display: none !important; 
+                    }
                 }
             </style>
         </head>
         <body>
             <div class="print-header">
-                <h2>Karis Antikvariat</h2>
-                <p>Utskriven: ${new Date().toLocaleDateString()} ${new Date().toLocaleTimeString()}</p>
+                <h1>Karis Antikvariat - Produktlista</h1>
+                <p>Utskriven: ${new Date().toLocaleDateString('sv-SE')} ${new Date().toLocaleTimeString('sv-SE')}</p>
+                <p class="no-print">
+                    <button onclick="window.print()">Skriv ut</button>
+                    <button onclick="window.close()">Stäng</button>
+                </p>
             </div>
-            <h1>Produktlista</h1>
-            <div class="no-print">
-                <button onclick="window.print()">Skriv ut</button>
-                <button onclick="window.close()">Stäng</button>
-            </div>
-            <table>${tableClone.innerHTML}</table>
-            <div class="print-footer">
-                <p>Karis Antikvariat - Alla rättigheter förbehållna ${new Date().getFullYear()}</p>
-            </div>
+            ${tableHTML}
             <script>
-                // Auto-print when loaded
                 window.onload = function() { 
-                    // Small delay to ensure everything is rendered
                     setTimeout(() => window.print(), 500); 
                 };
             </script>
@@ -570,9 +1023,7 @@ function printList() {
     printWindow.document.close();
 }
 
-// Helper function to show messages
 function showMessage(message, type) {
-    // Find message container or create it
     let container = $('#message-container');
     
     if (container.length === 0) {
@@ -580,143 +1031,14 @@ function showMessage(message, type) {
         $('#lists').prepend(container);
     }
     
-    // Create alert element
     const alertEl = $(`<div class="alert alert-${type} alert-dismissible fade show">${message}
         <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
     </div>`);
     
-    // Add the alert to the container
     container.html(alertEl);
     container.show();
     
-    // Auto-dismiss after 5 seconds
     setTimeout(() => {
         alertEl.alert('close');
     }, 5000);
 }
-
-// --- EVENT HANDLERS (outside document.ready for global scope) ---
-
-// Select All checkbox
-$(document).on('change', '#select-all', function() {
-    // Update all checkboxes
-    $('input[name="list-item"]').prop('checked', this.checked);
-    
-    // Update the selectedItems array
-    if (this.checked) {
-        // If checked, add all product IDs
-        window.selectedItems = Array.from(
-            document.querySelectorAll('input[name="list-item"]')
-        ).map(cb => parseInt(cb.value));
-    } else {
-        // If unchecked, empty the array
-        window.selectedItems = [];
-    }
-    
-    // Update count and buttons
-    updateSelectedCount();
-    updateBatchButtons();
-});
-
-// Individual checkboxes
-$(document).on('change', 'input[name="list-item"]', function() {
-    const productId = parseInt(this.value);
-    const isChecked = this.checked;
-    
-    // Update the array based on checkbox state
-    if (isChecked) {
-        // Add to array if not already present
-        if (!window.selectedItems.includes(productId)) {
-            window.selectedItems.push(productId);
-        }
-    } else {
-        // Remove from array
-        const index = window.selectedItems.indexOf(productId);
-        if (index !== -1) {
-            window.selectedItems.splice(index, 1);
-        }
-    }
-    
-    // Update the "select all" checkbox state
-    const allCheckboxes = document.querySelectorAll('input[name="list-item"]');
-    const checkedCount = document.querySelectorAll('input[name="list-item"]:checked').length;
-    $('#select-all').prop('checked', allCheckboxes.length > 0 && checkedCount === allCheckboxes.length);
-    
-    // Update count and buttons
-    updateSelectedCount();
-    updateBatchButtons();
-});
-
-// Batch buttons click handlers
-// Update Price button
-$(document).on('click', '#batch-update-price', function() {
-    if (window.selectedItems && window.selectedItems.length > 0) {
-        $('#updatePriceModal').modal('show');
-    } else {
-        alert('Välj minst en produkt först.');
-    }
-});
-
-// Confirm update price
-$(document).on('click', '#confirm-update-price', function() {
-    const newPrice = $('#new-price').val();
-    if (newPrice && parseFloat(newPrice) > 0) {
-        performBatchAction('update_price', { new_price: newPrice });
-    } else {
-        alert('Vänligen ange ett giltigt pris.');
-    }
-});
-
-// Update Status button (direct action without modal)
-$(document).on('click', '#batch-update-status', function() {
-    if (window.selectedItems && window.selectedItems.length > 0) {
-        // Immediately change status to Sold (status=2)
-        performBatchAction('update_status', { new_status: 2 });
-    } else {
-        alert('Välj minst en produkt först.');
-    }
-});
-
-// Move Shelf button
-$(document).on('click', '#batch-move-shelf', function() {
-    if (window.selectedItems && window.selectedItems.length > 0) {
-        $('#moveShelfModal').modal('show');
-    } else {
-        alert('Välj minst en produkt först.');
-    }
-});
-
-// Confirm move shelf
-$(document).on('click', '#confirm-move-shelf', function() {
-    const newShelf = $('#new-shelf').val();
-    if (newShelf) {
-        performBatchAction('move_shelf', { new_shelf: newShelf });
-    } else {
-        alert('Vänligen välj en hylla.');
-    }
-});
-
-// Delete button
-$(document).on('click', '#batch-delete', function() {
-    if (window.selectedItems && window.selectedItems.length > 0) {
-        // Update the counter in the modal
-        $('#delete-count').text(window.selectedItems.length);
-        $('#deleteConfirmModal').modal('show');
-    } else {
-        alert('Välj minst en produkt först.');
-    }
-});
-
-// Confirm delete
-$(document).on('click', '#confirm-delete', function() {
-    performBatchAction('delete');
-});
-
-// Export and print buttons
-$(document).on('click', '#export-csv-btn', function() {
-    exportData('csv');
-});
-
-$(document).on('click', '#print-list-btn', function() {
-    printList();
-});

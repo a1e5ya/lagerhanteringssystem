@@ -2,6 +2,7 @@
  * data-operations.js - Data Operations Functionality
  * Contains CRUD functions for products, authors, etc. and state management
  * Updated to use the unified database_handler.php for database operations
+ * UPDATED - Removed description field handling for conditions
  */
 
 // Update product sale status via AJAX
@@ -273,7 +274,7 @@ function addDatabaseItem(type, data, callback) {
             formData.append('condition_sv_name', data.sv_name);
             formData.append('condition_fi_name', data.fi_name);
             formData.append('condition_code', data.code || '');
-            formData.append('condition_description', data.description || '');
+            // REMOVED: description field
             break;
         default:
             showMessage('Invalid item type', 'danger');
@@ -333,10 +334,10 @@ function editDatabaseItem(id, type, data, callback) {
     formData.append('sv_name', data.sv_name);
     formData.append('fi_name', data.fi_name);
     
-    // Add condition-specific fields if needed
+    // Add condition-specific fields if needed (but not description)
     if (type === 'condition' && data.code) {
         formData.append('code', data.code);
-        formData.append('description', data.description || '');
+        // REMOVED: description field
     }
     
     // Send request
