@@ -1,5 +1,5 @@
 <?php
-require_once 'init.php';
+require_once '../init.php';
 
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
@@ -14,7 +14,7 @@ $sort_column = isset($_GET['sort']) ? $_GET['sort'] : 'author_id';
 $sort_order = isset($_GET['order']) ? $_GET['order'] : 'asc';
 
 // Validate sort column to prevent SQL injection
-$allowed_columns = ['author_id', 'first_name', 'last_name'];
+$allowed_columns = ['author_id', 'author_name'];
 if (!in_array($sort_column, $allowed_columns)) {
     $sort_column = 'author_id'; // Default to author_id if invalid column
 }
@@ -25,13 +25,12 @@ if ($sort_order !== 'asc' && $sort_order !== 'desc') {
 }
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    $first_name = trim($_POST['first_name']);
-    $last_name = trim($_POST['last_name']);
+    $author_name = trim($_POST['author_name']);
 
-    if ($first_name && $last_name) {
+    if ($author_name) {
         try {
-            $stmt = $pdo->prepare("INSERT INTO author (first_name, last_name) VALUES (?, ?)");
-            $stmt->execute([$first_name, $last_name]);
+            $stmt = $pdo->prepare("INSERT INTO author (author_name) VALUES (?)");
+            $stmt->execute([$author_name]);
 
             if ($isAjax) {
                 header('Content-Type: application/json');
@@ -55,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             }
         }
     } else {
-        $msg = "Vänligen fyll i båda fälten.";
+        $msg = "Vänligen fyll i namnet.";
         if ($isAjax) {
             header('Content-Type: application/json');
             echo json_encode(['success' => false, 'message' => $msg]);
@@ -100,13 +99,9 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
     <div id="author-message-container"></div>
     <form id="add-author-form" onsubmit="return false;">
         <div class="row g-2 align-items-end mb-3">
-            <div class="col-md-5">
-                <label for="first_name" class="form-label">Förnamn</label>
-                <input type="text" class="form-control" id="first_name" name="first_name" required>
-            </div>
-            <div class="col-md-5">
-                <label for="last_name" class="form-label">Efternamn</label>
-                <input type="text" class="form-control" id="last_name" name="last_name" required>
+            <div class="col-md-10">
+                <label for="author_name" class="form-label">Namn</label>
+                <input type="text" class="form-control" id="author_name" name="author_name" required>
             </div>
             <div class="col-md-2">
                 <button type="submit" class="btn btn-primary mt-4 px-5">Lägg till</button>
@@ -119,16 +114,14 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
             <thead>
                 <tr>
                     <th><a href="<?php echo getSortLink('author_id', $sort_column, $sort_order); ?>">ID</a></th>
-                    <th><a href="<?php echo getSortLink('first_name', $sort_column, $sort_order); ?>">Förnamn</a></th>
-                    <th><a href="<?php echo getSortLink('last_name', $sort_column, $sort_order); ?>">Efternamn</a></th>
+                    <th><a href="<?php echo getSortLink('author_name', $sort_column, $sort_order); ?>">Namn</a></th>
                     <th width="150px">Åtgärder</th>
                 </tr>
             </thead>
             <tbody id="authors-list">
                 <?php
                 try {
-                    // query with ORDER BY for sorting and LIMIT/OFFSET for pagination
-                    $query = "SELECT author_id, first_name, last_name FROM author 
+                    $query = "SELECT author_id, author_name FROM author 
                               ORDER BY {$sort_column} {$sort_order} 
                               LIMIT ? OFFSET ?";
 
@@ -140,14 +133,12 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                     while ($row = $stmt->fetch()) {
                         echo "<tr>
                                 <td>{$row['author_id']}</td>
-                                <td>" . htmlspecialchars($row['first_name']) . "</td>
-                                <td>" . htmlspecialchars($row['last_name']) . "</td>
+                                <td>" . htmlspecialchars($row['author_name']) . "</td>
                                 <td>
                                 <a href=\"#\" class=\"edit-item btn btn-outline-primary btn-sm\" 
                                     data-id=\"" . $row['author_id'] . "\" 
                                     data-type=\"author\" 
-                                    data-first-name=\"" . htmlspecialchars($row['first_name']) . "\" 
-                                    data-last-name=\"" . htmlspecialchars($row['last_name']) . "\">Redigera</a>
+                                    data-author-name=\"" . htmlspecialchars($row['author_name']) . "\">Redigera</a>
                                 <a href=\"javascript:void(0);\" class=\"btn btn-outline-danger btn-sm delete-item\" 
                                     data-id=\"" . $row['author_id'] . "\" 
                                     data-type=\"author\">Ta bort</a>
@@ -155,7 +146,7 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                             </tr>";
                     }
                 } catch (PDOException $e) {
-                    echo "<tr><td colspan='4'>Fel vid hämtning av författare: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
+                    echo "<tr><td colspan='3'>Fel vid hämtning av författare: " . htmlspecialchars($e->getMessage()) . "</td></tr>";
                 }
                 ?>
             </tbody>
@@ -216,49 +207,35 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
                 <?php echo min($total_records, $offset + 1); ?>-<?php echo min($total_records, $offset + $records_per_page); ?>
                 av <?php echo $total_records; ?> författare |
                 Sorterad efter <?php
-                $column_names = ['author_id' => 'ID', 'first_name' => 'Förnamn', 'last_name' => 'Efternamn'];
+                $column_names = ['author_id' => 'ID', 'author_name' => 'Namn'];
                 $order_names = ['asc' => 'stigande', 'desc' => 'fallande'];
                 echo $column_names[$sort_column] . ' (' . $order_names[$sort_order] . ')';
                 ?></small>
         </div>
     </div>
 
-    <!-- Edit Item Modal -->
-    <div class="modal fade" id="editItemModal" tabindex="-1" aria-labelledby="editItemModalLabel" aria-hidden="true">
+    <!-- Edit Author Modal -->
+    <div class="modal fade" id="editAuthorModal" tabindex="-1" aria-labelledby="editAuthorModalLabel"
+        aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="editItemModalLabel">Redigera</h5>
+                    <h5 class="modal-title" id="editAuthorModalLabel">Redigera författare</h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Stäng"></button>
                 </div>
                 <div class="modal-body">
                     <!-- Hidden fields -->
-                    <input type="hidden" id="edit-item-id">
-                    <input type="hidden" id="edit-item-type">
+                    <input type="hidden" id="edit-author-id">
 
                     <!-- Author fields -->
-                    <div id="edit-author-fields" style="display: none;">
-                        <div class="mb-3">
-                            <label for="edit-first-name" class="form-label">Förnamn</label>
-                            <input type="text" class="form-control" id="edit-first-name">
-                        </div>
-                        <div class="mb-3">
-                            <label for="edit-last-name" class="form-label">Efternamn</label>
-                            <input type="text" class="form-control" id="edit-last-name">
-                        </div>
-                    </div>
-
-                    <!-- Generic name field -->
-                    <div id="edit-single-name-field">
-                        <div class="mb-3">
-                            <label for="edit-item-name" class="form-label">Namn</label>
-                            <input type="text" class="form-control" id="edit-item-name">
-                        </div>
+                    <div class="mb-3">
+                        <label for="edit-author-name" class="form-label">Namn</label>
+                        <input type="text" class="form-control" id="edit-author-name" required>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
-                    <button type="button" class="btn btn-primary" id="save-edit">Spara ändringar</button>
+                    <button type="button" class="btn btn-primary" id="save-author-edit">Spara ändringar</button>
                 </div>
             </div>
         </div>
@@ -308,39 +285,39 @@ function getSortLink($column, $currentSortColumn, $currentSortOrder)
             $('head').append('<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.8.1/font/bootstrap-icons.css">');
         }
     });
-    $(document).ready(function() {
-    // Initialize the author form functionality
-    initializeAddAuthor();
-});
-// Function to refresh the table after successful submission
-function refreshAuthorsTable() {
-  // Get current sort parameters and page
-  const urlParams = new URLSearchParams(window.location.search);
-  const page = urlParams.get('page') || 1;
-  const sort = urlParams.get('sort') || 'author_id';
-  const order = urlParams.get('order') || 'asc';
-  
-  // Fetch the updated table content
-  $.ajax({
-    url: BASE_URL + '/admin/addauthor.php',
-    data: {
-      page: page,
-      sort: sort,
-      order: order
-    },
-    success: function(response) {
-      // Extract just the table content
-      const $tempDiv = $('<div>').html(response);
-      const tableContent = $tempDiv.find('#authors-list').html();
-      
-      // Update just the table body
-      $('#authors-list').html(tableContent);
-      
-      console.log('Authors table refreshed');
-    },
-    error: function() {
-      console.error('Failed to refresh table');
+    $(document).ready(function () {
+        // Initialize the author form functionality
+        initializeAddAuthor();
+    });
+    // Function to refresh the table after successful submission
+    function refreshAuthorsTable() {
+        // Get current sort parameters and page
+        const urlParams = new URLSearchParams(window.location.search);
+        const page = urlParams.get('page') || 1;
+        const sort = urlParams.get('sort') || 'author_id';
+        const order = urlParams.get('order') || 'asc';
+
+        // Fetch the updated table content
+        $.ajax({
+            url: BASE_URL + '/admin/addauthor.php',
+            data: {
+                page: page,
+                sort: sort,
+                order: order
+            },
+            success: function (response) {
+                // Extract just the table content
+                const $tempDiv = $('<div>').html(response);
+                const tableContent = $tempDiv.find('#authors-list').html();
+
+                // Update just the table body
+                $('#authors-list').html(tableContent);
+
+                console.log('Authors table refreshed');
+            },
+            error: function () {
+                console.error('Failed to refresh table');
+            }
+        });
     }
-  });
-}
 </script>

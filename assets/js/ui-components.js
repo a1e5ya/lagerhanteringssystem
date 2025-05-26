@@ -89,77 +89,45 @@ fetch(BASE_URL + `/admin/autocomplete.php?type=${type}&query=${encodeURIComponen
   
 
     
-
-  
-  // Modal edit functionality for both single field and author
-  $(document).on('click', '.edit-item', function(e) {
+  // Modal edit functionality for non-author items only
+  $(document).on('click', '.edit-item:not([data-type="author"])', function(e) {
       e.preventDefault();
       
       const id = $(this).data('id');
       const type = $(this).data('type');
+      const name = $(this).data('name');
       
       $('#edit-item-id').val(id);
       $('#edit-item-type').val(type);
+      $('#edit-item-name').val(name);
       
-      if (type === 'author') {
-          const firstName = $(this).data('first-name');
-          const lastName = $(this).data('last-name');
-          
-          // Show only author fields
-          $('#edit-single-name-field').hide();
-          $('#edit-author-fields').show();
-          
-          $('#edit-first-name').val(firstName);
-          $('#edit-last-name').val(lastName);
-          
-          $('#editItemModalLabel').text('Redigera författare');
-      } else {
-          const name = $(this).data('name');
-          
-          // Show only single name field
-          $('#edit-single-name-field').show();
-          $('#edit-author-fields').hide();
-          
-          $('#edit-item-name').val(name);
-          
-          // Capitalize the first letter of the type (category, publisher, etc.)
-          $('#editItemModalLabel').text('Redigera ' + type.charAt(0).toUpperCase() + type.slice(1));
-      }
+      // Capitalize the first letter of the type (category, publisher, etc.)
+      $('#editItemModalLabel').text('Redigera ' + type.charAt(0).toUpperCase() + type.slice(1));
       
       $('#editItemModal').modal('show');
   });
   
-  // Handle save button click for both single field and author
+  // Handle save button click for non-author items only
   $(document).on('click', '#save-edit', function() {
       const id = $('#edit-item-id').val();
       const type = $('#edit-item-type').val();
+      const name = $('#edit-item-name').val().trim();
       
-      let postData = { id, type };
-      
-      if (type === 'author') {
-          const firstName = $('#edit-first-name').val().trim();
-          const lastName = $('#edit-last-name').val().trim();
-          
-          if (!firstName || !lastName) {
-              alert('Både förnamn och efternamn krävs.');
-              return;
-          }
-          
-          postData.first_name = firstName;
-          postData.last_name = lastName;
-      } else {
-          const name = $('#edit-item-name').val().trim();
-          if (!name) {
-              alert('Ange ett namn.');
-              return;
-          }
-          
-          postData.name = name;
+      if (!name) {
+          alert('Ange ett namn.');
+          return;
       }
+      
+      const postData = {
+          id: id,
+          type: type,
+          action: 'edit',
+          name: name
+      };
       
       $.ajax({
           type: 'POST',
-url: BASE_URL + '/admin/edit_item.php',
+          url: BASE_URL + '/admin/database_handler.php',
           data: postData,
           dataType: 'json',
           success: function(response) {
@@ -171,16 +139,65 @@ url: BASE_URL + '/admin/edit_item.php',
                   const rowSelector = `a.edit-item[data-id="${id}"][data-type="${type}"]`;
                   const row = $(rowSelector).closest('tr');
                   
-                  if (type === 'author') {
-                      row.find('td:nth-child(2)').text(postData.first_name);
-                      row.find('td:nth-child(3)').text(postData.last_name);
-                      $(rowSelector)
-                          .data('first-name', postData.first_name)
-                          .data('last-name', postData.last_name);
-                  } else {
-                      row.find('td:nth-child(2)').text(postData.name);
-                      $(rowSelector).data('name', postData.name);
-                  }
+                  row.find('td:nth-child(2)').text(name);
+                  $(rowSelector).data('name', name);
+              } else {
+                  alert(`Fel: ${response.message}`);
+              }
+          },
+          error: function(xhr) {
+              console.error('Error:', xhr.responseText);
+              alert('Ett fel inträffade. Försök igen.');
+          }
+      });
+  });
+
+  // Author-specific edit functionality
+  $(document).on('click', '.edit-item[data-type="author"]', function(e) {
+      e.preventDefault();
+      
+      const id = $(this).data('id');
+      const authorName = $(this).data('author-name');
+      
+      $('#edit-author-id').val(id);
+      $('#edit-author-name').val(authorName);
+      
+      $('#editAuthorModal').modal('show');
+  });
+
+  // Handle save button click for author
+  $(document).on('click', '#save-author-edit', function() {
+      const id = $('#edit-author-id').val();
+      const authorName = $('#edit-author-name').val().trim();
+      
+      if (!authorName) {
+          alert('Författarnamn krävs.');
+          return;
+      }
+      
+      const postData = {
+          id: id,
+          type: 'author',
+          action: 'edit',
+          author_name: authorName
+      };
+      
+      $.ajax({
+          type: 'POST',
+          url: BASE_URL + '/admin/database_handler.php',
+          data: postData,
+          dataType: 'json',
+          success: function(response) {
+              if (response.success) {
+                  showMessage(response.message, 'success');
+                  $('#editAuthorModal').modal('hide');
+                  
+                  // Update the table row
+                  const rowSelector = `a.edit-item[data-id="${id}"][data-type="author"]`;
+                  const row = $(rowSelector).closest('tr');
+                  
+                  row.find('td:nth-child(2)').text(authorName);
+                  $(rowSelector).data('author-name', authorName);
               } else {
                   alert(`Fel: ${response.message}`);
               }
@@ -244,10 +261,51 @@ url: BASE_URL + '/admin/edit_item.php',
       });
   }
   
-  // Delete button functionality
+  // Delete button functionality - separate handlers for authors and other items
+  // Author-specific delete functionality
+  $(document).on('click', '.delete-item[data-type="author"]', function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+
+      const id = $(this).data('id');
+      const $button = $(this);
+
+      if (confirm('Är du säker på att du vill ta bort denna författare?')) {
+          $button.prop('disabled', true);
+
+          $.ajax({
+              type: 'POST',
+              url: BASE_URL + '/admin/database_handler.php',
+              data: {
+                  id: id,
+                  type: 'author',
+                  action: 'delete'
+              },
+              dataType: 'json',
+              success: function(response) {
+                  if (response.success) {
+                      showMessage(response.message, 'success');
+                      $button.closest('tr').fadeOut(300, function() {
+                          $(this).remove();
+                      });
+                  } else {
+                      showMessage(response.message, 'danger');
+                      $button.prop('disabled', false);
+                  }
+              },
+              error: function(xhr) {
+                  console.error('Error:', xhr.responseText);
+                  showMessage('Ett fel inträffade vid borttagning.', 'danger');
+                  $button.prop('disabled', false);
+              }
+          });
+      }
+  });
+
+  // Non-author delete functionality
   $(document)
-      .off('click', '.delete-item')
-      .on('click', '.delete-item', function(e) {
+      .off('click', '.delete-item:not([data-type="author"])')
+      .on('click', '.delete-item:not([data-type="author"])', function(e) {
           e.preventDefault();
           e.stopPropagation();
   
@@ -261,18 +319,17 @@ url: BASE_URL + '/admin/edit_item.php',
               const $button = $(this);
               $button.prop('disabled', true);
   
-              // Send AJAX request
               $.ajax({
                   type: 'POST',
-                  url: BASE_URL + '/admin/delete_item.php',
+                  url: BASE_URL + '/admin/database_handler.php',
                   data: {
                       id: id,
-                      type: type
+                      type: type,
+                      action: 'delete' // Required for database_handler.php
                   },
                   dataType: 'json',
                   success: function(response) {
                       if (response.success) {
-                          // Show success message
                           showMessage(response.message, 'success');
   
                           // Remove the row from the table
@@ -280,7 +337,6 @@ url: BASE_URL + '/admin/edit_item.php',
                               $(this).remove();
                           });
                       } else {
-                          // Show error message
                           showMessage(response.message, 'danger');
   
                           // Re-enable the button
