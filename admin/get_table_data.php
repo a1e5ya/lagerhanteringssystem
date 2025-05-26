@@ -102,14 +102,13 @@ try {
             break;
             
         case 'condition':
-            $stmt = $pdo->query("SELECT condition_id, condition_sv_name, condition_fi_name, condition_code, condition_description FROM `condition` ORDER BY condition_id");
+            $stmt = $pdo->query("SELECT condition_id, condition_sv_name, condition_fi_name, condition_code FROM `condition` ORDER BY condition_id");
             while ($row = $stmt->fetch()) {
                 $html .= "<tr>
                     <td>" . safeEcho($row['condition_id']) . "</td>
                     <td>" . safeEcho($row['condition_sv_name']) . "</td>
                     <td>" . safeEcho($row['condition_fi_name']) . "</td>
                     <td>" . safeEcho($row['condition_code']) . "</td>
-                    <td>" . safeEcho($row['condition_description']) . "</td>
                     <td>
                         <button class=\"edit-btn btn btn-outline-primary btn-sm\"
                            data-type=\"condition\"
@@ -117,7 +116,7 @@ try {
                            data-sv-name=\"" . safeEcho($row['condition_sv_name']) . "\"
                            data-fi-name=\"" . safeEcho($row['condition_fi_name']) . "\"
                            data-code=\"" . safeEcho($row['condition_code']) . "\"
-                           data-description=\"" . safeEcho($row['condition_description']) . "\">Redigera</button>
+  >Redigera</button>
                         <button class=\"delete-btn btn btn-outline-danger btn-sm\"
                            data-type=\"condition\"
                            data-id=\"" . safeEcho($row['condition_id']) . "\">Ta bort</button>

@@ -49,9 +49,11 @@ include_once 'templates/admin_header.php';
                 <li class="nav-item">
                     <a class="nav-link" data-tab="addauthor">Lägg till författare</a>
                 </li>
+                <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] <= 1): ?>
                 <li class="nav-item">
                     <a class="nav-link" data-tab="tabledatamanagement">Redigera databas</a>
                 </li>
+                <?php endif; ?>
                 <li class="nav-item">
                     <a class="nav-link" data-tab="lists">Listor</a>
                 </li>

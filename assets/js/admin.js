@@ -1,6 +1,7 @@
 /**
  * admin.js - Core admin functionality
  * Contains tab management, initial page setup, and core UI functionality
+ * Clean version without client-side access control - relies on server-side authentication
  */
 
 $(document).ready(function() {
@@ -34,7 +35,6 @@ $(document).ready(function() {
             break;
         case "lists":
             url = "lists.php";
-            initializeLists();
             break;
         default:
             return; // Exit if no valid tab
@@ -42,30 +42,38 @@ $(document).ready(function() {
 
     // Load the content via AJAX
     $("#tabs-content").load(
-  BASE_URL + "/admin/" + url,
+      BASE_URL + "/admin/" + url,
       function(response, status, xhr) {
           if (status == "error") {
               console.log("Error loading content: " + xhr.status + " " + xhr.statusText);
+              
+              // Handle specific error cases
+              if (xhr.status === 403) {
+                  $("#tabs-content").html('<div class="alert alert-danger">Du har inte behörighet att komma åt denna funktion.</div>');
+              } else if (xhr.status === 401) {
+                  alert('Din session har gått ut. Du kommer att omdirigeras till inloggningssidan.');
+                  window.location.href = BASE_URL + '/login.php';
+              } else {
+                  $("#tabs-content").html('<div class="alert alert-danger">Ett fel inträffade vid laddning av innehållet.</div>');
+              }
           } else {
               // After content is loaded, initialize specific functionality
               if (tab === "search") {
-                  // Only attach event handlers to the search form, don't reinitialize the entire search
+                  // Initialize search functionality
                   attachSearchEventHandlers();
                   attachActionListeners();
                   makeRowsClickable();
               } else if (tab === "addproduct") {
-                  // Your existing code for addproduct tab
+                  // Initialize add product functionality
                   setupAutocomplete("author-name", "suggest-author", "author");
                   setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
-                  // Set up image preview
                   setupImagePreview();
               } else if (tab === "lists") {
-                  // Your existing code for lists tab
-                  initializeLists();
+                  
               } else if (tab === "tabledatamanagement") {
-                  // Any initialization for table data management
+                  
               } else if (tab === "addauthor") {
-                  // Any initialization for add author
+                  
               }
           }
       }
@@ -102,333 +110,14 @@ $(document).ready(function() {
   $(document).ajaxError(function(event, jqXHR, settings, thrownError) {
     console.error('Global AJAX error:', thrownError || jqXHR.statusText);
     
-    // Check if error is due to session timeout
+    // Check if error is due to session timeout or permissions
     if (jqXHR.status === 401) {
       alert('Din session har gått ut. Du kommer att omdirigeras till inloggningssidan.');
       window.location.href = BASE_URL + '/login.php';
+    } else if (jqXHR.status === 403) {
+      showMessage('Du har inte behörighet att utföra denna åtgärd.', 'danger');
     }
   });
-
-  function initializeLists() {
-    console.log("Initializing lists functionality");
-  
-    // Attach handlers to quick filter buttons
-    $(document).on('click', '#list-no-price', function() {
-      console.log("No price filter button clicked");
-      
-      try {
-        // Direct AJAX for quick filter
-        $.ajax({
-          url: BASE_URL + '/admin/list_ajax_handler.php',
-          type: 'POST',
-          data: {
-            action: 'get_filtered_products',
-            no_price: true,
-            page: 1,
-            limit: 15
-          },
-          dataType: 'json',
-          success: function(data) {
-            if (data.success) {
-              $('#lists-body').html(data.html);
-              
-              // Update pagination info
-              $('#current-page').text(data.pagination.currentPage);
-              $('#total-pages').text(data.pagination.totalPages);
-              $('#total-count').text(data.pagination.totalResults);
-              
-              // Enable/disable pagination buttons
-              $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-              $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-            }
-          }
-        });
-        
-        // Reset form fields
-        $('#list-categories').val('');
-        $('#list-genre').val('');
-        $('#list-condition').val('');
-        $('#list-status').val('all');
-        $('#price-min').val('');
-        $('#price-max').val('');
-        $('#date-min').val('');
-        $('#date-max').val('');
-        $('#list-search').val('');
-      } catch (error) {
-        console.error("Error handling no price filter:", error);
-      }
-    });
-    
-    $(document).on('click', '#list-poor-condition', function() {
-      console.log("Poor condition button clicked");
-      
-      try {
-        // Direct AJAX for quick filter
-        $.ajax({
-          url: 'admin/list_ajax_handler.php',
-          type: 'POST',
-          data: {
-            action: 'get_filtered_products',
-            poor_condition: true,
-            page: 1,
-            limit: 15
-          },
-          dataType: 'json',
-          success: function(data) {
-            if (data.success) {
-              $('#lists-body').html(data.html);
-              
-              // Update pagination info
-              $('#current-page').text(data.pagination.currentPage);
-              $('#total-pages').text(data.pagination.totalPages);
-              $('#total-count').text(data.pagination.totalResults);
-              
-              // Enable/disable pagination buttons
-              $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-              $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-            }
-          }
-        });
-        
-        // Reset form fields
-        $('#list-categories').val('');
-        $('#list-genre').val('');
-        $('#list-condition').val('');
-        $('#list-status').val('all');
-        $('#price-min').val('');
-        $('#price-max').val('');
-        $('#date-min').val('');
-        $('#date-max').val('');
-        $('#list-search').val('');
-      } catch (error) {
-        console.error("Error handling poor condition filter:", error);
-      }
-    });
-    
-    $(document).on('change', '#shelf-selector', function() {
-      console.log("Shelf selector changed");
-      const shelfName = $(this).val();
-      if (shelfName) {
-        try {
-          // Direct AJAX for shelf filter
-          $.ajax({
-            url: 'admin/list_ajax_handler.php',
-            type: 'POST',
-            data: {
-              action: 'get_filtered_products',
-              shelf: shelfName,
-              page: 1,
-              limit: 15
-            },
-            dataType: 'json',
-            success: function(data) {
-              if (data.success) {
-                $('#lists-body').html(data.html);
-                
-                // Update pagination info
-                $('#current-page').text(data.pagination.currentPage);
-                $('#total-pages').text(data.pagination.totalPages);
-                $('#total-count').text(data.pagination.totalResults);
-                
-                // Enable/disable pagination buttons
-                $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-                $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-              }
-            }
-          });
-          
-          // Reset form fields
-          $('#list-categories').val('');
-          $('#list-genre').val('');
-          $('#list-condition').val('');
-          $('#list-status').val('all');
-          $('#price-min').val('');
-          $('#price-max').val('');
-          $('#date-min').val('');
-          $('#date-max').val('');
-          $('#list-search').val('');
-        } catch (error) {
-          console.error("Error handling shelf filter:", error);
-        }
-      }
-    });
-    
-    $(document).on('change keyup', '#year-threshold', function(event) {
-      if (event.type === 'change' || event.keyCode === 13) {
-        console.log("Year threshold entered");
-        const yearThreshold = $(this).val();
-        if (yearThreshold) {
-          try {
-            // Direct AJAX for year threshold filter
-            $.ajax({
-              url: 'admin/list_ajax_handler.php',
-              type: 'POST',
-              data: {
-                action: 'get_filtered_products',
-                year_threshold: yearThreshold,
-                page: 1,
-                limit: 15
-              },
-              dataType: 'json',
-              success: function(data) {
-                if (data.success) {
-                  $('#lists-body').html(data.html);
-                  
-                  // Update pagination info
-                  $('#current-page').text(data.pagination.currentPage);
-                  $('#total-pages').text(data.pagination.totalPages);
-                  $('#total-count').text(data.pagination.totalResults);
-                  
-                  // Enable/disable pagination buttons
-                  $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-                  $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-                }
-              }
-            });
-            
-            // Reset form fields
-            $('#list-categories').val('');
-            $('#list-genre').val('');
-            $('#list-condition').val('');
-            $('#list-status').val('all');
-            $('#price-min').val('');
-            $('#price-max').val('');
-            $('#date-min').val('');
-            $('#date-max').val('');
-            $('#list-search').val('');
-          } catch (error) {
-            console.error("Error handling year threshold filter:", error);
-          }
-        }
-      }
-    });
-    
-    // Fix for advanced filter button - direct implementation instead of calling potentially problematic function
-    $(document).on('click', '#apply-filter-btn', function() {
-      console.log("Advanced filter button clicked");
-      
-      try {
-        // Get filter values directly from the form
-        const filters = {
-          category: $('#list-categories').val(),
-          genre: $('#list-genre').val(),
-          condition: $('#list-condition').val(),
-          status: $('#list-status').val() || 'all',
-          min_price: $('#price-min').val(),
-          max_price: $('#price-max').val(),
-          min_date: $('#date-min').val(),
-          max_date: $('#date-max').val(),
-          search: $('#list-search').val(),
-          page: 1,
-          limit: 15
-        };
-        
-        console.log("Advanced filters:", filters);
-        
-        // Make the AJAX request directly
-        $.ajax({
-          url: 'admin/list_ajax_handler.php',
-          type: 'POST',
-          data: {
-            action: 'get_filtered_products',
-            ...filters
-          },
-          dataType: 'json',
-          success: function(data) {
-            console.log("Advanced filter response:", data);
-            if (data.success) {
-              $('#lists-body').html(data.html);
-              
-              // Update pagination info
-              $('#current-page').text(data.pagination.currentPage);
-              $('#total-pages').text(data.pagination.totalPages);
-              $('#total-count').text(data.pagination.totalResults);
-              
-              // Enable/disable pagination buttons
-              $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-              $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-            }
-          },
-          error: function(xhr, status, error) {
-            console.error("Advanced filter AJAX error:", error);
-            console.error("Response:", xhr.responseText);
-          }
-        });
-      } catch (error) {
-        console.error("Error in advanced filtering:", error);
-      }
-    });
-    
-    // Add pagination handlers
-    $(document).on('click', '#prev-page-btn', function() {
-      if (!$(this).prop('disabled')) {
-        const currentPage = parseInt($('#current-page').text()) || 1;
-        if (currentPage > 1) {
-          // Make the AJAX request for previous page
-          $.ajax({
-            url: 'admin/list_ajax_handler.php',
-            type: 'POST',
-            data: {
-              action: 'get_filtered_products',
-              page: currentPage - 1,
-              limit: 15
-            },
-            dataType: 'json',
-            success: function(data) {
-              if (data.success) {
-                $('#lists-body').html(data.html);
-                
-                // Update pagination info
-                $('#current-page').text(data.pagination.currentPage);
-                $('#total-pages').text(data.pagination.totalPages);
-                $('#total-count').text(data.pagination.totalResults);
-                
-                // Enable/disable pagination buttons
-                $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-                $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-              }
-            }
-          });
-        }
-      }
-    });
-    
-    $(document).on('click', '#next-page-btn', function() {
-      if (!$(this).prop('disabled')) {
-        const currentPage = parseInt($('#current-page').text()) || 1;
-        const totalPages = parseInt($('#total-pages').text()) || 1;
-        if (currentPage < totalPages) {
-          // Make the AJAX request for next page
-          $.ajax({
-            url: 'admin/list_ajax_handler.php',
-            type: 'POST',
-            data: {
-              action: 'get_filtered_products',
-              page: currentPage + 1,
-              limit: 15
-            },
-            dataType: 'json',
-            success: function(data) {
-              if (data.success) {
-                $('#lists-body').html(data.html);
-                
-                // Update pagination info
-                $('#current-page').text(data.pagination.currentPage);
-                $('#total-pages').text(data.pagination.totalPages);
-                $('#total-count').text(data.pagination.totalResults);
-                
-                // Enable/disable pagination buttons
-                $('#prev-page-btn').prop('disabled', data.pagination.currentPage <= 1);
-                $('#next-page-btn').prop('disabled', data.pagination.currentPage >= data.pagination.totalPages);
-              }
-            }
-          });
-        }
-      }
-    });
-    
-    console.log("Lists initialization complete");
-  }
 
   // Main document ready event handlers
   document.addEventListener('DOMContentLoaded', function() {
@@ -440,20 +129,18 @@ $(document).ready(function() {
       setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
       
       // Initialize authors management
-      initializeAuthorsManagement();
+      if (typeof initializeAuthorsManagement === 'function') {
+        initializeAuthorsManagement();
+      }
     }
     
     // Check if we're on the search tab
     const searchForm = document.getElementById('admin-search-form');
     if (searchForm) {
-      initializeAdminSearch();
+      if (typeof initializeAdminSearch === 'function') {
+        initializeAdminSearch();
+      }
       makeRowsClickable();
-    }
-    
-    // Check if we're on the lists tab
-    const listsForm = document.getElementById('lists-search-form');
-    if (listsForm) {
-      initializeLists();
     }
     
     // Handle image upload preview for all image upload fields
@@ -477,7 +164,7 @@ $(document).ready(function() {
     });
   });
 
-  // Add custom CSS for clickable rows
+  // Add custom CSS for clickable rows and other UI elements
   const style = document.createElement('style');
   style.textContent = `
     .clickable-row {
@@ -503,6 +190,54 @@ $(document).ready(function() {
       background-color: #f8f9fa;
       border-radius: 0.25rem;
     }
+    .backup-hidden {
+      opacity: 0.5;
+      text-decoration: line-through;
+    }
+    .toggle-icon {
+      transition: transform 0.3s;
+      font-size: 1.2rem;
+    }
+    .toggle-icon.rotated {
+      transform: rotate(180deg);
+    }
   `;
   document.head.appendChild(style);
+
+  // Helper function to show messages (if not already defined)
+  if (typeof showMessage === 'undefined') {
+    window.showMessage = function(message, type = 'info') {
+      const messageContainer = $('#message-container');
+      if (messageContainer.length) {
+        const alert = $('<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' +
+                       message +
+                       '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
+                       '</div>');
+        
+        messageContainer.append(alert);
+        messageContainer.show();
+        
+        // Auto-dismiss after 5 seconds
+        setTimeout(function() {
+          alert.alert('close');
+        }, 5000);
+      } else {
+        // Fallback to alert if no message container
+        alert(message);
+      }
+    };
+  }
+
+  // Helper function to make table rows clickable (if not already defined)
+  if (typeof makeRowsClickable === 'undefined') {
+    window.makeRowsClickable = function() {
+      $(document).off('click', '.clickable-row');
+      $(document).on('click', '.clickable-row', function() {
+        const productId = $(this).data('product-id');
+        if (productId) {
+          window.open(BASE_URL + '/admin/adminsingleproduct.php?id=' + productId, '_blank');
+        }
+      });
+    };
+  }
 });

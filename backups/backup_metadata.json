@@ -1,0 +1,58 @@
+{
+    "karis_inventory_backup_2025-05-26_13-20-29.sql.gz": {
+        "filename": "karis_inventory_backup_2025-05-26_13-20-29.sql.gz",
+        "created": "2025-05-26 13:20:29",
+        "size": 18188,
+        "product_count": 326,
+        "hidden": false
+    },
+    "karis_inventory_backup_before_restore_2025-05-26_13-21-58.sql": {
+        "filename": "karis_inventory_backup_before_restore_2025-05-26_13-21-58.sql",
+        "created": "2025-05-26 13:21:58",
+        "size": 53124,
+        "product_count": 41,
+        "hidden": true
+    },
+    "karis_inventory_backup_before_restore_2025-05-26_13-22-16.sql": {
+        "filename": "karis_inventory_backup_before_restore_2025-05-26_13-22-16.sql",
+        "created": "2025-05-26 13:22:16",
+        "size": 251750,
+        "product_count": 326,
+        "hidden": true
+    },
+    "karis_inventory_backup_2025-05-26_13-41-17.sql.gz": {
+        "filename": "karis_inventory_backup_2025-05-26_13-41-17.sql.gz",
+        "created": "2025-05-26 13:41:17",
+        "size": 18188,
+        "product_count": 326,
+        "hidden": false
+    },
+    "karis_inventory_backup_2025-05-26_13-50-01.sql.gz": {
+        "filename": "karis_inventory_backup_2025-05-26_13-50-01.sql.gz",
+        "created": "2025-05-26 13:50:01",
+        "size": 11104,
+        "product_count": 138,
+        "hidden": false
+    },
+    "karis_inventory_backup_before_restore_2025-05-26_13-50-06.sql": {
+        "filename": "karis_inventory_backup_before_restore_2025-05-26_13-50-06.sql",
+        "created": "2025-05-26 13:50:06",
+        "size": 120953,
+        "product_count": 138,
+        "hidden": false
+    },
+    "karis_inventory_backup_before_restore_2025-05-26_13-51-34.sql": {
+        "filename": "karis_inventory_backup_before_restore_2025-05-26_13-51-34.sql",
+        "created": "2025-05-26 13:51:34",
+        "size": 251750,
+        "product_count": 326,
+        "hidden": false
+    },
+    "karis_inventory_backup_before_restore_2025-05-26_13-51-58.sql": {
+        "filename": "karis_inventory_backup_before_restore_2025-05-26_13-51-58.sql",
+        "created": "2025-05-26 13:51:58",
+        "size": 120953,
+        "product_count": 138,
+        "hidden": false
+    }
+}
