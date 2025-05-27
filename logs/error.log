@@ -1,3 +1,11 @@
+[27-May-2025 14:04:17 Europe/Helsinki] Creating product with data: Array
+(
+    [title] => NU så
+    [special_price] => 1
+    [rare] => 1
+    [recommended] => 1
+)
+
 [26-May-2025 14:12:16 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\Prog23\lagerhanteringssystem\admin\addproduct.php on line 230
 [26-May-2025 14:12:16 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\Prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\Prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
 Stack trace:

@@ -6,6 +6,8 @@
  * @author Axxell
  */
 
+
+
 // Define the InventoryAjax namespace
 const InventoryAjax = {
     /**
