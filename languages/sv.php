@@ -83,6 +83,20 @@ $lang_strings = array(
     'your_email' => 'Din e-postadress',
     'subscribe' => 'Prenumerera',
 
+    // Newsletter specific
+    'name' => 'Namn',
+    'your_name' => 'Ditt namn',
+    'optional' => 'Valfritt',
+    'newsletter_success' => 'Tack för din prenumeration på vårt nyhetsbrev!',
+    'success' => 'Tack!',
+    'close' => 'Stäng',
+    'recaptcha_required' => 'Vänligen verifiera att du inte är en robot',
+'newsletter_already_subscribed' => 'Du prenumererar redan på vårt nyhetsbrev. Dina uppgifter har uppdaterats.',
+'newsletter_reactivated' => 'Din prenumeration har återaktiverats!',
+'technical_error' => 'Tekniskt fel. Försök igen senare.',
+'save_error' => 'Fel vid sparande. Försök igen.',
+'activation_error' => 'Fel vid aktivering. Försök igen.',
+
     // Other common elements
     'unknown_author' => 'Okänd författare',
 
@@ -101,4 +115,85 @@ $lang_strings = array(
     'product_reserved' => 'Denna produkt är för tillfället reserverad, men kan bli tillgänglig igen. Kontakta oss för mer information.',
     'product_unavailable' => 'Denna produkt är för närvarande inte tillgänglig för försäljning. Kontakta oss för mer information.',
     'related_items' => 'Relaterade objekt',
+
+    // Privacy Policy Page
+    'privacy_policy_title' => 'Registerbeskrivning',
+    'privacy_policy' => 'Registerbeskrivning',
+    
+    // Contact and company info
+    'data_controller' => 'Personuppgiftsansvarig',
+    'data_contact_person' => 'Kontaktperson för personuppgifter',
+    'data_contact_info' => 'För frågor om behandling av personuppgifter, kontakta oss på',
+    'country' => 'Finland',
+    'phone' => 'Telefon',
+    'business_id' => 'FO-nummer',
+    
+    // Data processing
+    'data_processing_purpose' => 'Syfte med behandling av personuppgifter',
+    'newsletter_purpose' => 'Skicka information om nya produkter, erbjudanden och nyheter från vår butik',
+    'website_purpose' => 'Teknisk drift av webbplatsen och förbättring av användarupplevelsen',
+    'purpose' => 'Syfte',
+    'legal_basis' => 'Rättslig grund',
+    'data_processed' => 'Uppgifter som behandlas',
+    'retention_period' => 'Lagringstid',
+    'consent' => 'Samtycke',
+    'legitimate_interest' => 'Berättigat intresse',
+    'email_address' => 'E-postadress',
+    'newsletter_retention' => 'Tills du avregistrerar dig från nyhetsbrevet eller återkallar ditt samtycke',
+    'website_function' => 'Webbplatsens funktion',
+    'language_choice' => 'Språkval (lagras i webbläsarsession)',
+    'technical_info' => 'Teknisk information som IP-adress (endast i serverloggar för säkerhet och felsökning)',
+    'website_retention' => 'Sessionsinformation raderas när du stänger webbläsaren. Serverloggar sparas i maximalt 30 dagar.',
+    
+    // What we don't collect
+    'data_not_collected' => 'Vi samlar INTE in följande uppgifter',
+    'no_personal_browsing' => 'Personliga uppgifter vid produktsökning eller browsing',
+    'no_payment_data' => 'Kreditkorts- eller betalningsuppgifter (alla köp sker i fysisk butik)',
+    'no_tracking_cookies' => 'Cookies för spårning eller marknadsföring',
+    'no_user_profiles' => 'Profiler eller användardata för analys',
+    
+    // Rights
+    'your_rights' => 'Dina rättigheter',
+    'gdpr_rights_intro' => 'Du har följande rättigheter enligt dataskyddsförordningen (GDPR):',
+    'right_access' => 'Rätt till tillgång',
+    'right_access_desc' => 'Du kan begära information om vilka personuppgifter vi behandlar om dig',
+    'right_rectification' => 'Rätt till rättelse',
+    'right_rectification_desc' => 'Du kan begära att felaktiga uppgifter rättas',
+    'right_erasure' => 'Rätt till radering',
+    'right_erasure_desc' => 'Du kan begära att dina uppgifter raderas',
+    'right_restriction' => 'Rätt till begränsning',
+    'right_restriction_desc' => 'Du kan begära begränsning av behandlingen',
+    'right_portability' => 'Rätt till dataportabilitet',
+    'right_portability_desc' => 'Du kan begära att få ut dina uppgifter i strukturerat format',
+    'right_object' => 'Rätt att invända',
+    'right_object_desc' => 'Du kan invända mot behandling som baseras på berättigat intresse',
+    'right_withdraw' => 'Rätt att återkalla samtycke',
+    'right_withdraw_desc' => 'Du kan när som helst återkalla ditt samtycke för nyhetsbrev',
+    'exercise_rights' => 'För att utöva dina rättigheter, kontakta oss på',
+    
+    // Newsletter
+    'newsletter_unsubscribe' => 'Avregistrering från nyhetsbrev',
+    'unsubscribe_methods' => 'Du kan när som helst avregistrera dig från vårt nyhetsbrev genom att:',
+    'unsubscribe_link' => 'Klicka på avregistreringslänken i nyhetsbrevet',
+    'unsubscribe_contact' => 'Kontakta oss direkt på',
+    
+    // Security and sharing
+    'security' => 'Säkerhet',
+    'security_measures' => 'Vi vidtar lämpliga tekniska och organisatoriska åtgärder för att skydda dina personuppgifter mot obehörig åtkomst, förlust eller missbruk.',
+    'data_sharing' => 'Delning av uppgifter',
+    'no_data_sharing' => 'Vi delar inte dina personuppgifter med tredje parter, med undantag för:',
+    'technical_providers' => 'Tekniska tjänsteleverantörer som hjälper oss att driva webbplatsen (dessa har begränsad åtkomst och får endast behandla uppgifterna enligt våra instruktioner)',
+    'legal_requirements' => 'När det krävs enligt lag',
+    
+    // Changes and complaints
+    'policy_changes' => 'Ändringar av denna registerbeskrivning',
+    'policy_changes_info' => 'Vi kan uppdatera denna registerbeskrivning. Väsentliga ändringar meddelas på vår webbplats.',
+    'complaints' => 'Klagomål',
+    'complaints_intro' => 'Om du anser att vi behandlar dina personuppgifter felaktigt kan du lämna klagomål till:',
+    'data_protection_authority' => 'Dataombudsmannens byrå',
+    'authority_visit_address' => 'Besökadress: Fågelviksgränden 4, 00530 Helsingfors',
+    'authority_post_address' => 'Postadress: PB 800, 00531 Helsingfors',
+    'authority_phone' => 'Telefonväxel',
+    'authority_registry' => 'Registratorskontor',
+    'last_updated' => 'Senast uppdaterad',
 );

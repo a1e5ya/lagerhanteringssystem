@@ -12,19 +12,17 @@
 // Use init.php if it includes config and database setup
 require_once 'init.php';
 
-// Define BASE_URL for JavaScript usage
-echo "<script>const BASE_URL = '" . getBasePath() . "';</script>";
-
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     // Get the email from the form
     $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
     
-    // Optional: get name if your form includes it
+    // Get name and language (new fields)
     $name = filter_input(INPUT_POST, 'name', FILTER_SANITIZE_SPECIAL_CHARS) ?: null;
+    $language = filter_input(INPUT_POST, 'language', FILTER_SANITIZE_SPECIAL_CHARS) ?: 'sv';
     
     // Call function to subscribe
-    $result = subscribeToNewsletter($email, $name);
+    $result = subscribeToNewsletter($email, $name, $language);
     
     // Handle AJAX requests
     if (isset($_SERVER['HTTP_X_REQUESTED_WITH']) && $_SERVER['HTTP_X_REQUESTED_WITH'] === 'XMLHttpRequest') {
@@ -41,18 +39,26 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     exit;
 }
 
+// Only output the BASE_URL script for non-AJAX requests
+if (!isset($_SERVER['HTTP_X_REQUESTED_WITH']) || $_SERVER['HTTP_X_REQUESTED_WITH'] !== 'XMLHttpRequest') {
+    echo "<script>const BASE_URL = '" . getBasePath() . "';</script>";
+}
+
 /**
  * Subscribe a user to the newsletter
  *
  * @param string $email User's email address
  * @param string $name User's name (optional)
+ * @param string $language User's language preference
  * @return array Result of the operation with status and message
  */
-function subscribeToNewsletter($email, $name = null) {
+function subscribeToNewsletter($email, $name = null, $language = 'sv') {
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         return [
             'status' => 'error',
-            'message' => 'Ogiltig e-postadress'
+            'message' => $language === 'fi' ? 
+                'Virheellinen sähköpostiosoite' :
+                'Ogiltig e-postadress'
         ];
     }
 
@@ -67,27 +73,32 @@ function subscribeToNewsletter($email, $name = null) {
             $subscriber = $check_stmt->fetch();
             
             // Reactivate unsubscribed users
-            $update_stmt = $pdo->prepare("UPDATE newsletter_subscriber SET subscriber_is_active = 1 WHERE subscriber_email = :email AND subscriber_is_active = 0");
-            $update_stmt->execute(['email' => $email]);
+            $update_stmt = $pdo->prepare("UPDATE newsletter_subscriber SET subscriber_is_active = 1, subscriber_name = :name, subscriber_language_pref = :language WHERE subscriber_email = :email AND subscriber_is_active = 0");
+            $update_stmt->execute(['email' => $email, 'name' => $name, 'language' => $language]);
             
             if ($update_stmt->rowCount() > 0) {
                 return [
                     'status' => 'success',
-                    'message' => 'Din prenumeration har återaktiverats!'
+                    'message' => $language === 'fi' ? 
+                        'Uutiskirjeen tilauksesi on aktivoitu uudelleen!' :
+                        'Din prenumeration har återaktiverats!'
                 ];
             }
             
             return [
                 'status' => 'info',
-                'message' => 'Du prenumererar redan på vårt nyhetsbrev'
+                'message' => $language === 'fi' ? 
+                    'Tilaat jo uutiskirjettämme' :
+                    'Du prenumererar redan på vårt nyhetsbrev'
             ];
         }
         
-        // Insert new subscriber
-        $stmt = $pdo->prepare("INSERT INTO newsletter_subscriber (subscriber_email, subscriber_name) VALUES (:email, :name)");
+        // Insert new subscriber with name and language
+        $stmt = $pdo->prepare("INSERT INTO newsletter_subscriber (subscriber_email, subscriber_name, subscriber_language_pref) VALUES (:email, :name, :language)");
         $stmt->execute([
             'email' => $email, 
-            'name' => $name
+            'name' => $name,
+            'language' => $language
         ]);
         
         // Log the subscription (optional)
@@ -95,14 +106,18 @@ function subscribeToNewsletter($email, $name = null) {
         
         return [
             'status' => 'success',
-            'message' => 'Tack för din prenumeration på vårt nyhetsbrev!'
+            'message' => $language === 'fi' ? 
+                'Kiitos uutiskirjeen tilauksesta!' :
+                'Tack för din prenumeration på vårt nyhetsbrev!'
         ];
         
     } catch (Exception $e) {
         error_log("Newsletter subscription error: " . $e->getMessage());
         return [
             'status' => 'error',
-            'message' => 'Ett fel uppstod. Försök igen senare.'
+            'message' => $language === 'fi' ? 
+                'Virhe tapahtui. Yritä uudelleen myöhemmin.' :
+                'Ett fel uppstod. Försök igen senare.'
         ];
     }
 }

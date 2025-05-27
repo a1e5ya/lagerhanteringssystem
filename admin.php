@@ -49,14 +49,22 @@ include_once 'templates/admin_header.php';
                 <li class="nav-item">
                     <a class="nav-link" data-tab="addauthor">Lägg till författare</a>
                 </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-tab="lists">Listor</a>
+                </li>
+                <li class="nav-item">
+                    <a class="nav-link" data-tab="productlog">Produktlogg</a>
+                </li>
                 <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] <= 1): ?>
                 <li class="nav-item">
                     <a class="nav-link" data-tab="tabledatamanagement">Redigera databas</a>
                 </li>
                 <?php endif; ?>
+                <?php if (isset($_SESSION['user_role']) && $_SESSION['user_role'] <= 1): ?>
                 <li class="nav-item">
-                    <a class="nav-link" data-tab="lists">Listor</a>
+                    <a class="nav-link" data-tab="newsletter">Nyhetsbrev</a>
                 </li>
+                <?php endif; ?>
             </ul>
             <div id="tabs-content" class="tab-content border border-top-0 p-4 bg-white">
                 <!-- Initial content will be loaded here -->

@@ -471,7 +471,7 @@ function renderEditUserForm($userId = null) {
             </form>
     </div>
     
-    <?php if ($userId): ?>
+<?php if ($userId): ?>
     <!-- Delete User Confirmation Modal -->
     <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
         <div class="modal-dialog">
@@ -492,6 +492,150 @@ function renderEditUserForm($userId = null) {
                     </form>
                 </div>
             </div>
+        </div>
+    </div>
+    
+    <!-- User Activity Log Section -->
+    <div class="card mt-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Användarens aktivitetslogg</h5>
+        </div>
+        <div class="card-body">
+            <?php
+            // Fetch user activity log
+            try {
+                $logStmt = $pdo->prepare("
+                    SELECT event_type, event_description, event_timestamp 
+                    FROM event_log 
+                    WHERE user_id = ? 
+                    ORDER BY event_timestamp DESC 
+                    LIMIT 50
+                ");
+                $logStmt->execute([$userId]);
+                $userLogs = $logStmt->fetchAll(PDO::FETCH_ASSOC);
+                
+                if (!empty($userLogs)): ?>
+                    <div class="table-responsive">
+                        <table class="table table-sm table-striped">
+                            <thead>
+                                <tr>
+                                    <th>Tidpunkt</th>
+                                    <th>Typ</th>
+                                    <th>Beskrivning</th>
+                                </tr>
+                            </thead>
+<tbody>
+                                <?php foreach ($userLogs as $log): 
+                                    // Format event type for display with beautiful badges
+                                    $eventTypeDisplay = '';
+                                    switch ($log['event_type']) {
+                                        // User Management Operations
+                                        case 'login':
+                                        case 'Inloggning':
+                                            $eventTypeDisplay = '<span class="badge bg-success"><i class="fas fa-sign-in-alt"></i> Inloggning</span>';
+                                            break;
+                                        case 'logout':
+                                        case 'Utloggning':
+                                            $eventTypeDisplay = '<span class="badge bg-secondary"><i class="fas fa-sign-out-alt"></i> Utloggning</span>';
+                                            break;
+                                        case 'create_user':
+                                            $eventTypeDisplay = '<span class="badge bg-primary"><i class="fas fa-user-plus"></i> Skapa användare</span>';
+                                            break;
+                                        case 'update_user':
+                                            $eventTypeDisplay = '<span class="badge bg-warning"><i class="fas fa-user-edit"></i> Uppdatera användare</span>';
+                                            break;
+                                        case 'delete_user':
+                                            $eventTypeDisplay = '<span class="badge bg-danger"><i class="fas fa-user-minus"></i> Ta bort användare</span>';
+                                            break;
+                                        case 'update_user_status':
+                                            $eventTypeDisplay = '<span class="badge bg-info"><i class="fas fa-user-cog"></i> Ändra användarstatus</span>';
+                                            break;
+                                        case 'update_subscriber':
+                                            $eventTypeDisplay = '<span class="badge bg-info"><i class="fas fa-envelope-open"></i> Nyhetsbrev</span>';
+                                            break;
+                                        case 'delete_subscriber':
+                                            $eventTypeDisplay = '<span class="badge bg-warning"><i class="fas fa-envelope-open"></i> Nyhetsbrev</span>';
+                                            break;
+                                            
+                                        // Product Operations
+                                        case 'create':
+                                            $eventTypeDisplay = '<span class="badge bg-success"><i class="fas fa-plus"></i> Skapa produkt</span>';
+                                            break;
+                                        case 'update':
+                                            $eventTypeDisplay = '<span class="badge bg-warning"><i class="fas fa-edit"></i> Uppdatera produkt</span>';
+                                            break;
+                                        case 'sell':
+                                            $eventTypeDisplay = '<span class="badge bg-danger"><i class="fas fa-shopping-cart"></i> Sälj produkt</span>';
+                                            break;
+                                        case 'return':
+                                            $eventTypeDisplay = '<span class="badge bg-info"><i class="fas fa-undo"></i> Återställ produkt</span>';
+                                            break;
+                                        case 'delete':
+                                            $eventTypeDisplay = '<span class="badge bg-dark"><i class="fas fa-trash"></i> Ta bort produkt</span>';
+                                            break;
+                                            
+                                        // Author Operations
+                                        case 'create_author':
+                                            $eventTypeDisplay = '<span class="badge bg-success"><i class="fas fa-user-plus"></i> Skapa författare</span>';
+                                            break;
+                                        case 'update_author':
+                                            $eventTypeDisplay = '<span class="badge bg-warning"><i class="fas fa-user-edit"></i> Uppdatera författare</span>';
+                                            break;
+                                        case 'delete_author':
+                                            $eventTypeDisplay = '<span class="badge bg-dark"><i class="fas fa-user-minus"></i> Ta bort författare</span>';
+                                            break;
+                                            
+                                        // Batch Operations
+                                        case 'batch_update_status':
+                                            $eventTypeDisplay = '<span class="badge bg-primary"><i class="fas fa-tasks"></i> Batch Status</span>';
+                                            break;
+                                        case 'batch_update_price':
+                                            $eventTypeDisplay = '<span class="badge bg-primary"><i class="fas fa-tags"></i> Batch Pris</span>';
+                                            break;
+                                        case 'batch_move_shelf':
+                                            $eventTypeDisplay = '<span class="badge bg-primary"><i class="fas fa-arrows-alt"></i> Batch Hylla</span>';
+                                            break;
+                                        case 'batch_set_special_price':
+                                            $eventTypeDisplay = '<span class="badge bg-danger"><i class="fas fa-percentage"></i> Batch Rea</span>';
+                                            break;
+                                        case 'batch_set_rare':
+                                            $eventTypeDisplay = '<span class="badge bg-warning"><i class="fas fa-gem"></i> Batch Raritet</span>';
+                                            break;
+                                        case 'batch_set_recommended':
+                                            $eventTypeDisplay = '<span class="badge bg-info"><i class="fas fa-star"></i> Batch Rekommenderat</span>';
+                                            break;
+                                        case 'batch_delete':
+                                            $eventTypeDisplay = '<span class="badge bg-danger"><i class="fas fa-trash-alt"></i> Batch Ta bort</span>';
+                                            break;
+                                            
+                                        // Default case
+                                        default:
+                                            $eventTypeDisplay = '<span class="badge bg-light text-dark"><i class="fas fa-question"></i> ' . htmlspecialchars($log['event_type']) . '</span>';
+                                    }
+                                ?>
+                                <tr>
+                                    <td><small><?php echo date('Y-m-d H:i:s', strtotime($log['event_timestamp'])); ?></small></td>
+                                    <td><?php echo $eventTypeDisplay; ?></td>
+                                    <td><small><?php echo htmlspecialchars($log['event_description'] ?? ''); ?></small></td>
+                                </tr>
+                                <?php endforeach; ?>
+                            </tbody>
+                        </table>
+                    </div>
+                    <p class="text-muted mt-2">
+                        <i class="fas fa-info-circle me-1"></i>Visar de senaste 50 aktiviteterna för denna användare.
+                    </p>
+                <?php else: ?>
+                    <div class="text-center py-4">
+                        <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                        <p class="text-muted">Inga aktiviteter registrerade för denna användare ännu.</p>
+                    </div>
+                <?php endif;
+            } catch (PDOException $e) {
+                error_log("Error fetching user activity log: " . $e->getMessage());
+                echo '<div class="alert alert-warning">Kunde inte hämta aktivitetsloggen.</div>';
+            }
+            ?>
         </div>
     </div>
     <?php endif;

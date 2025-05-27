@@ -30,11 +30,17 @@ $(document).ready(function() {
         case "addauthor":
             url = "addauthor.php";
             break;
+        case "lists":
+            url = "lists.php";
+            break;
+        case "productlog":
+            url = "productlog.php";
+            break;
         case "tabledatamanagement":
             url = "tabledatamanagement.php";
             break;
-        case "lists":
-            url = "lists.php";
+        case "newsletter":
+            url = "subscribers.php";
             break;
         default:
             return; // Exit if no valid tab
@@ -68,6 +74,52 @@ $(document).ready(function() {
                   setupAutocomplete("author-name", "suggest-author", "author");
                   setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
                   setupImagePreview();
+              } else if (tab === "productlog") {
+                  // Initialize product log functionality
+                  console.log('Product log tab loaded and initialized');
+                  
+                  // The productlog.php contains its own initialization script,
+                  // but we can add any additional setup here if needed
+                  
+                  // Ensure any jQuery event handlers are properly attached
+                  if (typeof loadProductLog === 'function') {
+                      // If the function exists, call it to load initial data
+                      loadProductLog();
+                  }
+                  
+                  // Make sure any dynamically loaded content has proper event handlers
+                  setTimeout(function() {
+                      // Re-attach any global event handlers that might be needed
+                      if (typeof attachActionListeners === 'function') {
+                          attachActionListeners();
+                      }
+                  }, 100);
+                  
+              } else if (tab === "newsletter") {
+                  // Initialize newsletter subscribers functionality
+                  console.log('Newsletter subscribers tab loaded and initialized');
+                  
+                  // The newsletter.php contains its own initialization script
+                  
+                  // Ensure any jQuery event handlers are properly attached
+                  if (typeof loadSubscribers === 'function') {
+                      // If the function exists, call it to load initial data
+                      loadSubscribers();
+                  }
+                  
+                  if (typeof loadSubscriberStats === 'function') {
+                      // Load subscriber statistics
+                      loadSubscriberStats();
+                  }
+                  
+                  // Make sure any dynamically loaded content has proper event handlers
+                  setTimeout(function() {
+                      // Re-attach any global event handlers that might be needed
+                      if (typeof attachActionListeners === 'function') {
+                          attachActionListeners();
+                      }
+                  }, 100);
+                  
               } else if (tab === "lists") {
                   
               } else if (tab === "tabledatamanagement") {
@@ -94,8 +146,8 @@ $(document).ready(function() {
       return;
     }
     
-    // Ctrl+1 to Ctrl+5 for tabs
-    if (e.ctrlKey && e.key >= '1' && e.key <= '5') {
+    // Ctrl+1 to Ctrl+7 for tabs (updated to include newsletter)
+    if (e.ctrlKey && e.key >= '1' && e.key <= '7') {
       e.preventDefault();
       const tabIndex = parseInt(e.key) - 1;
       const tabs = document.querySelectorAll('.nav-link');
@@ -141,6 +193,38 @@ $(document).ready(function() {
         initializeAdminSearch();
       }
       makeRowsClickable();
+    }
+    
+    // Check if we're on the product log tab
+    const productLogForm = document.getElementById('log-filter-form');
+    if (productLogForm) {
+      console.log('Product log form detected, ensuring initialization');
+      
+      // Make sure the product log functionality is properly initialized
+      if (typeof loadProductLog === 'function') {
+        setTimeout(function() {
+          loadProductLog();
+        }, 100);
+      }
+    }
+    
+    // Check if we're on the newsletter subscribers tab
+    const newsletterForm = document.getElementById('subscriber-filter-form');
+    if (newsletterForm) {
+      console.log('Newsletter subscribers form detected, ensuring initialization');
+      
+      // Make sure the newsletter functionality is properly initialized
+      if (typeof loadSubscribers === 'function') {
+        setTimeout(function() {
+          loadSubscribers();
+        }, 100);
+      }
+      
+      if (typeof loadSubscriberStats === 'function') {
+        setTimeout(function() {
+          loadSubscriberStats();
+        }, 100);
+      }
     }
     
     // Handle image upload preview for all image upload fields

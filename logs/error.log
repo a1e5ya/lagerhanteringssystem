@@ -10,3 +10,170 @@ Stack trace:
 #0 C:\laragon\www\Prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
 #1 {main}
   thrown in C:\laragon\www\Prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:33:46 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 14:33:46 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:33:47 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 14:33:47 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:33:49 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 14:33:49 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:33:49 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 14:33:49 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:33:54 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 14:33:54 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:33:54 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 14:33:54 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 14:44:42 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-26 14:44:42
+[26-May-2025 14:45:28 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.comm at 2025-05-26 14:45:28
+[26-May-2025 15:32:32 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 15:32:32 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[26-May-2025 15:32:32 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[26-May-2025 15:32:32 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 10:24:39 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:24:39
+[27-May-2025 10:26:43 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:26:43
+[27-May-2025 10:27:13 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:27:13
+[27-May-2025 10:33:50 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:33:50
+[27-May-2025 10:34:35 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:34:35
+[27-May-2025 10:37:45 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:37:45
+[27-May-2025 10:40:17 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:40:17
+[27-May-2025 10:45:46 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:45:46
+[27-May-2025 10:47:38 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 10:47:38
+[27-May-2025 11:29:44 Europe/Helsinki] Attempting to get product with ID: 30
+[27-May-2025 11:29:44 Europe/Helsinki] Successfully retrieved product: ABBA Gold: Greatest Hits
+[27-May-2025 11:29:44 Europe/Helsinki] PHP Warning:  Undefined variable $productImages in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 11:29:44 Europe/Helsinki] PHP Warning:  foreach() argument must be of type array|object, null given in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 11:29:44 Europe/Helsinki] Attempting to get product with ID: 30
+[27-May-2025 11:29:44 Europe/Helsinki] Successfully retrieved product: ABBA Gold: Greatest Hits
+[27-May-2025 11:29:44 Europe/Helsinki] Error fetching product images: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.product_image' doesn't exist
+[27-May-2025 11:30:12 Europe/Helsinki] Attempting to get product with ID: 31
+[27-May-2025 11:30:12 Europe/Helsinki] Successfully retrieved product: 25
+[27-May-2025 11:30:12 Europe/Helsinki] PHP Warning:  Undefined variable $productImages in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 11:30:12 Europe/Helsinki] PHP Warning:  foreach() argument must be of type array|object, null given in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 11:30:12 Europe/Helsinki] Attempting to get product with ID: 31
+[27-May-2025 11:30:12 Europe/Helsinki] Successfully retrieved product: 25
+[27-May-2025 11:30:12 Europe/Helsinki] Error fetching product images: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.product_image' doesn't exist
+[27-May-2025 11:31:37 Europe/Helsinki] Attempting to get product with ID: 31
+[27-May-2025 11:31:37 Europe/Helsinki] Successfully retrieved product: 25
+[27-May-2025 11:31:37 Europe/Helsinki] PHP Warning:  Undefined variable $productImages in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 11:31:37 Europe/Helsinki] PHP Warning:  foreach() argument must be of type array|object, null given in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 11:31:37 Europe/Helsinki] Attempting to get product with ID: 31
+[27-May-2025 11:31:37 Europe/Helsinki] Successfully retrieved product: 25
+[27-May-2025 11:31:37 Europe/Helsinki] Error fetching product images: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.product_image' doesn't exist
+[27-May-2025 12:37:49 Europe/Helsinki] Attempting to get product with ID: 31
+[27-May-2025 12:37:49 Europe/Helsinki] Successfully retrieved product: 25
+[27-May-2025 12:37:49 Europe/Helsinki] PHP Warning:  Undefined variable $productImages in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 12:37:49 Europe/Helsinki] PHP Warning:  foreach() argument must be of type array|object, null given in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 12:37:49 Europe/Helsinki] Attempting to get product with ID: 31
+[27-May-2025 12:37:49 Europe/Helsinki] Successfully retrieved product: 25
+[27-May-2025 12:37:49 Europe/Helsinki] Error fetching product images: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.product_image' doesn't exist
+[27-May-2025 12:53:12 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 12:53:12 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 12:53:12 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 12:53:12 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 12:53:20 Europe/Helsinki] Attempting to get product with ID: 30
+[27-May-2025 12:53:20 Europe/Helsinki] Successfully retrieved product: ABBA Gold: Greatest Hits
+[27-May-2025 12:53:20 Europe/Helsinki] PHP Warning:  Undefined variable $productImages in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 12:53:20 Europe/Helsinki] PHP Warning:  foreach() argument must be of type array|object, null given in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 525
+[27-May-2025 12:53:20 Europe/Helsinki] Attempting to get product with ID: 30
+[27-May-2025 12:53:20 Europe/Helsinki] Successfully retrieved product: ABBA Gold: Greatest Hits
+[27-May-2025 12:53:20 Europe/Helsinki] Error fetching product images: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.product_image' doesn't exist
+[27-May-2025 13:02:03 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-27 13:02:03
+[27-May-2025 13:18:17 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:18:17 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:18:17 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:18:17 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:19:02 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:19:02 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:19:02 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:19:02 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:40:23 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:40:23 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:40:23 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:40:23 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:42:01 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:42:01 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:42:01 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:42:01 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:45:04 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:45:04 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21
+[27-May-2025 13:45:04 Europe/Helsinki] PHP Warning:  Undefined array key "product_images_path" in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 230
+[27-May-2025 13:45:04 Europe/Helsinki] PHP Fatal error:  Uncaught TypeError: ImageProcessor::__construct(): Argument #2 ($uploadDir) must be of type string, array given, called in C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php on line 231 and defined in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php:21
+Stack trace:
+#0 C:\laragon\www\prog23\lagerhanteringssystem\admin\addproduct.php(231): ImageProcessor->__construct(Object(PDO), Array)
+#1 {main}
+  thrown in C:\laragon\www\prog23\lagerhanteringssystem\includes\ImageProcessor.php on line 21

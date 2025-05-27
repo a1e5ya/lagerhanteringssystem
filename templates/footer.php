@@ -1,10 +1,10 @@
 <?php
 /**
- * Footer Template (Updated with JS Loader)
+ * Footer Template (Updated with Newsletter Modal)
  * 
  * Contains:
  * - Footer with contact info
- * - Newsletter subscription
+ * - Newsletter subscription modal trigger
  * - Copyright information
  * - Centralized JavaScript loading
  */
@@ -31,6 +31,14 @@ if (!isset($strings)) {
                     </a><br>
                     <i class="fas fa-building me-2"></i>FO: 3302825-3
                 </address>
+
+              <!-- Privacy Policy Link -->
+                <div class="mt-3">
+                    <a href="<?php echo url('policy.php'); ?>" class="text-white text-decoration-none">
+                        <i class="fas fa-shield-alt me-2"></i><?php echo $strings['privacy_policy'] ?? 'Registerbeskrivning'; ?>
+                    </a>
+                </div>
+
             </div>
             <div class="col-md-4 mb-3 mb-md-0">
                 <h5><?php echo $strings['opening_hours']; ?></h5>
@@ -46,13 +54,12 @@ if (!isset($strings)) {
             <div class="col-md-4">
                 <h5><?php echo $strings['newsletter']; ?></h5>
                 <p><?php echo $strings['newsletter_desc']; ?></p>
-                <!-- Form action with routing helper -->
-                <form id="newsletter-form" method="post" action="<?php echo url('newsletter.php'); ?>">
-                    <div class="input-group mb-3">
-                        <input type="email" class="form-control" name="email" placeholder="<?php echo $strings['your_email']; ?>" aria-label="<?php echo $strings['your_email']; ?>" id="newsletter-email" required>
-                    </div>
-                    <button class="btn btn-light" type="submit"><?php echo $strings['subscribe']; ?></button>
-                </form>
+                
+                <!-- Newsletter Button to Open Modal -->
+                <button class="btn btn-light" type="button" id="newsletter-modal-trigger">
+                    <i class="fas fa-envelope me-2"></i>
+                    <?php echo $strings['subscribe']; ?>
+                </button>
             </div>
         </div>
         <hr class="my-3 bg-light">
@@ -61,6 +68,9 @@ if (!isset($strings)) {
         </div>
     </div>
 </footer>
+
+<!-- Include Newsletter Modal -->
+<?php include 'newsletter_modal.php'; ?>
 
 <!-- Load JavaScript using the centralized loader -->
 <?php 
@@ -75,8 +85,55 @@ echo loadPublicJavaScript();
 ?>
 
 <script>
-    // Forgot password link functionality
+    // Newsletter modal trigger and language detection
     document.addEventListener('DOMContentLoaded', function() {
+        // Handle newsletter modal trigger
+        const newsletterTrigger = document.getElementById('newsletter-modal-trigger');
+        if (newsletterTrigger) {
+            newsletterTrigger.addEventListener('click', function() {
+                // Better language detection
+                let currentLanguage = 'sv'; // default
+                
+                // Check URL parameter
+                const urlParams = new URLSearchParams(window.location.search);
+                if (urlParams.get('lang') === 'fi') {
+                    currentLanguage = 'fi';
+                } else if (urlParams.get('lang') === 'sv') {
+                    currentLanguage = 'sv';
+                } else {
+                    // Check HTML lang attribute
+                    const htmlLang = document.documentElement.lang;
+                    if (htmlLang && htmlLang.startsWith('fi')) {
+                        currentLanguage = 'fi';
+                    } else if (htmlLang && htmlLang.startsWith('sv')) {
+                        currentLanguage = 'sv';
+                    } else {
+                        // Check body class or other indicators
+                        if (document.body.classList.contains('lang-fi')) {
+                            currentLanguage = 'fi';
+                        }
+                        // If no specific indicators, check the page content language
+                        // This is a fallback method
+                        const pageText = document.body.innerText.toLowerCase();
+                        if (pageText.includes('tervetuloa') || pageText.includes('tilaa') || pageText.includes('uutiskirje')) {
+                            currentLanguage = 'fi';
+                        }
+                    }
+                }
+                
+                console.log('Detected language:', currentLanguage); // Debug log
+                
+                const languageInput = document.getElementById('newsletter-language');
+                if (languageInput) {
+                    languageInput.value = currentLanguage;
+                }
+                
+                // Show the newsletter modal
+                const newsletterModal = new bootstrap.Modal(document.getElementById('newsletterModal'));
+                newsletterModal.show();
+            });
+        }
+
         // Handle forgot password link
         const forgotPasswordLink = document.getElementById('forgot-password');
         if (forgotPasswordLink) {

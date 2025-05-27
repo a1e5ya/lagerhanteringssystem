@@ -110,8 +110,7 @@ function performPublicSearch(page = 1, randomSamples = false) {
  * Make table rows clickable
  */
 function makeRowsClickable() {
-    console.log('Making rows clickable - testing with modified URL');
-    
+   
     document.querySelectorAll('.clickable-row').forEach(row => {
         row.addEventListener('click', function(e) {
             // Only navigate if not clicking on a control element
@@ -120,7 +119,6 @@ function makeRowsClickable() {
                 if (href) {
                     // Add a dummy parameter to prevent caching or interception
                     const modifiedHref = href + (href.includes('?') ? '&' : '?') + '_=' + Date.now();
-                    console.log('Navigating to modified URL:', modifiedHref);
                     window.location.href = modifiedHref;
                 }
             }
@@ -133,13 +131,11 @@ function makeRowsClickable() {
  * @param {Event} event Click event
  */
 function rowClickHandler(event) {
-    console.log('Row clicked!', event.target, this.dataset.href);
     
     // Only navigate if click wasn't on a button, link, or other interactive element
     if (!event.target.closest('a, button, input, select, .no-click')) {
         const href = this.dataset.href;
         if (href) {
-            console.log('Navigating to:', href);
             window.location.href = href;
         } else {
             console.log('No href found on this row');

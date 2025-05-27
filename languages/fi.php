@@ -84,6 +84,20 @@ $lang_strings = array(
     'your_email' => 'Sähköpostiosoitteesi',
     'subscribe' => 'Tilaa',
 
+    // Newsletter specific
+    'name' => 'Nimi',
+    'your_name' => 'Nimesi',
+    'optional' => 'Valinnainen',
+    'newsletter_success' => 'Kiitos uutiskirjeen tilauksesta!',
+    'success' => 'Kiitos!',
+    'close' => 'Sulje',
+    'recaptcha_required' => 'Vahvista, että et ole robotti',
+    'newsletter_already_subscribed' => 'Tilaat jo uutiskirjettämme. Tietosi on päivitetty.',
+'newsletter_reactivated' => 'Uutiskirjeen tilauksesi on aktivoitu uudelleen!',
+'technical_error' => 'Tekninen virhe. Yritä myöhemmin uudelleen.',
+'save_error' => 'Virhe tallennuksessa. Yritä uudelleen.',
+'activation_error' => 'Virhe aktivoinnissa. Yritä uudelleen.',
+
     // Other common elements
     'unknown_author' => 'Tuntematon kirjailija',
 
@@ -102,4 +116,86 @@ $lang_strings = array(
     'product_reserved' => 'Tämä tuote on tällä hetkellä varattu, mutta saattaa tulla saataville myöhemmin. Ota yhteyttä saadaksesi lisätietoja.',
     'product_unavailable' => 'Tämä tuote ei ole tällä hetkellä saatavilla myyntiin. Ota yhteyttä saadaksesi lisätietoja.',
     'related_items' => 'Vastaavat tuotteet',
+
+    // Privacy Policy Page
+    'privacy_policy_title' => 'Rekisteriseloste',
+    'privacy_policy' => 'Rekisteriseloste',
+    
+    // Contact and company info
+    'data_controller' => 'Rekisterinpitäjä',
+    'data_contact_person' => 'Yhteyshenkilö henkilötietoasioissa',
+    'data_contact_info' => 'Henkilötietojen käsittelyä koskevissa kysymyksissä, ota yhteyttä',
+    'country' => 'Suomi',
+    'phone' => 'Puhelin',
+    'business_id' => 'Y-tunnus',
+    
+    // Data processing
+    'data_processing_purpose' => 'Henkilötietojen käsittelyn tarkoitus',
+    'newsletter_purpose' => 'Tiedottaminen uusista tuotteista, tarjouksista ja liikkeen uutisista',
+    'website_purpose' => 'Verkkosivuston tekninen toiminta ja käyttäjäkokemuksen parantaminen',
+    'purpose' => 'Tarkoitus',
+    'legal_basis' => 'Oikeusperuste',
+    'data_processed' => 'Käsiteltävät tiedot',
+    'retention_period' => 'Säilytysaika',
+    'consent' => 'Suostumus',
+    'legitimate_interest' => 'Oikeutettu etu',
+    'email_address' => 'Sähköpostiosoite',
+    'newsletter_retention' => 'Kunnes peruutat uutiskirjeen tilauksen tai peruutat suostumuksesi',
+    'website_function' => 'Verkkosivuston toiminta',
+    'language_choice' => 'Kielivalinta (tallennetaan selaimen istuntoon)',
+    'technical_info' => 'Tekniset tiedot kuten IP-osoite (vain palvelinlokeissa turvallisuuden ja virheiden selvittämisen vuoksi)',
+    'website_retention' => 'Istuntotiedot poistetaan selaimen sulkemisen yhteydessä. Palvelinlokeja säilytetään enintään 30 päivää.',
+    
+    // What we don't collect
+    'data_not_collected' => 'EMMÄ kerää seuraavia tietoja',
+    'no_personal_browsing' => 'Henkilötietoja tuotteiden hakemisen tai selaamisen yhteydessä',
+    'no_payment_data' => 'Luottokortti- tai maksutietoja (kaikki ostot tapahtuvat fyysisessä liikkeessä)',
+    'no_tracking_cookies' => 'Seurantaan tai markkinointiin tarkoitettuja evästeitä',
+    'no_user_profiles' => 'Profiileja tai käyttäjätietoja analysointia varten',
+    
+    // Rights
+    'your_rights' => 'Oikeutesi',
+    'gdpr_rights_intro' => 'Sinulla on seuraavat oikeudet tietosuoja-asetuksen (GDPR) mukaisesti:',
+    'right_access' => 'Tarkastusoikeus',
+    'right_access_desc' => 'Voit pyytää tietoa siitä, mitä henkilötietoja käsittelemme sinusta',
+    'right_rectification' => 'Oikeus tietojen oikaisemiseen',
+    'right_rectification_desc' => 'Voit pyytää virheellisten tietojen korjaamista',
+    'right_erasure' => 'Oikeus tietojen poistamiseen',
+    'right_erasure_desc' => 'Voit pyytää tietojesi poistamista',
+    'right_restriction' => 'Oikeus käsittelyn rajoittamiseen',
+    'right_restriction_desc' => 'Voit pyytää käsittelyn rajoittamista',
+    'right_portability' => 'Oikeus tietojen siirrettävyyteen',
+    'right_portability_desc' => 'Voit pyytää tietojasi jäsennellyssä muodossa',
+    'right_object' => 'Vastustamisoikeus',
+    'right_object_desc' => 'Voit vastustaa oikeutettuun etuun perustuvaa käsittelyä',
+    'right_withdraw' => 'Oikeus peruuttaa suostumus',
+    'right_withdraw_desc' => 'Voit milloin tahansa peruuttaa suostumuksesi uutiskirjeen suhteen',
+    'exercise_rights' => 'Oikeuksiesi käyttämiseksi, ota yhteyttä',
+    
+    // Newsletter
+    'newsletter_unsubscribe' => 'Uutiskirjeen tilauksen peruuttaminen',
+    'unsubscribe_methods' => 'Voit milloin tahansa peruuttaa uutiskirjeen tilauksen:',
+    'unsubscribe_link' => 'Klikkaamalla uutiskirjeessä olevaa peruutuslinkiä',
+    'unsubscribe_contact' => 'Ottamalla yhteyttä suoraan',
+    
+    
+    // Security and sharing
+    'security' => 'Tietoturva',
+    'security_measures' => 'Toteutamme asianmukaiset tekniset ja organisatoriset toimenpiteet henkilötietojesi suojaamiseksi luvattomalta pääsyltä, katoamiselta tai väärinkäytöltä.',
+    'data_sharing' => 'Tietojen luovuttaminen',
+    'no_data_sharing' => 'Emme luovuta henkilötietojasi kolmansille osapuolille, lukuun ottamatta:',
+    'technical_providers' => 'Teknisiä palveluntarjoajia, jotka auttavat verkkosivuston ylläpidossa (heillä on rajoitettu pääsy ja he saavat käsitellä tietoja vain ohjidemme mukaisesti)',
+    'legal_requirements' => 'Kun laki sitä edellyttää',
+    
+    // Changes and complaints
+    'policy_changes' => 'Muutokset tähän rekisteriselosteeseen',
+    'policy_changes_info' => 'Voimme päivittää tätä rekisteriselostet. Olennaisista muutoksista ilmoitamme verkkosivuillamme.',
+    'complaints' => 'Valitukset',
+    'complaints_intro' => 'Jos katsot, että käsittelemme henkilötietojasi virheellisesti, voit tehdä valituksen:',
+    'data_protection_authority' => 'Tietosuojavaltuutetun toimisto',
+    'authority_visit_address' => 'Käyntiosoite: Lintulahdenkuja 4, 00530 Helsinki',
+    'authority_post_address' => 'Postiosoite: PL 800, 00531 Helsinki',
+    'authority_phone' => 'Puhelinvaihde',
+    'authority_registry' => 'Kirjaamo',
+    'last_updated' => 'Viimeksi päivitetty',
 );

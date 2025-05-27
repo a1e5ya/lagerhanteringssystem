@@ -14,6 +14,12 @@ $currentPage = basename($_SERVER['PHP_SELF']);
 // Check if user is logged in
 $isLoggedIn = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
 
+// Get current user info if available and logged in
+$currentUser = null;
+if ($isLoggedIn && function_exists('getSessionUser')) {
+    $currentUser = getSessionUser();
+}
+
 // Check for login error
 $hasLoginError = isset($_GET['error']);
 $loginError = $hasLoginError ? $_GET['error'] : '';
@@ -90,13 +96,21 @@ $showLoginModal = $hasLoginError;
                                 FI
                             </a>
                         </div>
-                        <!-- Login/Logout Button -->
+                        
                         <?php if ($isLoggedIn): ?>
-                            <!-- Using url helper with parameters -->
+                            <!-- Admin Button (only when logged in) -->
+                            <?php if ($currentUser && isset($currentUser['user_username'])): ?>
+                            <a href="<?php echo url('admin.php'); ?>" class="btn btn-outline-light me-2">
+                                <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($currentUser['user_username']); ?>
+                            </a>
+                            <?php endif; ?>
+                            
+                            <!-- Logout Button -->
                             <a href="<?php echo url('index.php', ['logout' => 1]); ?>" class="btn btn-outline-light">
                                 <i class="fas fa-sign-out-alt me-1"></i> Logga ut
                             </a>
                         <?php else: ?>
+                            <!-- Login Button -->
                             <a href="#" class="btn btn-outline-light login-btn" id="login-btn" data-bs-toggle="modal" data-bs-target="#loginModal">
                                 <i class="fas fa-user me-1"></i> <?php echo $strings['login']; ?>
                             </a>

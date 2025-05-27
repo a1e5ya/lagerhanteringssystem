@@ -493,8 +493,8 @@ section h2 {
 
 /* Language Switcher and Button Consistency */
 .language-switcher .btn {
-    width: 40px;  /* Square buttons */
-    height: 40px; /* Same width and height */
+    width: 37px;  /* Square buttons */
+    height: 37px; /* Same width and height */
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -663,3 +663,58 @@ address i {
       transform: translateY(-2px);
     }
   }
+
+
+  /* Full width tabs for admin panel */
+#inventory-tabs {
+    width: 100%;
+    display: flex;
+}
+
+#inventory-tabs .nav-item {
+    flex: 1;
+}
+
+#inventory-tabs .nav-link {
+    text-align: center;
+    width: 100%;
+    border-radius: 0;
+    padding: 12px 8px;
+    font-weight: 500;
+    transition: all 0.3s ease;
+}
+
+#inventory-tabs .nav-link:hover {
+    background-color: #f8f9fa;
+    border-color: #dee2e6;
+}
+
+#inventory-tabs .nav-link.active {
+    background-color: #fff;
+    border-color: #dee2e6 #dee2e6 #fff;
+    font-weight: 600;
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+    #inventory-tabs .nav-link {
+        padding: 8px 4px;
+        font-size: 0.9rem;
+    }
+}
+
+@media (max-width: 576px) {
+    #inventory-tabs {
+        flex-wrap: wrap;
+    }
+    
+    #inventory-tabs .nav-item {
+        flex: 0 0 50%;
+        max-width: 50%;
+    }
+    
+    #inventory-tabs .nav-link {
+        font-size: 0.8rem;
+        padding: 6px 2px;
+    }
+}
