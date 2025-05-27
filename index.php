@@ -452,87 +452,117 @@ include 'templates/header.php';
 include 'templates/footer.php';
 ?>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<!-- <script src="assets/js/pagination.js"></script> -->
-<script src="<?php echo url('assets/js/main.js'); ?>"></script>
-
-
 
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    console.log("Initializing public search...");
-    
+document.addEventListener('DOMContentLoaded', function () {
     // Make table rows clickable
     makeRowsClickable();
-    
+
     // Handle search form submission
     const searchForm = document.getElementById('search-form');
     if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
+        searchForm.addEventListener('submit', function (e) {
             e.preventDefault();
-            
+
             // Regular search - not random samples
             performPublicSearch(1, false);
         });
     }
-    
+
     // Handle category filter change
     const categorySelect = document.getElementById('public-category');
     if (categorySelect) {
-        categorySelect.addEventListener('change', function() {
+        categorySelect.addEventListener('change', function () {
             searchForm.dispatchEvent(new Event('submit'));
         });
     }
-    
+
     // Handle page size selector
     const pageSizeSelector = document.getElementById('page-size-selector');
     if (pageSizeSelector) {
-        pageSizeSelector.addEventListener('change', pageSizeSelectorHandler);
+        pageSizeSelector.addEventListener('change', function() {
+            const searchTerm = document.getElementById('public-search').value;
+            const category = document.getElementById('public-category').value;
+            const limit = this.value;
+            const sort = document.getElementById('public-sort-column').value;
+            const order = document.getElementById('public-sort-direction').value;
+            
+            const paginationLinks = document.getElementById('pagination-links');
+            const isRandomSamples = paginationLinks && paginationLinks.getAttribute('data-random-samples') === 'true';
+            
+            loadProducts(searchTerm, category, 1, limit, sort, order, isRandomSamples);
+        });
     }
-    
+
     // Handle table header sorting
     const sortHeaders = document.querySelectorAll('th[data-sort]');
     sortHeaders.forEach(header => {
-        header.addEventListener('click', function() {
+        header.addEventListener('click', function () {
             const sortColumn = this.dataset.sort;
-            
+
             // Get current sort direction or default to asc
             const currentSortColumn = document.getElementById('public-sort-column').value;
             let currentSortDirection = document.getElementById('public-sort-direction').value;
-            
+
             // Toggle sort direction if clicking the same column
             let newSortDirection = 'asc';
             if (sortColumn === currentSortColumn) {
                 newSortDirection = currentSortDirection === 'asc' ? 'desc' : 'asc';
             }
-            
+
             // Update hidden sort inputs
             document.getElementById('public-sort-column').value = sortColumn;
             document.getElementById('public-sort-direction').value = newSortDirection;
+
+            // Update visual indicators
+            sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+            this.classList.add(`sort-${newSortDirection}`);
+
+            // Get current search parameters
+            const searchTerm = document.getElementById('public-search').value;
+            const category = document.getElementById('public-category').value;
+            const limit = document.getElementById('page-size-selector').value;
             
-            // Check if we're in random samples mode
-            const isRandomSamples = document.getElementById('pagination-links').getAttribute('data-random-samples') === 'true';
-            
-            // Use performPublicSearch with sort parameters and maintain random samples mode
-            performPublicSearch(1, isRandomSamples);
+            // IMPORTANT: When sorting, always switch to showing all products (not random samples)
+            const isRandomSamples = false;
+
+            // Call loadProducts with ALL parameters including sort
+            loadProducts(searchTerm, category, 1, limit, sortColumn, newSortDirection, isRandomSamples);
         });
     });
-    
+
     // Load initial products - always use random samples on initial load
     const urlParams = new URLSearchParams(window.location.search);
     const searchTerm = urlParams.get('search') || '';
     const category = urlParams.get('category') || 'all';
-    
-    if (searchTerm || (category !== 'all' && category !== '')) {
-        // If search or category filter is applied, use regular search
-        performPublicSearch(1, false);
-    } else {
-        // Otherwise, use random samples
-        performPublicSearch(1, true);
-    }
+    const sort = urlParams.get('sort') || '';
+    const order = urlParams.get('order') || 'asc';
+    const limit = urlParams.get('limit') || 10;
+    const page = urlParams.get('page') || 1;
+
+    // Determine if random samples should be loaded
+    // If there's a sort parameter in the URL, don't use random samples
+    const isRandomSamples = !searchTerm && category === 'all' && !sort && !urlParams.has('random_samples');
+
+    // Load products with the current parameters
+    loadProducts(searchTerm, category, page, limit, sort, order, isRandomSamples);
 });
 
+/**
+ * Perform public search
+ * 
+ * @param {number} page - Page number
+ * @param {boolean} randomSamples - Whether to load random samples
+ */
+function performPublicSearch(page = 1, randomSamples = false) {
+    const searchTerm = document.getElementById('public-search').value;
+    const category = document.getElementById('public-category').value;
+    const limit = document.getElementById('page-size-selector').value;
+    const sort = document.getElementById('public-sort-column').value;
+    const order = document.getElementById('public-sort-direction').value;
+    
+    loadProducts(searchTerm, category, page, limit, sort, order, randomSamples);
+}
 
 /**
  * Load products via AJAX
@@ -546,8 +576,6 @@ document.addEventListener('DOMContentLoaded', function() {
  * @param {boolean} randomSamples - Whether to load random samples
  */
 function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, sort = '', order = 'asc', randomSamples = false) {
-    console.log('Loading products with parameters:', { searchTerm, category, page, limit, sort, order, randomSamples });
-    
     // Show loading indicator
     const tableBody = document.getElementById('public-inventory-body');
     if (tableBody) {
@@ -561,24 +589,30 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
             </tr>
         `;
     }
-    
-    // Update URL for bookmarking/history (only for explicit searches)
-    if (!randomSamples) {
-        const url = new URL(window.location.href);
-        url.searchParams.set('search', searchTerm);
-        url.searchParams.set('category', category);
-        url.searchParams.set('page', page);
-        url.searchParams.set('limit', limit);
-        if (sort) {
-            url.searchParams.set('sort', sort);
-            url.searchParams.set('order', order);
-        } else {
-            url.searchParams.delete('sort');
-            url.searchParams.delete('order');
-        }
-        window.history.pushState({}, '', url);
+
+    // Update URL for bookmarking/history
+    const url = new URL(window.location.href);
+    url.searchParams.set('search', searchTerm);
+    url.searchParams.set('category', category);
+    url.searchParams.set('page', page);
+    url.searchParams.set('limit', limit);
+    if (sort) {
+        url.searchParams.set('sort', sort);
+        url.searchParams.set('order', order);
+    } else {
+        url.searchParams.delete('sort');
+        url.searchParams.delete('order');
     }
-    
+
+    // Add random_samples to the URL if needed
+    if (randomSamples) {
+        url.searchParams.set('random_samples', 'true');
+    } else {
+        url.searchParams.delete('random_samples');
+    }
+
+    window.history.pushState({}, '', url);
+
     // Set request parameters
     const requestParams = {
         search: searchTerm,
@@ -588,54 +622,51 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
         sort: sort,
         order: order
     };
-    
+
     // Add random_samples parameter if needed
     if (randomSamples) {
         requestParams.random_samples = 'true';
     }
-    
-    // FIXED: Always use api/get_public_products.php instead of admin/search.php
-    fetch('api/get_public_products.php?' + new URLSearchParams(requestParams))
-    .then(response => {
-        if (!response.ok) {
-            throw new Error('Network response was not ok');
-        }
-        return response.json();
-    })
-    .then(data => {
-        console.log('API response data:', data);
-        
-        if (data.success) {
-            // Update table with products
-            if (data.html && tableBody) {
-                tableBody.innerHTML = data.html;
-                makeRowsClickable(); // Re-initialize clickable rows
-            }
-            
-            // Update pagination info
-            if (data.pagination) {
-                updatePaginationInfo(data.pagination);
-            }
-            
-            // Scroll to browse section if this was a search (not random samples)
-            if ((searchTerm || category !== 'all') && !randomSamples) {
-                document.getElementById('browse').scrollIntoView({ behavior: 'smooth' });
-            }
-        } else {
-            // Show error message
-            if (tableBody) {
-                tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message || 'Ett fel inträffade'}</td></tr>`;
-            }
-        }
-    })
-    .catch(error => {
-        console.error('Fetch Error:', error);
-        if (tableBody) {
-            tableBody.innerHTML = '<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade vid hämtning av data</td></tr>';
-        }
-    });
-}
 
+    // Fetch products
+    fetch('api/get_public_products.php?' + new URLSearchParams(requestParams))
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Update table with products
+                if (data.html && tableBody) {
+                    tableBody.innerHTML = data.html;
+                    makeRowsClickable(); // Re-initialize clickable rows
+                }
+
+                // Update pagination info
+                if (data.pagination) {
+                    updatePaginationInfo(data.pagination, randomSamples);
+                }
+
+                // Restore sort indicators
+                const sortHeaders = document.querySelectorAll('th[data-sort]');
+                sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
+
+                if (sort) {
+                    const activeHeader = document.querySelector(`th[data-sort="${sort}"]`);
+                    if (activeHeader) {
+                        activeHeader.classList.add(`sort-${order}`);
+                    }
+                }
+            } else {
+                // Show error message
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message || 'Ett fel inträffade'}</td></tr>`;
+                }
+            }
+        });
+}
 
 /**
  * Update pagination information
@@ -649,43 +680,48 @@ function updatePaginationInfo(pagination, randomSamples = false) {
     if (showingStart) {
         showingStart.textContent = pagination.firstRecord;
     }
-    
+
     const showingEnd = document.getElementById('showing-end');
     if (showingEnd) {
         showingEnd.textContent = pagination.lastRecord;
     }
-    
+
     const totalItems = document.getElementById('total-items');
     if (totalItems) {
         totalItems.textContent = pagination.totalItems;
     }
-    
+
     // Update pagination links
     const paginationLinks = document.getElementById('pagination-links');
     if (paginationLinks) {
         let html = '';
-        
+
+        // Get current sort and order
+        const sort = document.getElementById('public-sort-column').value;
+        const order = document.getElementById('public-sort-direction').value;
+        const limit = document.getElementById('page-size-selector').value;
+
         // Previous page button
         html += `
             <li class="page-item ${pagination.currentPage <= 1 ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${pagination.currentPage - 1}" aria-label="Previous" ${pagination.currentPage <= 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                <a class="page-link" href="#" data-page="${pagination.currentPage - 1}" data-limit="${limit}" data-sort="${sort}" data-order="${order}" aria-label="Previous" ${pagination.currentPage <= 1 ? 'tabindex="-1" aria-disabled="true"' : ''}>
                     <span aria-hidden="true">&laquo;</span>
                 </a>
             </li>
         `;
-        
+
         // Calculate range of page numbers to display
         const startPage = Math.max(1, pagination.currentPage - 2);
         const endPage = Math.min(pagination.totalPages, pagination.currentPage + 2);
-        
+
         // First page link if not in range
         if (startPage > 1) {
             html += `
                 <li class="page-item">
-                    <a class="page-link" href="#" data-page="1">1</a>
+                    <a class="page-link" href="#" data-page="1" data-limit="${limit}" data-sort="${sort}" data-order="${order}">1</a>
                 </li>
             `;
-            
+
             // Add ellipsis if needed
             if (startPage > 2) {
                 html += `
@@ -695,16 +731,16 @@ function updatePaginationInfo(pagination, randomSamples = false) {
                 `;
             }
         }
-        
+
         // Page number links
         for (let i = startPage; i <= endPage; i++) {
             html += `
                 <li class="page-item ${i === pagination.currentPage ? 'active' : ''}">
-                    <a class="page-link" href="#" data-page="${i}">${i}</a>
+                    <a class="page-link" href="#" data-page="${i}" data-limit="${limit}" data-sort="${sort}" data-order="${order}">${i}</a>
                 </li>
             `;
         }
-        
+
         // Last page link if not in range
         if (endPage < pagination.totalPages) {
             // Add ellipsis if needed
@@ -715,85 +751,67 @@ function updatePaginationInfo(pagination, randomSamples = false) {
                     </li>
                 `;
             }
-            
+
             html += `
                 <li class="page-item">
-                    <a class="page-link" href="#" data-page="${pagination.totalPages}">${pagination.totalPages}</a>
+                    <a class="page-link" href="#" data-page="${pagination.totalPages}" data-limit="${limit}" data-sort="${sort}" data-order="${order}">${pagination.totalPages}</a>
                 </li>
             `;
         }
-        
+
         // Next page button
         html += `
             <li class="page-item ${pagination.currentPage >= pagination.totalPages ? 'disabled' : ''}">
-                <a class="page-link" href="#" data-page="${pagination.currentPage + 1}" aria-label="Next" ${pagination.currentPage >= pagination.totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>
+                <a class="page-link" href="#" data-page="${pagination.currentPage + 1}" data-limit="${limit}" data-sort="${sort}" data-order="${order}" aria-label="Next" ${pagination.currentPage >= pagination.totalPages ? 'tabindex="-1" aria-disabled="true"' : ''}>
                     <span aria-hidden="true">&raquo;</span>
                 </a>
             </li>
         `;
-        
+
         paginationLinks.innerHTML = html;
-        
+
         // Add random samples flag to data attributes
         if (randomSamples) {
             paginationLinks.setAttribute('data-random-samples', 'true');
         } else {
             paginationLinks.removeAttribute('data-random-samples');
         }
-        
+
         // Attach event listeners to pagination links
         const links = paginationLinks.querySelectorAll('.page-link');
         links.forEach(link => {
-            link.addEventListener('click', function(e) {
+            link.addEventListener('click', function (e) {
                 e.preventDefault();
-                
+
                 const page = parseInt(this.dataset.page, 10);
+                const limit = parseInt(this.dataset.limit, 10);
+                const sort = this.dataset.sort || '';
+                const order = this.dataset.order || 'asc';
+
                 if (!isNaN(page)) {
                     // Check if we're in random samples mode
                     const isRandomSamples = paginationLinks.getAttribute('data-random-samples') === 'true';
-                    
-                    // Use performPublicSearch with appropriate random samples flag
-                    performPublicSearch(page, isRandomSamples);
+
+                    // Call loadProducts with the current sort and order
+                    loadProducts(
+                        document.getElementById('public-search').value,
+                        document.getElementById('public-category').value,
+                        page,
+                        limit,
+                        sort,
+                        order,
+                        isRandomSamples
+                    );
                 }
             });
         });
     }
-    
-    // Update page size selector if available
-    const pageSizeSelector = document.getElementById('page-size-selector');
-    if (pageSizeSelector && pagination.pageSizeOptions) {
-        let options = '';
-        pagination.pageSizeOptions.forEach(size => {
-            const selected = size == pagination.itemsPerPage ? 'selected' : '';
-            options += `<option value="${size}" ${selected}>${size}</option>`;
-        });
-        pageSizeSelector.innerHTML = options;
-        
-        // Add random samples flag to data attributes
-        if (randomSamples) {
-            pageSizeSelector.setAttribute('data-random-samples', 'true');
-        } else {
-            pageSizeSelector.removeAttribute('data-random-samples');
-        }
-        
-        // Reinitialize event listener
-        pageSizeSelector.removeEventListener('change', pageSizeSelectorHandler);
-        pageSizeSelector.addEventListener('change', pageSizeSelectorHandler);
-    }
-}
 
-/**
- * Handler for page size selector changes
- */
-function pageSizeSelectorHandler() {
-    // Get current page
-    const currentPage = 1; // Always go back to page 1 when changing page size
-    
-    // Check if we're in random samples mode
-    const isRandomSamples = this.getAttribute('data-random-samples') === 'true';
-    
-    // Use performPublicSearch with appropriate random samples flag
-    performPublicSearch(currentPage, isRandomSamples);
+    // Update page size selector to show current value
+    const pageSizeSelector = document.getElementById('page-size-selector');
+    if (pageSizeSelector && pagination.itemsPerPage) {
+        pageSizeSelector.value = pagination.itemsPerPage;
+    }
 }
 
 document.addEventListener('click', function(event) {
@@ -802,7 +820,6 @@ document.addEventListener('click', function(event) {
     if (row && row.dataset.href) {
         // Don't navigate if clicking on a control element
         if (!event.target.closest('a, button, input, select, .no-click')) {
-            console.log('Global handler navigating to:', row.dataset.href);
             window.location.href = row.dataset.href;
         }
     }
