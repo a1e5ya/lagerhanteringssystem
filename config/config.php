@@ -53,7 +53,7 @@ $app_config = [
     'uploads' => [
         'max_size' => 5242880, // 5MB
         'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-        'product_images_path' => 'assets/images'
+        'product_images_path' => 'admin/assets/images'
     ],
     'languages' => [
         'default' => 'sv',

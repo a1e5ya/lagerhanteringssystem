@@ -30,6 +30,23 @@ if ($productId <= 0) {
  * @param int $productId Product ID to fetch
  * @return object|null Product data or null if not found
  */
+
+function getProductImagesByProductId($productId) {
+    global $pdo; // Access the global PDO database connection
+
+    try {
+        $stmt = $pdo->prepare("SELECT image_path FROM image WHERE prod_id = :prod_id ORDER BY image_path ASC");
+        $stmt->bindParam(':prod_id', $productId, PDO::PARAM_INT);
+        $stmt->execute();
+        $images = $stmt->fetchAll(PDO::FETCH_COLUMN); // Fetch just the image_path column
+
+        return $images;
+    } catch (PDOException $e) {
+        error_log("Database error fetching product images: " . $e->getMessage());
+        return []; // Return an empty array on error
+    }
+}
+
 function getProductById($productId) {
     global $pdo, $language;
     
@@ -200,13 +217,18 @@ function getRelatedProducts($productId, $categoryId, $genreIds, $limit = 4) {
     }
 }
 
-// Get product data
+// After you've fetched the product:
 $product = getProductById($productId);
 
-// If product not found, redirect to home page
-if (!$product) {
-    error_log("Redirecting to index.php because product not found");
-    header("Location: " . url('index.php', ['error' => 'product_not_found', 'id' => $productId]));
+if ($product) {
+    // Fetch images for the product
+    $productImages = getProductImagesByProductId($product->prod_id);
+
+    // ... (rest of your product display logic will go here) ...
+
+} else {
+    // Handle product not found
+    header("Location: " . url('index.php'));
     exit;
 }
 
@@ -257,7 +279,7 @@ include 'templates/header.php';
                 <div class="item-image-container">
                     <?php
                     // Check if product image exists, otherwise use default based on category
-                    $imagePath = 'uploads/products/' . $product->prod_id . '.jpg';
+                    $imagePath = '/prog23/lagerhanterinssystem/admin/assets/images' . $product->prod_id . '.jpg';
                     $defaultImage = asset('images', 'default_antiqe_image.webp'); // Default image
                     
                     if ($product->category_id == 5) { // CD
@@ -374,7 +396,7 @@ include 'templates/header.php';
                             <div class="col-6">
                                 <?php
                                 // Check if related product image exists
-                                $relatedImagePath = 'uploads/products/' . $relatedProduct->prod_id . '.jpg';
+                                $relatedImagePath = 'admin/assets/images/' . $relatedProduct->prod_id . '.jpg';
                                 $relatedDefaultImage = asset('images', 'default_antiqe_image.webp'); // Default related image
                                 $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                                 ?>
@@ -396,7 +418,7 @@ include 'templates/header.php';
                     <div class="d-none d-md-block">
                         <?php
                         // Check if related product image exists
-                        $relatedImagePath = 'uploads/products/' . $relatedProduct->prod_id . '.jpg';
+                        $relatedImagePath = '/admin/assets/images/' . $relatedProduct->prod_id . '.jpg';
                         $relatedDefaultImage = asset('images', 'default_antiqe_image.webp'); // Default related image
                         $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
                         ?>

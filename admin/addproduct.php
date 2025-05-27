@@ -157,7 +157,7 @@ function createProduct($data, $pdo) {
 function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected_value = '', $locale = 'sv') {
     try {
         // Construct the language-specific field name
-        $localized_name_field = $name_field . '_' . $locale;
+        $localized_name_field = $name_field . '_' . $locale . '_name'; // <--- ADDED '_name' here;
 
         // Check if the localized column exists
         $stmt = $pdo->query("SHOW COLUMNS FROM `$table` LIKE '$localized_name_field'");
@@ -173,7 +173,7 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
                 $sql = "SELECT $id_field, $name_field AS display_name FROM `$table`";
             } else {
                 // If neither exists, try a more flexible approach
-                error_log("Could not find column $localized_name_field or $name_field in table $table");
+                //error_log("Could not find column $localized_name_field or $name_field in table $table");
 
                 // Get the first column that might be a name column
                 $stmt = $pdo->query("SHOW COLUMNS FROM `$table` WHERE Field LIKE '%name%' AND Field != '$id_field'");
@@ -190,7 +190,7 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
         }
 
         // For DEBUGGING
-        error_log("SQL for $table: $sql");
+        // error_log("SQL for $table: $sql");
 
         $stmt = $pdo->query($sql);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -209,8 +209,8 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
 
-// Get user locale preference (default to 'en')
-$locale = $_SESSION['locale'] ?? 'en';
+// Get user locale preference (default to 'sv')
+$locale = $_SESSION['locale'] ?? 'sv';
 
 function getAvailableStatusId($pdo) {
     try {
@@ -227,8 +227,8 @@ $availableStatusId = getAvailableStatusId($pdo);
 
 // Initialize ImageProcessor (needs the global $pdo and $app_config from init.php)
 global $pdo, $app_config; // Ensure these are accessible if not already by default
-$uploadDir = $app_config['product_images_path'];
-$imageProcessor = new ImageProcessor($pdo, $app_config);
+$uploadDir = $app_config['uploads']['product_images_path']; // Correct access
+$imageProcessor = new ImageProcessor($pdo, $uploadDir); // Change $app_config to $uploadDir
 
 // Only process POST data
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
