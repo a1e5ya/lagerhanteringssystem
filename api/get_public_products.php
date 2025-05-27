@@ -41,41 +41,38 @@ $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
 $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
 
 try {
-    // Check if we should return random samples (initial page load for index.php)
     if ($randomSamples && empty($search) && ($category === 'all' || empty($category)) && !$isSalePageRequest) {
-        // FIXED: Pass language parameter to getRandomSampleProducts
+        // Fetch random samples
         $sampleProducts = getRandomSampleProducts($pdo, 2, $language); // 2 samples per category
-
-        // Format the product data using the dedicated function
-        $formattedProducts = formatProductsData($sampleProducts, $formatter);
-        
-        // Generate HTML for products, indicating it's NOT a sale page (for random samples from index)
-        $html = renderProductsHTML($formattedProducts, false); 
-        
-        // Set total items in paginator (for random samples, total items is count of samples)
-        $totalItems = count($formattedProducts);
-        
-        // Calculate pagination info (for random samples, it's simpler as there's usually no pagination)
-        $totalPages = 1; // Always 1 page for random samples
-        $firstRecord = $totalItems > 0 ? 1 : 0;
-        $lastRecord = $totalItems;
-        
-        // Prepare response with formatted sample products
+    
+        // Calculate total items and paginate
+        $totalItems = count($sampleProducts);
+        $totalPages = ceil($totalItems / $limit);
+        $offset = ($page - 1) * $limit;
+        $paginatedSamples = array_slice($sampleProducts, $offset, $limit);
+    
+        // Format the product data
+        $formattedProducts = formatProductsData($paginatedSamples, $formatter);
+    
+        // Generate HTML for products
+        $html = renderProductsHTML($formattedProducts, false);
+    
+        // Prepare response
         $response = [
             'success' => true,
             'items' => $formattedProducts,
             'html' => $html,
             'pagination' => [
-                'currentPage' => 1,
+                'currentPage' => $page,
                 'totalPages' => $totalPages,
                 'totalItems' => $totalItems,
-                'itemsPerPage' => $limit, // Still pass limit to preserve page size selector behavior if any
-                'firstRecord' => $firstRecord,
-                'lastRecord' => $lastRecord,
+                'itemsPerPage' => $limit,
+                'firstRecord' => $totalItems > 0 ? $offset + 1 : 0,
+                'lastRecord' => min($totalItems, $page * $limit),
                 'pageSizeOptions' => [10, 25, 50, 100, 200]
             ]
         ];
-        
+    
         // Output JSON response
         echo json_encode($response);
         return;
@@ -227,7 +224,9 @@ try {
             'itemsPerPage' => $limit,
             'firstRecord' => $firstRecord,
             'lastRecord' => $lastRecord,
-            'pageSizeOptions' => [10, 25, 50, 100, 200]
+            'pageSizeOptions' => [10, 25, 50, 100, 200],
+            'sort' => $sort, // Include sort parameter
+            'order' => $order // Include order parameter
         ]
     ];
     
@@ -247,7 +246,7 @@ try {
 
 /**
  * Get random sample products from each category
- * FIXED: Added language parameter for proper multilingual support
+ * Added language parameter for proper multilingual support
  *
  * @param PDO $pdo Database connection
  * @param int $samplesPerCategory Number of samples to get from each category
@@ -387,27 +386,38 @@ function renderPublicProductRow(array $product, bool $isSalePage = false): void 
     
     $productUrl = "singleproduct.php?id=" . $product['prod_id'];
     ?>
-<tr class="clickable-row" data-href="<?= safeEcho($productUrl) ?>">
+    <!-- Desktop Table Row -->
+    <tr class="clickable-row d-none d-md-table-row" data-href="<?= safeEcho($productUrl) ?>">
         <td data-label="Titel"><?= safeEcho($product['title']) ?></td>
         <td data-label="Författare/Artist"><?= safeEcho($product['author_name'] ?? '') ?></td>
         <td data-label="Kategori"><?= safeEcho($product['category_name'] ?? '') ?></td>
         <td data-label="Genre"><?= safeEcho($product['genre_names'] ?? '') ?></td>
         <td data-label="Skick"><?= safeEcho($product['condition_name'] ?? '') ?></td>
         <td data-label="Pris"><?= $displayPrice ?></td>
-        <?php if (!$isSalePage): ?> <td onclick="event.stopPropagation();">
+        <?php if (!$isSalePage): ?> 
+        <td onclick="event.stopPropagation();">
             <?php if (isset($product['is_special']) && $product['is_special']): ?>
                 <span class="badge bg-danger">Rea</span>
             <?php endif; ?>
             <?php if (isset($product['is_rare']) && $product['is_rare']): ?>
                 <span class="badge bg-warning text-dark">Sällsynt</span>
             <?php endif; ?>
-            <?php // REMOVED: is_recommended badge from index.php table list ?>
-            <?php /* if (isset($product['is_recommended']) && $product['is_recommended']): ?>
-                <span class="badge bg-info">Rekommenderas</span>
-            <?php endif; */ ?>
             <a class="btn btn-success d-block d-md-none" href="<?= safeEcho($productUrl) ?>">Visa detaljer</a>
         </td>
         <?php endif; ?>
     </tr>
+
+    <!-- Mobile Card -->
+    <a href="<?= safeEcho($productUrl) ?>" class="text-decoration-none">
+    <div class="card d-block d-md-none mb-3">
+        <div class="card-body">
+            <h5 class="card-title" style="color: black; font-weight: bold;"><?= safeEcho($product['title']) ?></h5>
+            <p class="card-text">
+                <span style="color: grey;"><?= safeEcho($product['author_name'] ?? 'Ej angivet') ?></span><br>
+                <span style="color: #2e8b57; font-weight: bold;"><?= $displayPrice ?></span>
+            </p>
+        </div>
+    </div>
+</a>
     <?php
 }
