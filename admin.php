@@ -71,18 +71,7 @@ include_once 'templates/admin_header.php';
             </div>
         </div>
     </div>
-    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/ui-components.js"></script>
-<script src="assets/js/forms.js"></script>
-<script src="assets/js/ajax.js"></script>
-<script src="assets/js/data-operations.js"></script>
-<script src="assets/js/admin.js"></script>
-<script src="assets/js/main.js"></script>
-<script src="assets/js/lists.js"></script>
-<script src="assets/js/batch-operations.js"></script>
-<script src="assets/js/addproduct-handlers.js"></script>
-    
+
     <?php
     // Include admin footer (which will include JS files)
     include_once 'templates/admin_footer.php';
