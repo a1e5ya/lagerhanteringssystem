@@ -420,3 +420,22 @@ Stack trace:
     [recommended] => 0
 )
 
+[28-May-2025 08:45:55 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-28 08:45:55
+[28-May-2025 09:23:02 Europe/Helsinki] New newsletter subscription: lesya.maurin@gmail.com at 2025-05-28 09:23:02
+[28-May-2025 09:35:29 Europe/Helsinki] Creating product with data: Array
+(
+    [title] => Produkt
+    [authors] => Array
+        (
+        )
+
+    [genres] => Array
+        (
+        )
+
+    [special_price] => 0
+    [rare] => 0
+    [recommended] => 0
+)
+
+[28-May-2025 09:37:39 Europe/Helsinki] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 550

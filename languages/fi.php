@@ -31,7 +31,7 @@ $lang_strings = array(
     'all_rights_reserved' => 'Kaikki oikeudet pidätetään.',
 
     // General 
-    'welcome' => 'Tervetuloa Karjaan Antikvariaattiin',
+    'welcome' => 'Tervetuloa</br>Karjaan Antikvariaattiin',
     'subtitle' => 'Paikallinen antikvariaattisi, jossa on laaja valikoima kirjoja, musiikkia ja keräilyesineitä',
     'browse_button' => 'Selaa valikoimaamme',
     'about_heading' => 'Liikkeestämme',

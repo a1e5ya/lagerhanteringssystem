@@ -30,7 +30,7 @@ $lang_strings = array(
     'all_rights_reserved' => 'Alla rättigheter förbehållna.',
 
     // General
-    'welcome' => 'Välkommen till Karis Antikvariat',
+    'welcome' => 'Välkommen till</br>Karis Antikvariat',
     'subtitle' => 'Din lokala antikvariat med ett brett utbud av böcker, musik och samlarobjekt',
     'browse_button' => 'Bläddra i vårt sortiment',
     'about_heading' => 'Om vår butik',

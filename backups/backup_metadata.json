@@ -54,5 +54,19 @@
         "size": 120953,
         "product_count": 138,
         "hidden": false
+    },
+    "karis_inventory_backup_2025-05-28_10-03-08.sql.gz": {
+        "filename": "karis_inventory_backup_2025-05-28_10-03-08.sql.gz",
+        "created": "2025-05-28 10:03:08",
+        "size": 18342,
+        "product_count": 151,
+        "hidden": false
+    },
+    "karis_inventory_backup_before_restore_2025-05-28_10-04-01.sql": {
+        "filename": "karis_inventory_backup_before_restore_2025-05-28_10-04-01.sql",
+        "created": "2025-05-28 10:04:01",
+        "size": 176232,
+        "product_count": 139,
+        "hidden": false
     }
 }

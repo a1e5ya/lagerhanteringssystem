@@ -107,7 +107,7 @@ body {
     width: 100%;
     height: calc(100vh - 75px);
     min-height: 450px;
-    max-height: 650px;
+    max-height: 820px;
     overflow: hidden;
     margin-bottom: 2rem;
 }

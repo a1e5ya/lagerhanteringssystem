@@ -385,8 +385,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         <div class="mb-3">
                             <label for="item-image-upload" class="form-label">Ladda upp bilder</label>
                             <input class="form-control" type="file" id="item-image-upload" name="item_images[]" multiple accept="image/*">
-                            <small class="form-text text-muted">Välj en eller flera bilder (Max <?php echo ($app_config['uploads']['max_size'] / (1024 * 1024)); ?>MB per bild, <?php echo strtoupper(implode(', ', $app_config['uploads']['allowed_extensions'])); ?>)</small>
-                        </div>
+<small class="form-text text-muted">
+    Max <?php echo ($app_config['uploads']['max_size'] / (1024 * 1024)); ?>MB per bild, 
+    <?php echo strtoupper(implode(', ', $app_config['uploads']['allowed_extensions'])); ?>
+</small>
+<small class="form-text text-muted mt-1 d-block">
+    <i class="fas fa-compress-alt me-1"></i>
+    <a href="https://www.birme.net/?target_width=1000&target_height=1000&auto_width=true&auto_focal=false&image_format=webp&quality_webp=90" 
+       target="_blank" class="text-decoration-none">
+        För att förminska bilder använd Birme
+    </a>
+</small>                        </div>
                     </div>
                 </div>
             </div>

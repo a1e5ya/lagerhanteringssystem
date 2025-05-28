@@ -420,7 +420,7 @@ include 'templates/header.php';
 </div>
 
 <!-- Main Content Container -->
-<div class="container my-4 flex-grow-1">
+<div class="container my-4">
 
 <!-- About Section -->
         <section id="about" class="my-5">
