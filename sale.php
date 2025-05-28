@@ -104,7 +104,7 @@ function renderProductCard(object $product): void {
 include 'templates/header.php';
 ?>
 
-<div class="container my-4">
+<div class="container my-4 flex-grow-1">
     <section id="browse" class="my-5">
         <h2 class="mb-4"><?php echo $lang_strings['sales_heading'] ?? 'Produkter på Rea'; ?></h2> 
         

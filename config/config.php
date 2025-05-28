@@ -53,7 +53,14 @@ $app_config = [
     'uploads' => [
         'max_size' => 5242880, // 5MB
         'allowed_extensions' => ['jpg', 'jpeg', 'png', 'webp'],
-        'product_images_path' => 'admin/assets/images'
+        'product_images_path' => 'assets/uploads/products', // Updated path
+        'product_images_url' => 'assets/uploads/products',  // URL path for frontend
+        'max_images_per_product' => 10,
+        'thumbnail_sizes' => [
+            'small' => ['width' => 150, 'height' => 150],
+            'medium' => ['width' => 300, 'height' => 300],
+            'large' => ['width' => 600, 'height' => 600]
+        ]
     ],
     'languages' => [
         'default' => 'sv',
@@ -66,6 +73,10 @@ define('APP_NAME', $app_config['name']);
 define('APP_VERSION', $app_config['version']);
 define('IS_DEVELOPMENT', $_SERVER['SERVER_NAME'] === 'localhost' || strpos($_SERVER['SERVER_NAME'], 'dev.') === 0);
 define('BASE_PATH', Routes::getBasePath());
+
+// Define upload paths as constants for easy access
+define('UPLOAD_PATH', __DIR__ . '/../' . $app_config['uploads']['product_images_path']);
+define('UPLOAD_URL', $app_config['uploads']['product_images_url']);
 
 // Establish database connection
 try {

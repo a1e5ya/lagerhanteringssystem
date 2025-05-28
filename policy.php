@@ -33,7 +33,7 @@ $pageTitle = $lang_strings['privacy_policy_title'] . " - Karis Antikvariat";
 include 'templates/header.php';
 ?>
 
-<div class="container my-5">
+<div class="container my-5 flex-grow-1">
     <div class="row justify-content-center">
         <div class="col-lg-10">
             <h1 class="mb-4"><?php echo $lang_strings['privacy_policy_title']; ?></h1>

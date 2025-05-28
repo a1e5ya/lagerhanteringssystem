@@ -719,3 +719,83 @@ address i {
         padding: 6px 2px;
     }
 }
+/* Fix for product card carousel heights on homepage */
+
+/* Mobile carousel height fix */
+.d-block.d-md-none .carousel.slide.h-100 {
+    height: 180px !important;
+}
+
+.d-block.d-md-none .carousel.slide.h-100 .carousel-inner.h-100 {
+    height: 180px !important;
+}
+
+.d-block.d-md-none .carousel.slide.h-100 .carousel-item.h-100 {
+    height: 180px !important;
+}
+
+/* Desktop carousel height fix */
+.d-none.d-md-block .carousel.slide {
+    height: 180px !important;
+}
+
+.d-none.d-md-block .carousel.slide .carousel-inner {
+    height: 180px !important;
+}
+
+.d-none.d-md-block .carousel.slide .carousel-item {
+    height: 180px !important;
+}
+
+/* Ensure carousel images maintain proper sizing */
+.card .carousel-item img {
+    height: 180px !important;
+    object-fit: cover !important;
+}
+
+/* Hide carousel controls on product cards */
+#featured-items .carousel-control-prev,
+#featured-items .carousel-control-next,
+#recommended-items .carousel-control-prev,
+#recommended-items .carousel-control-next {
+    display: none !important;
+}
+
+/* Also hide controls for any product carousels */
+.card .carousel-control-prev,
+.card .carousel-control-next {
+    display: none !important;
+}
+
+/* Hide carousel indicators (dots) on product cards */
+#featured-items .carousel-indicators,
+#recommended-items .carousel-indicators {
+    display: none !important;
+}
+
+/* Also hide indicators for any product carousels */
+.card .carousel-indicators {
+    display: none !important;
+}
+
+/* Alternative approach - target all product carousels on homepage */
+#featured-items .carousel.slide,
+#recommended-items .carousel.slide {
+    height: 180px !important;
+}
+
+#featured-items .carousel-inner,
+#recommended-items .carousel-inner {
+    height: 180px !important;
+}
+
+#featured-items .carousel-item,
+#recommended-items .carousel-item {
+    height: 180px !important;
+}
+
+#featured-items .carousel-item img,
+#recommended-items .carousel-item img {
+    height: 180px !important;
+    object-fit: cover !important;
+}

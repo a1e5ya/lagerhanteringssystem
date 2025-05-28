@@ -25,25 +25,25 @@ if ($productId <= 0) {
 }
 
 /**
- * Gets complete product data by ID
+ * Get all product images
  * 
- * @param int $productId Product ID to fetch
- * @return object|null Product data or null if not found
+ * @param int $productId Product ID
+ * @param PDO $pdo Database connection
+ * @return array Array of image objects
  */
-
-function getProductImagesByProductId($productId) {
-    global $pdo; // Access the global PDO database connection
-
+function getProductImages($productId, $pdo) {
     try {
-        $stmt = $pdo->prepare("SELECT image_path FROM image WHERE prod_id = :prod_id ORDER BY image_path ASC");
-        $stmt->bindParam(':prod_id', $productId, PDO::PARAM_INT);
-        $stmt->execute();
-        $images = $stmt->fetchAll(PDO::FETCH_COLUMN); // Fetch just the image_path column
-
-        return $images;
+        $stmt = $pdo->prepare("
+            SELECT image_id, image_path, image_uploaded_at
+            FROM image
+            WHERE prod_id = ?
+            ORDER BY image_uploaded_at ASC
+        ");
+        $stmt->execute([$productId]);
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
     } catch (PDOException $e) {
-        error_log("Database error fetching product images: " . $e->getMessage());
-        return []; // Return an empty array on error
+        error_log("Error fetching product images: " . $e->getMessage());
+        return [];
     }
 }
 
@@ -217,20 +217,17 @@ function getRelatedProducts($productId, $categoryId, $genreIds, $limit = 4) {
     }
 }
 
-// After you've fetched the product:
+// Get the product
 $product = getProductById($productId);
 
-if ($product) {
-    // Fetch images for the product
-    $productImages = getProductImagesByProductId($product->prod_id);
-
-    // ... (rest of your product display logic will go here) ...
-
-} else {
-    // Handle product not found
+if (!$product) {
+    // Redirect to home page if product not found
     header("Location: " . url('index.php'));
     exit;
 }
+
+// Fetch images for the product
+$productImages = getProductImages($product->prod_id, $pdo);
 
 // Get related products
 $relatedProducts = [];
@@ -269,7 +266,7 @@ include 'templates/header.php';
 ?>
 
 <!-- Main Content Container -->
-<div class="container my-5 pb-5">
+<div class="container my-5 pb-5 flex-grow-1">
     <div class="row">
         
         <!-- Three-column layout: Image, Details, Price/Status -->
@@ -277,24 +274,48 @@ include 'templates/header.php';
             <!-- Column 1: Item Image -->
             <div class="col-md-4 mb-4 mb-md-0">
                 <div class="item-image-container">
-                    <?php
-                    // Check if product image exists, otherwise use default based on category
-                    $imagePath = '/prog23/lagerhanterinssystem/admin/assets/images' . $product->prod_id . '.jpg';
-                    $defaultImage = asset('images', 'default_antiqe_image.webp'); // Default image
-                    
-                    if ($product->category_id == 5) { // CD
-                        $defaultImage = asset('images', 'default_antiqe_image.webp');
-                    } elseif ($product->category_id == 6) { // Vinyl
-                        $defaultImage = asset('images', 'default_antiqe_image.webp');
-                    } elseif ($product->category_id == 7) { // DVD
-                        $defaultImage = asset('images', 'default_antiqe_image.webp');
-                    } elseif ($product->category_id == 8) { // Comics/Magazines
-                        $defaultImage = asset('images', 'default_antiqe_image.webp');
-                    }
-                    
-                    $imageToShow = file_exists($imagePath) ? $imagePath : $defaultImage;
-                    ?>
-                    <img src="<?php echo $imageToShow; ?>" alt="<?php echo safeEcho($product->title); ?>" class="img-fluid rounded shadow" id="item-image">
+                    <?php if (!empty($productImages)): ?>
+                        <?php if (count($productImages) === 1): ?>
+                            <!-- Single image -->
+                            <img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
+                                 alt="<?php echo safeEcho($product->title); ?>" 
+                                 class="img-fluid rounded shadow" id="item-image">
+                        <?php else: ?>
+                            <!-- Carousel for multiple images -->
+                            <div id="productImageCarousel" class="carousel slide" data-bs-ride="carousel">
+                                <div class="carousel-indicators">
+                                    <?php foreach ($productImages as $index => $image): ?>
+                                        <button type="button" data-bs-target="#productImageCarousel" 
+                                                data-bs-slide-to="<?php echo $index; ?>" 
+                                                <?php echo $index === 0 ? 'class="active" aria-current="true"' : ''; ?>
+                                                aria-label="Bild <?php echo $index + 1; ?>"></button>
+                                    <?php endforeach; ?>
+                                </div>
+                                <div class="carousel-inner">
+                                    <?php foreach ($productImages as $index => $image): ?>
+                                        <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                                            <img src="<?php echo safeEcho($image->image_path); ?>" 
+                                                 class="d-block w-100 rounded shadow" 
+                                                 alt="<?php echo safeEcho($product->title); ?> - Bild <?php echo $index + 1; ?>">
+                                        </div>
+                                    <?php endforeach; ?>
+                                </div>
+                                <button class="carousel-control-prev" type="button" data-bs-target="#productImageCarousel" data-bs-slide="prev">
+                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Föregående</span>
+                                </button>
+                                <button class="carousel-control-next" type="button" data-bs-target="#productImageCarousel" data-bs-slide="next">
+                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                    <span class="visually-hidden">Nästa</span>
+                                </button>
+                            </div>
+                        <?php endif; ?>
+                    <?php else: ?>
+                        <!-- Default image -->
+                        <img src="<?php echo asset('images', 'default_antiqe_image.webp'); ?>" 
+                             alt="<?php echo safeEcho($product->title); ?>" 
+                             class="img-fluid rounded shadow" id="item-image">
+                    <?php endif; ?>
                 </div>
             </div>
             
@@ -353,7 +374,7 @@ include 'templates/header.php';
                     <?php endif; ?>
                     
                     <?php if ($product->recommended): ?>
-                        <span class="badge bg-info fs-6 mt-2 d-block"><?php echo $strings['recommended'] ?? 'Recommended'; ?></span>
+                        <span class="badge bg-info fs-6 mt-2 d-block"><?php echo $strings['recommended'] ?? 'Rekommenderad'; ?></span>
                     <?php endif; ?>
                     
                     <h3 class="text-success mt-3" id="item-price"><?php echo $formattedPrice; ?></h3>
@@ -395,12 +416,11 @@ include 'templates/header.php';
                         <div class="row g-0 h-100">
                             <div class="col-6">
                                 <?php
-                                // Check if related product image exists
-                                $relatedImagePath = 'admin/assets/images/' . $relatedProduct->prod_id . '.jpg';
-                                $relatedDefaultImage = asset('images', 'default_antiqe_image.webp'); // Default related image
-                                $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
+                                // Get first image for related product
+                                $relatedImages = getProductImages($relatedProduct->prod_id, $pdo);
+                                $relatedImagePath = !empty($relatedImages) ? $relatedImages[0]->image_path : asset('images', 'default_antiqe_image.webp');
                                 ?>
-                                <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($relatedProduct->title); ?>">
+                                <img src="<?php echo safeEcho($relatedImagePath); ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo safeEcho($relatedProduct->title); ?>">
                             </div>
                             <div class="col-6">
                                 <div class="card-body d-flex flex-column h-100">
@@ -417,12 +437,11 @@ include 'templates/header.php';
                     <!-- For laptop/desktop: vertical layout -->
                     <div class="d-none d-md-block">
                         <?php
-                        // Check if related product image exists
-                        $relatedImagePath = '/admin/assets/images/' . $relatedProduct->prod_id . '.jpg';
-                        $relatedDefaultImage = asset('images', 'default_antiqe_image.webp'); // Default related image
-                        $relatedImageToShow = file_exists($relatedImagePath) ? $relatedImagePath : $relatedDefaultImage;
+                        // Get first image for related product
+                        $relatedImages = getProductImages($relatedProduct->prod_id, $pdo);
+                        $relatedImagePath = !empty($relatedImages) ? $relatedImages[0]->image_path : asset('images', 'default_antiqe_image.webp');
                         ?>
-                        <img src="<?php echo $relatedImageToShow; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($relatedProduct->title); ?>">
+                        <img src="<?php echo safeEcho($relatedImagePath); ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo safeEcho($relatedProduct->title); ?>">
                         <div class="card-body">
                             <h5 class="card-title"><?php echo safeEcho($relatedProduct->title); ?></h5>
                             <p class="card-text text-muted">

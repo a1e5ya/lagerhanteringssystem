@@ -1,227 +1,389 @@
 /**
- * forms.js - Form handling functionality
- * Contains form submission handling, validation, and data processing
+ * forms.js - Minimal form handling functionality
+ * Only handles forms that are NOT product forms (to avoid conflicts)
+ * Product forms are handled by addproduct-handlers.js
  */
 
-// authors management for add product
-function initializeAuthorsManagement() {
-  window.authors = [];
+(function() {
+    'use strict';
 
-  $(document).on("click", function (e) {
-    e.preventDefault();
+    let formsJsInitialized = false;
 
-    const firstName = $("#author-first").val().trim();
-    const lastName = $("#author-last").val().trim();
+    /**
+     * Initialize forms functionality (non-product forms only)
+     */
+    function initializeForms() {
+        if (formsJsInitialized) {
+            return;
+        }
+        formsJsInitialized = true;
 
-    if (!firstName && !lastName) return;
-
-    window.authors.push({
-      first_name: firstName,
-      last_name: lastName,
-    });
-
-    $("#authors-json").val(JSON.stringify(window.authors));
-
-    // Clear inputs
-    $("#author-first").val("");
-    $("#author-last").val("");
-  });
-}
-
-// genres management for add product
-function initializeGenresManagement() {
-  window.genres = [];
-
-  $(document).on("change", "#item-genre", function () {
-    const genreId = $(this).val();
-    const genreName = $(this).find("option:selected").text();
-
-    if (!genreId) return;
-
-    // Prevent duplicates
-    const exists = window.genres.find((g) => g.genre_id === genreId);
-    if (exists) {
-      $(this).val("");
-      return;
+        console.log('Initializing minimal forms.js functionality...');
+        
+        // Only initialize for non-product forms
+        initializeNonProductForms();
+        
+        console.log('Minimal forms.js initialized successfully');
     }
 
-    window.genres.push({
-      genre_id: genreId,
-      genre_name: genreName,
-    });
-
-    // Update hidden field only
-    $("#genres-json").val(JSON.stringify(window.genres));
-
-    // Reset select input
-    $(this).val("");
-  });
-}
-
-// Handle form submission via AJAX
-$(document)
-  .off("submit", "#add-item-form")
-  .on("submit", "#add-item-form", function (e) {
-    e.preventDefault();
-    e.stopPropagation();
-    const form = $(this);
-
-    
-
-    $.ajax({
-      type: "POST",
-url: BASE_URL + "/admin/addproduct.php",
-      data: new FormData(form[0]),
-      processData: false,
-      contentType: false,
-      headers: {
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      success: function (response) {
-        try {
-          // Check if response is already an object
-          const data =
-            typeof response === "object" ? response : JSON.parse(response);
-
-          if (data.success) {
-            // Display success message
-            showMessage(data.message, "success");
-
-            // Clear the form
-            form[0].reset();
-
-            // Reset image preview if it exists
-            if ($("#new-item-image").length) {
-              $("#new-item-image").attr("src", BASE_URL + "/assets/images/src-book.webp");
-            }
-
-          } else {
-            // Display error message
-            showMessage(data.message, "danger");
-          }
-        } catch (e) {
-          console.error("Error parsing response:", e);
-          console.error("Raw response:", response);
-          showMessage(
-            "Error processing the server response. Check console for details.",
-            "danger"
-          );
+    /**
+     * Initialize non-product form handlers
+     */
+    function initializeNonProductForms() {
+        // Handle add author form (separate from product forms)
+        const addAuthorForm = document.getElementById('add-author-form');
+        if (addAuthorForm) {
+            console.log('Setting up add author form handler');
+            addAuthorForm.addEventListener('submit', handleAddAuthorSubmission);
         }
-      },
-      error: function (xhr, status, error) {
-        console.error("AJAX Error:", status, error);
-        console.error("Response Text:", xhr.responseText);
-        showMessage("An error occurred. Please try again.", "danger");
-      },
-    });
-  });
 
-// Initialize add product page
-function initializeAddProduct() {
-  setupAutocomplete("author-first", "suggest-author-first", "authorFirst");
-  setupAutocomplete("author-last", "suggest-author-last", "authorLast");
-  setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
+        // Handle newsletter forms
+        const newsletterForms = document.querySelectorAll('.newsletter-form');
+        newsletterForms.forEach(form => {
+            form.addEventListener('submit', handleNewsletterSubmission);
+        });
 
-  // Set up image preview
-  const imageUpload = document.getElementById("item-image-upload");
-  const imagePreview = document.getElementById("new-item-image");
+        // Handle user management forms
+        const userManagementForms = document.querySelectorAll('.user-management-form');
+        userManagementForms.forEach(form => {
+            form.addEventListener('submit', handleUserManagementSubmission);
+        });
 
-  if (imageUpload && imagePreview) {
-    imageUpload.addEventListener("change", function () {
-      if (this.files && this.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function (e) {
-          imagePreview.src = e.target.result;
-        };
-        reader.readAsDataURL(this.files[0]);
-      }
-    });
-  }
+        // Handle any form with class 'ajax-form' (but NOT product forms)
+        const ajaxForms = document.querySelectorAll('form.ajax-form');
+        ajaxForms.forEach(form => {
+            // Skip if it's a product form
+            if (form.id === 'add-item-form' || form.id === 'edit-product-form') {
+                return;
+            }
+            
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                
+                const action = this.getAttribute('action') || window.location.href;
+                console.log('Submitting generic AJAX form to:', action);
+                
+                submitFormAjax(this, action)
+                    .then(data => {
+                        if (data.success) {
+                            showMessage(data.message || 'Operation framgångsrik', 'success');
+                        } else {
+                            showMessage(data.message || 'Ett fel inträffade', 'danger');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Generic form submission error:', error);
+                        showMessage('Ett fel inträffade', 'danger');
+                    });
+            });
+        });
 
-  // Initialize authors management
-  initializeAuthorsManagement();
+        // Initialize basic autocomplete for non-product forms
+        initializeBasicAutocomplete();
+    }
 
-  // Initialize genres management
-  initializeGenresManagement();
-}
+    /**
+     * Handle add author form submission
+     */
+    function handleAddAuthorSubmission(e) {
+        e.preventDefault();
+        e.stopPropagation();
 
-// Initialize add author page
-function initializeAddAuthor() {
-    // Set up author form submission
-    const authorForm = document.getElementById("add-author-form");
-    if (authorForm) {
-      $(authorForm)
-        .off("submit")
-        .on("submit", function (e) {
-          e.preventDefault();
-          e.stopPropagation();
-          const form = $(this);
-  
-          $.ajax({
-            type: "POST",
-            url: BASE_URL + "/admin/addauthor.php",
-            data: form.serialize(),
-            headers: {
-              "X-Requested-With": "XMLHttpRequest",
-            },
-            success: function (response) {
-              try {
-                const data =
-                  typeof response === "object" ? response : JSON.parse(response);
-  
+        const form = e.target;
+        const authorName = form.querySelector('[name="author_name"]');
+
+        if (!authorName || !authorName.value.trim()) {
+            showMessage('Vänligen fyll i författarens namn.', 'warning');
+            if (authorName) authorName.focus();
+            return;
+        }
+
+        console.log('Submitting add author form');
+
+        submitFormAjax(form, 'admin/addauthor.php')
+            .then(data => {
                 if (data.success) {
-                  $("#author-message-container").html(
-                    `<div class='alert alert-success'>${data.message}</div>`
-                  );
-                  $("#author-message-container").show();
-                  form[0].reset();
-                  
-                  // Refresh the table after successful submission
-                  refreshAuthorsTable();
+                    showMessage(data.message, 'success');
+                    form.reset();
+                    
+                    // Refresh the authors table if function exists
+                    if (typeof loadAuthors === 'function') {
+                        loadAuthors();
+                    }
                 } else {
-                  // Error handling...
+                    showMessage(data.message, 'danger');
                 }
-              } catch (e) {
-                // Error handling...
-              }
-            },
-            error: function (xhr, status, error) {
-              // Error handling...
-            },
-          });
+            })
+            .catch(error => {
+                console.error('Author form submission error:', error);
+                showMessage('Ett fel inträffade vid tillägg av författare', 'danger');
+            });
+    }
+
+    /**
+     * Handle newsletter form submission
+     */
+    function handleNewsletterSubmission(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        const email = form.querySelector('[name="email"]');
+        
+        if (!email || !email.value.trim()) {
+            showMessage('Vänligen ange en e-postadress', 'warning');
+            return;
+        }
+        
+        if (!isValidEmail(email.value)) {
+            showMessage('Vänligen ange en giltig e-postadress', 'warning');
+            return;
+        }
+        
+        submitFormAjax(form, form.action)
+            .then(data => {
+                if (data.success) {
+                    showMessage(data.message || 'Prenumeration tillagd', 'success');
+                    form.reset();
+                } else {
+                    showMessage(data.message || 'Ett fel inträffade', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('Newsletter form error:', error);
+                showMessage('Ett fel inträffade', 'danger');
+            });
+    }
+
+    /**
+     * Handle user management form submission
+     */
+    function handleUserManagementSubmission(e) {
+        e.preventDefault();
+        
+        const form = e.target;
+        
+        submitFormAjax(form, form.action)
+            .then(data => {
+                if (data.success) {
+                    showMessage(data.message || 'Operation framgångsrik', 'success');
+                    
+                    // Refresh user list if function exists
+                    if (typeof loadUsers === 'function') {
+                        loadUsers();
+                    }
+                } else {
+                    showMessage(data.message || 'Ett fel inträffade', 'danger');
+                }
+            })
+            .catch(error => {
+                console.error('User management form error:', error);
+                showMessage('Ett fel inträffade', 'danger');
+            });
+    }
+
+    /**
+     * Submit form via AJAX
+     */
+    function submitFormAjax(form, url) {
+        const formData = new FormData(form);
+        
+        return fetch(url, {
+            method: 'POST',
+            body: formData,
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest'
+            }
+        })
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .catch(error => {
+            console.error('AJAX submission error:', error);
+            throw error;
         });
     }
-  }
 
-// Helper function to show messages
-function showMessage(message, type) {
-  // First try specific message containers
-  let container = $("#message-container");
+    /**
+     * Initialize basic autocomplete for non-product forms
+     */
+    function initializeBasicAutocomplete() {
+        // Only setup autocomplete for forms that are NOT product forms
+        const nonProductAutocompleteFields = [
+            { inputId: 'search-author', suggestionId: 'suggest-search-author', type: 'author' },
+            { inputId: 'filter-publisher', suggestionId: 'suggest-filter-publisher', type: 'publisher' }
+        ];
 
-  // If not found, try author message container
-  if (container.length === 0) {
-    container = $("#author-message-container");
-  }
+        nonProductAutocompleteFields.forEach(field => {
+            setupAutocompleteField(field.inputId, field.suggestionId, field.type);
+        });
+    }
 
-  // If still not found, create a general message container
-  if (container.length === 0) {
-    container = $('<div id="message-container"></div>');
-    container.prependTo("#tabs-content");
-  }
+    /**
+     * Setup autocomplete for a specific field
+     */
+    function setupAutocompleteField(inputId, suggestionId, type) {
+        const input = document.getElementById(inputId);
+        const suggestionDiv = document.getElementById(suggestionId);
+        
+        if (!input || !suggestionDiv) {
+            return;
+        }
 
-  container.html(`<div class="alert alert-${type}">${message}</div>`);
-  container.show();
+        console.log(`Setting up autocomplete for ${inputId}`);
 
-  // Scroll to message
-  $("html, body").animate(
-    {
-      scrollTop: container.offset().top - 100,
-    },
-    200
-  );
+        input.addEventListener('input', function() {
+            const query = this.value.trim();
+            
+            if (query.length < 2) {
+                suggestionDiv.innerHTML = '';
+                return;
+            }
 
-  // Auto hide after 5 seconds
-  setTimeout(function () {
-    container.fadeOut(500);
-  }, 5000);
-}
+            const baseUrl = window.location.pathname.includes('/admin/') 
+                ? 'autocomplete.php' 
+                : 'admin/autocomplete.php';
+            const url = `${baseUrl}?type=${type}&query=${encodeURIComponent(query)}`;
+
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    suggestionDiv.innerHTML = '';
+                    
+                    if (data && data.length > 0) {
+                        data.forEach(item => {
+                            const suggestion = document.createElement('div');
+                            suggestion.className = 'list-group-item list-group-item-action';
+                            suggestion.textContent = item;
+                            suggestion.style.cursor = 'pointer';
+                            
+                            suggestion.addEventListener('click', function() {
+                                input.value = item;
+                                suggestionDiv.innerHTML = '';
+                                
+                                // Trigger input event for any additional processing
+                                input.dispatchEvent(new Event('input'));
+                            });
+                            
+                            suggestionDiv.appendChild(suggestion);
+                        });
+                    }
+                })
+                .catch(error => {
+                    console.error('Autocomplete error:', error);
+                    suggestionDiv.innerHTML = '';
+                });
+        });
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', function(e) {
+            if (!input.contains(e.target) && !suggestionDiv.contains(e.target)) {
+                suggestionDiv.innerHTML = '';
+            }
+        });
+    }
+
+    /**
+     * Validate email format
+     */
+    function isValidEmail(email) {
+        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+        return emailRegex.test(email);
+    }
+
+    /**
+     * Show message to user
+     */
+    function showMessage(message, type = 'info') {
+        console.log('Showing message:', { message, type });
+
+        // Try to use existing showMessage function first
+        if (typeof window.showMessage === 'function') {
+            window.showMessage(message, type);
+            return;
+        }
+
+        // Look for message containers
+        let messageContainer = document.getElementById('message-container');
+        
+        if (!messageContainer) {
+            messageContainer = document.getElementById('author-message-container');
+        }
+
+        if (!messageContainer) {
+            // Create a message container
+            messageContainer = document.createElement('div');
+            messageContainer.id = 'forms-message-container';
+            messageContainer.style.position = 'fixed';
+            messageContainer.style.top = '20px';
+            messageContainer.style.right = '20px';
+            messageContainer.style.zIndex = '9999';
+            messageContainer.style.maxWidth = '400px';
+            document.body.appendChild(messageContainer);
+        }
+
+        // Clear previous messages in this container
+        messageContainer.innerHTML = '';
+
+        // Create alert element
+        const alert = document.createElement('div');
+        alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.innerHTML = `
+            ${message}
+            <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
+        `;
+
+        messageContainer.appendChild(alert);
+        messageContainer.style.display = 'block';
+
+        // Auto-dismiss after 5 seconds
+        setTimeout(() => {
+            if (alert.parentNode) {
+                alert.remove();
+                
+                // Hide container if empty
+                if (messageContainer.children.length === 0) {
+                    messageContainer.style.display = 'none';
+                }
+            }
+        }, 5000);
+    }
+
+    /**
+     * Refresh authors table (utility function)
+     */
+    function refreshAuthorsTable() {
+        if (typeof loadAuthors === 'function') {
+            loadAuthors();
+        }
+    }
+
+    // Initialize when DOM is ready
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM loaded, initializing minimal forms.js');
+        initializeForms();
+    });
+
+    // Also initialize when content is loaded via AJAX
+    document.addEventListener('contentLoaded', function() {
+        console.log('Content loaded, reinitializing minimal forms.js');
+        formsJsInitialized = false; // Reset flag to allow reinitialization
+        initializeForms();
+    });
+
+    // Expose utility functions globally
+    window.formsUtils = {
+        showMessage: showMessage,
+        refreshAuthorsTable: refreshAuthorsTable,
+        submitFormAjax: submitFormAjax,
+        reinitialize: function() {
+            formsJsInitialized = false;
+            initializeForms();
+        }
+    };
+
+    console.log('Minimal forms.js script loaded');
+
+})();

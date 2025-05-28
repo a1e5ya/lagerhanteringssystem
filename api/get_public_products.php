@@ -19,15 +19,13 @@ header('Content-Type: application/json');
 $search = isset($_GET['search']) ? $_GET['search'] : '';
 $category = isset($_GET['category']) ? $_GET['category'] : '';
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-// In get_public_products.php, modify the limit validation
-$limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 200) : 25; // Add a hard cap of 200
+$limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 200) : 25; // Hard cap of 200
 $sort = isset($_GET['sort']) ? $_GET['sort'] : 'title';
 $order = isset($_GET['order']) && strtolower($_GET['order']) === 'desc' ? 'desc' : 'asc';
 $randomSamples = isset($_GET['random_samples']) && $_GET['random_samples'] === 'true';
 
 // Check for special_price parameter from sale.php
 $isSalePageRequest = isset($_GET['special_price']) && $_GET['special_price'] === '1';
-
 
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
@@ -43,7 +41,7 @@ $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
 try {
     if ($randomSamples && empty($search) && ($category === 'all' || empty($category)) && !$isSalePageRequest) {
         // Fetch random samples
-        $sampleProducts = getRandomSampleProducts($pdo, 2, $language); // 2 samples per category
+        $sampleProducts = getRandomSampleProducts($pdo, 2, $language);
     
         // Calculate total items and paginate
         $totalItems = count($sampleProducts);
@@ -78,7 +76,7 @@ try {
         return;
     }
 
-    // Build SQL query for public products (main query path) - ALREADY CORRECT
+    // Build SQL query for public products
     $sql = "SELECT 
                 p.prod_id, 
                 p.title, 
@@ -105,12 +103,12 @@ try {
             LEFT JOIN `condition` con ON p.condition_id = con.condition_id
             LEFT JOIN `language` l ON p.language_id = l.language_id";
     
-    // Add WHERE conditions for main query
+    // Add WHERE conditions
     $whereConditions = [];
     $params = [];
     
     // Always show only available products (status = 1)
-    $whereConditions[] = "p.status = 1"; // Moved to $whereConditions, so it's always included via implode
+    $whereConditions[] = "p.status = 1";
 
     // Add special_price condition if the request came from the sale page
     if ($isSalePageRequest) {
@@ -135,15 +133,15 @@ try {
         $params[] = $category;
     }
     
-    // Construct the full WHERE clause for the main query
+    // Construct the full WHERE clause
     if (!empty($whereConditions)) {
         $sql .= " WHERE " . implode(" AND ", $whereConditions);
     }
     
-    // Add GROUP BY clause for main query
+    // Add GROUP BY clause
     $sql .= " GROUP BY p.prod_id";
     
-    // Add ORDER BY clause with validation for main query
+    // Add ORDER BY clause with validation
     if (!empty($sort)) {
         // Sanitize sort column to prevent SQL injection
         $allowedSortColumns = ['title', 'author_name', 'category_name', 'genre_names', 'condition_name', 'price', 'date_added'];
@@ -151,16 +149,13 @@ try {
             $sort = 'title';
         }
         
-        // Use appropriate sort direction
         $orderDirection = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
-        
         $sql .= " ORDER BY {$sort} {$orderDirection}";
     } else {
-        // Default sort
         $sql .= " ORDER BY title ASC";
     }
     
-    // Build SQL for counting total items based on current filters (EXPLICIT REBUILD)
+    // Build SQL for counting total items
     $countSql = "SELECT COUNT(DISTINCT p.prod_id) 
                  FROM product p
                  LEFT JOIN product_author pa ON p.prod_id = pa.product_id
@@ -171,14 +166,13 @@ try {
                  LEFT JOIN `condition` con ON p.condition_id = con.condition_id
                  LEFT JOIN `language` l ON p.language_id = l.language_id";
     
-    // Re-use $whereConditions (which now contains all relevant filters including status=1)
+    // Add WHERE conditions to count query
     if (!empty($whereConditions)) {
         $countSql .= " WHERE " . implode(" AND ", $whereConditions);
     }
 
     // Execute count query
     $stmt = $pdo->prepare($countSql);
-    // Bind parameters for count query (reuse $params array)
     if (!empty($params)) {
         for ($i = 0; $i < count($params); $i++) {
             $stmt->bindValue($i + 1, $params[$i]);
@@ -187,12 +181,11 @@ try {
     $stmt->execute();
     $totalItems = $stmt->fetchColumn();
     
-    // Add LIMIT clause for main query after count has been performed
+    // Add LIMIT clause for main query
     $sql .= " LIMIT " . (($page - 1) * $limit) . ", " . $limit;
 
     // Execute main query
     $stmt = $pdo->prepare($sql);
-    // Bind parameters for main query (reuse $params array)
     if (!empty($params)) {
         for ($i = 0; $i < count($params); $i++) {
             $stmt->bindValue($i + 1, $params[$i]);
@@ -205,7 +198,7 @@ try {
     $formattedProducts = formatProductsData($products, $formatter);
     
     // Generate HTML for products
-    $html = renderProductsHTML($formattedProducts, $isSalePageRequest); // Pass $isSalePageRequest here
+    $html = renderProductsHTML($formattedProducts, $isSalePageRequest);
     
     // Calculate pagination info
     $totalPages = ceil($totalItems / $limit);
@@ -225,8 +218,8 @@ try {
             'firstRecord' => $firstRecord,
             'lastRecord' => $lastRecord,
             'pageSizeOptions' => [10, 25, 50, 100, 200],
-            'sort' => $sort, // Include sort parameter
-            'order' => $order // Include order parameter
+            'sort' => $sort,
+            'order' => $order
         ]
     ];
     
@@ -240,13 +233,12 @@ try {
     // Send error response
     echo json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
+        'message' => 'Ett fel inträffade: ' . $e->getMessage()
     ]);
 }
 
 /**
  * Get random sample products from each category
- * Added language parameter for proper multilingual support
  *
  * @param PDO $pdo Database connection
  * @param int $samplesPerCategory Number of samples to get from each category
@@ -283,7 +275,7 @@ function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $
                     JOIN category c ON p.category_id = c.category_id
                     LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
                     LEFT JOIN genre g ON pg.genre_id = g.genre_id
-                    JOIN `condition` co ON p.condition_id = co.condition_id
+                    LEFT JOIN `condition` co ON p.condition_id = co.condition_id
                     WHERE p.status = 1 AND p.category_id = :category_id
                     GROUP BY p.prod_id
                     ORDER BY RAND()
@@ -313,7 +305,6 @@ function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $
  * @return array Formatted products data
  */
 function formatProductsData(array $products, Formatter $formatter): array {
-    // Format all products
     foreach ($products as &$product) {
         // Format price
         $product['formatted_price'] = $formatter->formatPrice($product['price']);
@@ -322,28 +313,13 @@ function formatProductsData(array $products, Formatter $formatter): array {
         if (isset($product['date_added'])) {
             $product['formatted_date'] = $formatter->formatDate($product['date_added']);
         } else {
-            $product['formatted_date'] = ''; // Ensure it's always set
+            $product['formatted_date'] = '';
         }
         
         // Format flags for display
-        // Ensure these exist and are booleans for consistency in rendering
-        $product['is_special'] = isset($product['special_price']) && (int)$product['special_price'] === 1 ? true : false;
-        $product['is_rare'] = isset($product['rare']) && (int)$product['rare'] === 1 ? true : false;
-        $product['is_recommended'] = isset($product['recommended']) && (int)$product['recommended'] === 1 ? true : false;
-        
-        // Format image path (assuming default image logic from index.php featured products)
-        // Note: This API response doesn't directly use 'image' or 'image_url' for the table,
-        // but it's good to keep this formatting logic if needed elsewhere.
-        // The table rendering in renderPublicProductRow relies on prod_id.
-        // if (!empty($product['image'])) {
-        //     $product['image'] = str_replace('../', '', $product['image']);
-        //     $product['image_url'] = getBasePath() . '/' . $product['image'];
-        // } else {
-        //     // Default image based on category (this logic is specific to index.php's featured products renderProductCard)
-        //     $defaultImage = 'assets/images/default_antiqe_image.webp'; // Placeholder
-        //     $product['image'] = $defaultImage;
-        //     $product['image_url'] = asset('images', basename($defaultImage));
-        // }
+        $product['is_special'] = isset($product['special_price']) && (int)$product['special_price'] === 1;
+        $product['is_rare'] = isset($product['rare']) && (int)$product['rare'] === 1;
+        $product['is_recommended'] = isset($product['recommended']) && (int)$product['recommended'] === 1;
     }
     
     return $products;
@@ -364,7 +340,7 @@ function renderProductsHTML(array $products, bool $isSalePage = false): string {
         echo '<tr><td colspan="' . ($isSalePage ? 6 : 7) . '" class="text-center py-3">Inga produkter hittades.</td></tr>';
     } else {
         foreach ($products as $product) {
-            renderPublicProductRow($product, $isSalePage); // Pass $isSalePage here
+            renderPublicProductRow($product, $isSalePage);
         }
     }
     
@@ -382,7 +358,7 @@ function renderPublicProductRow(array $product, bool $isSalePage = false): void 
     // Format the price using a fallback if price is null
     $displayPrice = isset($product['price']) && $product['price'] !== null 
                     ? number_format((float)$product['price'], 2, ',', ' ') . ' €' 
-                    : '<span class="text-muted">-</span>';
+                    : '<span class="text-muted">Pris på förfrågan</span>';
     
     $productUrl = "singleproduct.php?id=" . $product['prod_id'];
     ?>
@@ -402,22 +378,38 @@ function renderPublicProductRow(array $product, bool $isSalePage = false): void 
             <?php if (isset($product['is_rare']) && $product['is_rare']): ?>
                 <span class="badge bg-warning text-dark">Sällsynt</span>
             <?php endif; ?>
-            <a class="btn btn-success d-block d-md-none" href="<?= safeEcho($productUrl) ?>">Visa detaljer</a>
+            <?php if (isset($product['is_recommended']) && $product['is_recommended']): ?>
+                <span class="badge bg-info">Rekommenderad</span>
+            <?php endif; ?>
         </td>
         <?php endif; ?>
     </tr>
 
     <!-- Mobile Card -->
     <a href="<?= safeEcho($productUrl) ?>" class="text-decoration-none">
-    <div class="card d-block d-md-none mb-3">
-        <div class="card-body">
-            <h5 class="card-title" style="color: black; font-weight: bold;"><?= safeEcho($product['title']) ?></h5>
-            <p class="card-text">
-                <span style="color: grey;"><?= safeEcho($product['author_name'] ?? 'Ej angivet') ?></span><br>
-                <span style="color: #2e8b57; font-weight: bold;"><?= $displayPrice ?></span>
-            </p>
+        <div class="card d-block d-md-none mb-3">
+            <div class="card-body">
+                <h5 class="card-title" style="color: black; font-weight: bold;"><?= safeEcho($product['title']) ?></h5>
+                <p class="card-text">
+                    <span style="color: grey;"><?= safeEcho($product['author_name'] ?? 'Ej angivet') ?></span><br>
+                    <span style="color: #2e8b57; font-weight: bold;"><?= $displayPrice ?></span>
+                </p>
+                <?php if (!$isSalePage): ?>
+                    <div class="mt-2">
+                        <?php if (isset($product['is_special']) && $product['is_special']): ?>
+                            <span class="badge bg-danger me-1">Rea</span>
+                        <?php endif; ?>
+                        <?php if (isset($product['is_rare']) && $product['is_rare']): ?>
+                            <span class="badge bg-warning text-dark me-1">Sällsynt</span>
+                        <?php endif; ?>
+                        <?php if (isset($product['is_recommended']) && $product['is_recommended']): ?>
+                            <span class="badge bg-info">Rekommenderad</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
         </div>
-    </div>
-</a>
+    </a>
     <?php
 }
+?>

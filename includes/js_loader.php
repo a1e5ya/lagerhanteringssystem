@@ -30,8 +30,7 @@ $js_files = [
         'lists',
         'batch-operations',
         'pagination',
-        'validation',
-        'image-handler'
+        'validation'
     ],
     
     // Public-specific files

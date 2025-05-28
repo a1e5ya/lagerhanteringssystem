@@ -49,7 +49,48 @@ try {
 $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
 
 /**
- * Get featured products for the homepage
+ * Get product images for a specific product
+ * 
+ * @param int $productId Product ID
+ * @param PDO $pdo Database connection
+ * @return array Array of image objects
+ */
+function getProductImages($productId, $pdo) {
+    try {
+        $stmt = $pdo->prepare("
+            SELECT image_id, image_path, image_uploaded_at
+            FROM image
+            WHERE prod_id = ?
+            ORDER BY image_uploaded_at ASC
+        ");
+        $stmt->execute([$productId]);
+        return $stmt->fetchAll(PDO::FETCH_OBJ);
+    } catch (PDOException $e) {
+        error_log("Error fetching product images: " . $e->getMessage());
+        return [];
+    }
+}
+
+/**
+ * Get product image URL (first image or default)
+ * 
+ * @param int $productId Product ID
+ * @param PDO $pdo Database connection
+ * @return string Image URL (either actual image or default)
+ */
+function getProductImageUrl($productId, $pdo) {
+    $images = getProductImages($productId, $pdo);
+    
+    if (!empty($images)) {
+        return $images[0]->image_path;
+    }
+    
+    // Return default image if no images found
+    return 'assets/images/default_antiqe_image.webp';
+}
+
+/**
+ * Get featured products for the homepage (UPDATED VERSION)
  * 
  * @param PDO $pdo Database connection
  * @param int $limit Number of featured products to retrieve
@@ -60,13 +101,18 @@ $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
 function getFeaturedProducts(PDO $pdo, int $limit = 4, bool $onlySpecial = false, bool $onlyRecommended = false): array 
 {
     try {
-        // Simplify the query to avoid potential JOIN issues
-        $sql = "SELECT 
+        // Build the main query with author information
+        $sql = "SELECT DISTINCT
                     p.prod_id, 
                     p.title, 
                     p.price, 
                     p.special_price,
-                    p.recommended
+                    p.recommended,
+                    p.category_id,
+                    (SELECT GROUP_CONCAT(a.author_name SEPARATOR ', ') 
+                     FROM product_author pa 
+                     JOIN author a ON pa.author_id = a.author_id 
+                     WHERE pa.product_id = p.prod_id) as author_name
                 FROM product p
                 WHERE p.status = 1 ";
 
@@ -86,32 +132,14 @@ function getFeaturedProducts(PDO $pdo, int $limit = 4, bool $onlySpecial = false
         
         $products = $stmt->fetchAll(PDO::FETCH_OBJ);
         
-        // Fetch author information separately for each product
+        // Get category information for each product
         foreach ($products as $product) {
-            // Get author for this product
-            $authorSql = "SELECT a.author_name 
-                          FROM author a 
-                          JOIN product_author pa ON a.author_id = pa.author_id 
-                          WHERE pa.product_id = :prod_id 
-                          LIMIT 1";
-            $authorStmt = $pdo->prepare($authorSql);
-            $authorStmt->bindParam(':prod_id', $product->prod_id, PDO::PARAM_INT);
-            $authorStmt->execute();
-            $author = $authorStmt->fetch(PDO::FETCH_OBJ);
-            
-            if ($author) {
-                $product->author_name = $author->author_name;
-            } else {
-                $product->author_name = '';
-            }
-            
             // Get category for this product
             $catSql = "SELECT category_sv_name AS category_name 
                        FROM category c 
-                       JOIN product p ON c.category_id = p.category_id 
-                       WHERE p.prod_id = :prod_id";
+                       WHERE c.category_id = :category_id";
             $catStmt = $pdo->prepare($catSql);
-            $catStmt->bindParam(':prod_id', $product->prod_id, PDO::PARAM_INT);
+            $catStmt->bindParam(':category_id', $product->category_id, PDO::PARAM_INT);
             $catStmt->execute();
             $category = $catStmt->fetch(PDO::FETCH_OBJ);
             
@@ -119,6 +147,11 @@ function getFeaturedProducts(PDO $pdo, int $limit = 4, bool $onlySpecial = false
                 $product->category_name = $category->category_name;
             } else {
                 $product->category_name = '';
+            }
+            
+            // Ensure author_name is not null
+            if (empty($product->author_name)) {
+                $product->author_name = '';
             }
         }
         
@@ -130,13 +163,15 @@ function getFeaturedProducts(PDO $pdo, int $limit = 4, bool $onlySpecial = false
 }
 
 /**
- * Render a product card
+ * Render a product card with image carousel support (UPDATED VERSION)
  * 
  * @param object $product The product object
  */
 function renderProductCard(object $product): void {
-    // Always use default image to avoid 404 errors
-    $defaultImage = 'assets/images/default_antiqe_image.webp';
+    global $pdo;
+    
+    // Get all product images
+    $productImages = getProductImages($product->prod_id, $pdo);
     
     ?>
     <div class="col">
@@ -145,15 +180,48 @@ function renderProductCard(object $product): void {
             <div class="d-block d-md-none">
                 <div class="row g-0 h-100">
                     <div class="col-6">
-                        <img src="<?php echo $defaultImage; ?>" class="card-img-top h-100 object-fit-cover" alt="<?php echo htmlspecialchars($product->title); ?>">
+                        <?php if (!empty($productImages)): ?>
+                            <?php if (count($productImages) === 1): ?>
+                                <!-- Single image -->
+                                <img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
+                                     class="card-img-top h-100 object-fit-cover" 
+                                     alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
+                            <?php else: ?>
+                                <!-- Mini carousel for multiple images -->
+                                <div id="productCarousel<?php echo $product->prod_id; ?>" class="carousel slide h-100" data-bs-ride="carousel">
+                                    <div class="carousel-inner h-100">
+                                        <?php foreach ($productImages as $index => $image): ?>
+                                            <div class="carousel-item h-100 <?php echo $index === 0 ? 'active' : ''; ?>">
+                                                <img src="<?php echo safeEcho($image->image_path); ?>" 
+                                                     class="d-block w-100 h-100 object-fit-cover" 
+                                                     alt="<?php echo safeEcho($product->title); ?> - Bild <?php echo $index + 1; ?>">
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                    <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel<?php echo $product->prod_id; ?>" data-bs-slide="prev">
+                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Föregående</span>
+                                    </button>
+                                    <button class="carousel-control-next" type="button" data-bs-target="#productCarousel<?php echo $product->prod_id; ?>" data-bs-slide="next">
+                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                        <span class="visually-hidden">Nästa</span>
+                                    </button>
+                                </div>
+                            <?php endif; ?>
+                        <?php else: ?>
+                            <!-- Default image -->
+                            <img src="<?php echo asset('images', 'default_antiqe_image.webp'); ?>" 
+                                 class="card-img-top h-100 object-fit-cover" 
+                                 alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
+                        <?php endif; ?>
                     </div>
                     <div class="col-6">
                         <div class="card-body d-flex flex-column h-100">
-                            <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
+                            <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
                             <p class="card-text text-muted flex-grow-1">
-                                <?php echo htmlspecialchars($product->author_name ?? ''); ?>
+                                <?php echo safeEcho($product->author_name ?? ''); ?>
                             </p>
-                            <?php if (isset($product->price) && $product->price !== null): ?>
+                            <?php if (isset($product->price) && $product->price !== null && $product->price > 0): ?>
                             <p class="text-success fw-bold mb-2"><?php echo number_format((float)$product->price, 2); ?> €</p>
                             <?php else: ?>
                             <p class="text-secondary fw-bold mb-2">Pris på förfrågan</p>
@@ -165,13 +233,56 @@ function renderProductCard(object $product): void {
             
             <!-- For laptop/desktop: vertical layout -->
             <div class="d-none d-md-block">
-                <img src="<?php echo $defaultImage; ?>" class="card-img-top" style="height: 180px; object-fit: cover;" alt="<?php echo htmlspecialchars($product->title); ?>">
+                <?php if (!empty($productImages)): ?>
+                    <?php if (count($productImages) === 1): ?>
+                        <!-- Single image -->
+                        <img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
+                             class="card-img-top" style="height: 180px; object-fit: cover;" 
+                             alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
+                    <?php else: ?>
+                        <!-- Desktop carousel for multiple images -->
+                        <div id="productCarouselDesktop<?php echo $product->prod_id; ?>" class="carousel slide" data-bs-ride="carousel">
+                            <div class="carousel-indicators">
+                                <?php foreach ($productImages as $index => $image): ?>
+                                    <button type="button" data-bs-target="#productCarouselDesktop<?php echo $product->prod_id; ?>" 
+                                            data-bs-slide-to="<?php echo $index; ?>" 
+                                            <?php echo $index === 0 ? 'class="active" aria-current="true"' : ''; ?>
+                                            aria-label="Bild <?php echo $index + 1; ?>"></button>
+                                <?php endforeach; ?>
+                            </div>
+                            <div class="carousel-inner">
+                                <?php foreach ($productImages as $index => $image): ?>
+                                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
+                                        <img src="<?php echo safeEcho($image->image_path); ?>" 
+                                             class="d-block w-100" style="height: 180px; object-fit: cover;" 
+                                             alt="<?php echo safeEcho($product->title); ?> - Bild <?php echo $index + 1; ?>">
+                                    </div>
+                                <?php endforeach; ?>
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#productCarouselDesktop<?php echo $product->prod_id; ?>" data-bs-slide="prev">
+                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Föregående</span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#productCarouselDesktop<?php echo $product->prod_id; ?>" data-bs-slide="next">
+                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                                <span class="visually-hidden">Nästa</span>
+                            </button>
+                        </div>
+                    <?php endif; ?>
+                <?php else: ?>
+                    <!-- Default image -->
+                    <img src="<?php echo asset('images', 'default_antiqe_image.webp'); ?>" 
+                         class="card-img-top" style="height: 180px; object-fit: cover;" 
+                         alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
+                <?php endif; ?>
+                
                 <div class="card-body">
-                    <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
+                    <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
                     <p class="card-text text-muted">
-                        <?php echo htmlspecialchars($product->author_name ?? ''); ?>
+                        <?php echo safeEcho($product->author_name ?? ''); ?>
                     </p>
-                    <?php if (isset($product->price) && $product->price !== null): ?>
+                    <?php if (isset($product->price) && $product->price !== null && $product->price > 0): ?>
+                    <p class="text-success fw-bold"><?php echo number_format((float)$product->price, 2); ?> €</p>
                     <?php else: ?>
                     <p class="text-secondary fw-bold">Pris på förfrågan</p>
                     <?php endif; ?>
@@ -184,57 +295,107 @@ function renderProductCard(object $product): void {
     <?php
 }
 
-
-// Get special products with dedicated query
-$specialProducts = getFeaturedProducts($pdo, 4, true); // Only special_price = 1
-
-// If no special products found, get any random products
-if (empty($specialProducts)) {
-    $sql = "SELECT 
-                p.prod_id, 
-                p.title, 
-                p.price, 
-                p.special_price,
-                p.recommended
-            FROM product p
-            WHERE p.status = 1 
-            ORDER BY RAND()
-            LIMIT 4";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute();
-    $specialProducts = $stmt->fetchAll(PDO::FETCH_OBJ);
-    
-    // Get author and category info for each product
-    foreach ($specialProducts as $product) {
-        // (Get author and category as shown above)
+/**
+ * Get fallback products when no special/recommended products exist
+ * 
+ * @param PDO $pdo Database connection
+ * @param int $limit Number of products to retrieve
+ * @return array Random products
+ */
+function getFallbackProducts(PDO $pdo, int $limit = 4): array {
+    try {
+        $sql = "SELECT DISTINCT
+                    p.prod_id, 
+                    p.title, 
+                    p.price, 
+                    p.special_price,
+                    p.recommended,
+                    p.category_id,
+                    (SELECT GROUP_CONCAT(a.author_name SEPARATOR ', ') 
+                     FROM product_author pa 
+                     JOIN author a ON pa.author_id = a.author_id 
+                     WHERE pa.product_id = p.prod_id) as author_name
+                FROM product p
+                WHERE p.status = 1 AND p.condition_id IN (1, 2)
+                ORDER BY RAND()
+                LIMIT :limit";
+        
+        $stmt = $pdo->prepare($sql);
+        $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+        $stmt->execute();
+        
+        $products = $stmt->fetchAll(PDO::FETCH_OBJ);
+        
+        // Get category information for each product
+        foreach ($products as $product) {
+            // Get category for this product
+            $catSql = "SELECT category_sv_name AS category_name 
+                       FROM category c 
+                       WHERE c.category_id = :category_id";
+            $catStmt = $pdo->prepare($catSql);
+            $catStmt->bindParam(':category_id', $product->category_id, PDO::PARAM_INT);
+            $catStmt->execute();
+            $category = $catStmt->fetch(PDO::FETCH_OBJ);
+            
+            if ($category) {
+                $product->category_name = $category->category_name;
+            } else {
+                $product->category_name = '';
+            }
+            
+            // Ensure author_name is not null
+            if (empty($product->author_name)) {
+                $product->author_name = '';
+            }
+        }
+        
+        return $products;
+    } catch (PDOException $e) {
+        error_log('Error fetching fallback products: ' . $e->getMessage());
+        return [];
     }
 }
 
-// Try to get recommended products
+/**
+ * Get categories for dropdown
+ * 
+ * @return array Array of categories
+ */
+function getCategories() {
+    global $pdo;
+    
+    try {
+        // Get language from session or default to Swedish
+        $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+        
+        // Determine field name based on language
+        $nameField = ($language === 'fi') ? 'category_fi_name' : 'category_sv_name';
+        
+        // Prepare and execute query
+        $stmt = $pdo->prepare("SELECT category_id, {$nameField} as category_name FROM category ORDER BY {$nameField} ASC");
+        $stmt->execute();
+        
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log('Error fetching categories: ' . $e->getMessage());
+        return [];
+    }
+}
+
+// Get special products (on sale)
+$specialProducts = getFeaturedProducts($pdo, 4, true); // Only special_price = 1
+
+// If no special products found, get fallback products
+if (empty($specialProducts)) {
+    $specialProducts = getFallbackProducts($pdo, 4);
+}
+
+// Get recommended products
 $recommendedProducts = getFeaturedProducts($pdo, 4, false, true); // Only recommended = 1
 
-// If no recommended products, get random high-quality products
+// If no recommended products, get fallback products
 if (empty($recommendedProducts)) {
-    $sql = "SELECT 
-                p.prod_id, 
-                p.title, 
-                p.price, 
-                p.special_price,
-                p.recommended
-            FROM product p
-            WHERE p.status = 1 AND p.condition_id IN (1, 2) 
-            ORDER BY RAND()
-            LIMIT 4";
-    
-    $stmt = $pdo->prepare($sql);
-    $stmt->execute();
-    $recommendedProducts = $stmt->fetchAll(PDO::FETCH_OBJ);
-    
-    // Get author and category info for each product
-    foreach ($recommendedProducts as $product) {
-        // (Get author and category as shown above)
-    }
+    $recommendedProducts = getFallbackProducts($pdo, 4);
 }
 
 // Page title
@@ -258,11 +419,8 @@ include 'templates/header.php';
     </div>
 </div>
 
-
-
-
 <!-- Main Content Container -->
-<div class="container my-4">
+<div class="container my-4 flex-grow-1">
 
 <!-- About Section -->
         <section id="about" class="my-5">
@@ -308,7 +466,6 @@ include 'templates/header.php';
                 </div>
             </div>
         </section>
-
 
     <!-- Browse Section -->
     <section id="browse" class="my-5">
@@ -428,7 +585,9 @@ include 'templates/header.php';
             }
             ?>
         </div>
-        <button class="btn btn-danger fs-5 mt-3" onclick="window.location.href='sale.php';"><?php echo $lang_strings['go_sale'] ?? 'Rea - Klicka här!'; ?></button>
+        <div class="text-center mt-5">
+            <button class="btn btn-outline-danger fs-5 mt-5" onclick="window.location.href='sale.php';"><?php echo $lang_strings['go_sale'] ?? 'Rea - Klicka här!'; ?></button>
+        </div>
     </section>
 
     <section class="my-5">
@@ -825,31 +984,3 @@ document.addEventListener('click', function(event) {
     }
 });
 </script>
-
-<?php
-/**
- * Get categories for dropdown
- * 
- * @return array Array of categories
- */
-function getCategories() {
-    global $pdo;
-    
-    try {
-        // Get language from session or default to Swedish
-        $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
-        
-        // Determine field name based on language
-        $nameField = ($language === 'fi') ? 'category_fi_name' : 'category_sv_name';
-        
-        // Prepare and execute query
-        $stmt = $pdo->prepare("SELECT category_id, {$nameField} as category_name FROM category ORDER BY {$nameField} ASC");
-        $stmt->execute();
-        
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    } catch (PDOException $e) {
-        error_log('Error fetching categories: ' . $e->getMessage());
-        return [];
-    }
-}
-?>

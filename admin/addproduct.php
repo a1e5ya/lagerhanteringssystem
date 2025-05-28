@@ -1,29 +1,38 @@
 <?php
 /**
- * Add Product
+ * Add Product - Fixed Version
  *
  * This file contains the form and processing logic for adding new products to the inventory.
+ * Fixed to work with AJAX submission and proper image handling.
  *
  * @package Bookstore
  * @author System Administrator
- * @version 1.1
+ * @version 2.0
  */
 
 // init.php already includes config.php and ImageProcessor.php
-require_once '../init.php'; // Correct path
+require_once '../init.php';
+
+// Check if user is authenticated and has admin or editor permissions
+checkAuth(2); // 2 or lower (Admin or Editor) role required
 
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
+// Get user locale preference (default to 'sv')
+$locale = $_SESSION['locale'] ?? 'sv';
 
+// Initialize ImageProcessor
+global $pdo, $app_config;
+$imageProcessor = new ImageProcessor($pdo, $app_config['uploads']);
 
 /**
  * Creates a new product with related data
  *
  * @param array $data Product data array
  * @param PDO $pdo Database connection
- * @return int|bool The product ID on success, false on failure
+ * @return array Result with product ID on success, error message on failure
  */
 function createProduct($data, $pdo) {
     try {
@@ -34,7 +43,7 @@ function createProduct($data, $pdo) {
         $status_id = !empty($data['status_id']) ? $data['status_id'] : 1;
         $shelf_id = !empty($data['shelf_id']) ? $data['shelf_id'] : null;
         $category_id = !empty($data['category_id']) ? $data['category_id'] : null;
-        $price = !empty($data['price']) ? $data['price'] : 0;
+        $price = !empty($data['price']) ? $data['price'] : null;
         $condition_id = !empty($data['condition_id']) ? $data['condition_id'] : null;
         $notes = !empty($data['notes']) ? $data['notes'] : '';
         $internal_notes = !empty($data['internal_notes']) ? $data['internal_notes'] : '';
@@ -50,6 +59,8 @@ function createProduct($data, $pdo) {
         // Debug log
         error_log("Creating product with data: " . print_r([
             'title' => $data['title'],
+            'authors' => $data['authors'] ?? [],
+            'genres' => $data['genres'] ?? [],
             'special_price' => $special_price,
             'rare' => $rare,
             'recommended' => $recommended
@@ -93,8 +104,9 @@ function createProduct($data, $pdo) {
         $product_id = $pdo->lastInsertId();
 
         // Process authors
-        if (!empty($data['authors'])) {
+        if (!empty($data['authors']) && is_array($data['authors'])) {
             foreach ($data['authors'] as $author_name) {
+                $author_name = trim($author_name);
                 if (empty($author_name)) {
                     continue; // Skip empty authors
                 }
@@ -120,8 +132,9 @@ function createProduct($data, $pdo) {
         }
 
         // Process genres
-        if (!empty($data['genres'])) {
+        if (!empty($data['genres']) && is_array($data['genres'])) {
             foreach ($data['genres'] as $genre_id) {
+                $genre_id = (int)$genre_id;
                 if (empty($genre_id)) {
                     continue; // Skip empty genres
                 }
@@ -132,14 +145,32 @@ function createProduct($data, $pdo) {
             }
         }
 
+        // Log the creation
+        $currentUser = getSessionUser();
+        $userId = $currentUser ? $currentUser['user_id'] : 1;
+        
+        $logStmt = $pdo->prepare("
+            INSERT INTO event_log (user_id, event_type, event_description, product_id) 
+            VALUES (:user_id, :event_type, :event_description, :product_id)
+        ");
+        
+        $eventDescription = "Skapade produkt: " . $data['title'];
+        
+        $logStmt->execute([
+            ':user_id' => $userId,
+            ':event_type' => 'create',
+            ':event_description' => $eventDescription,
+            ':product_id' => $product_id
+        ]);
+
         // Commit transaction
         $pdo->commit();
-        return $product_id;
+        return ['success' => true, 'product_id' => $product_id];
     } catch (PDOException $e) {
         // Roll back transaction if error
         $pdo->rollBack();
         error_log($e->getMessage());
-        return false;
+        return ['success' => false, 'message' => 'Ett fel inträffade vid skapande av produkt: ' . $e->getMessage()];
     }
 }
 
@@ -157,7 +188,7 @@ function createProduct($data, $pdo) {
 function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected_value = '', $locale = 'sv') {
     try {
         // Construct the language-specific field name
-        $localized_name_field = $name_field . '_' . $locale . '_name'; // <--- ADDED '_name' here;
+        $localized_name_field = $name_field . '_' . $locale . '_name';
 
         // Check if the localized column exists
         $stmt = $pdo->query("SHOW COLUMNS FROM `$table` LIKE '$localized_name_field'");
@@ -173,9 +204,6 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
                 $sql = "SELECT $id_field, $name_field AS display_name FROM `$table`";
             } else {
                 // If neither exists, try a more flexible approach
-                //error_log("Could not find column $localized_name_field or $name_field in table $table");
-
-                // Get the first column that might be a name column
                 $stmt = $pdo->query("SHOW COLUMNS FROM `$table` WHERE Field LIKE '%name%' AND Field != '$id_field'");
                 $name_column = $stmt->fetch(PDO::FETCH_ASSOC);
 
@@ -183,14 +211,11 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
                     $found_name_field = $name_column['Field'];
                     $sql = "SELECT $id_field, $found_name_field AS display_name FROM `$table`";
                 } else {
-                    echo "<option value=''>No name column found in $table</option>";
+                    echo "<option value=''>Ingen namnkolumn hittades i $table</option>";
                     return;
                 }
             }
         }
-
-        // For DEBUGGING
-        // error_log("SQL for $table: $sql");
 
         $stmt = $pdo->query($sql);
         while ($row = $stmt->fetch(PDO::FETCH_ASSOC)) {
@@ -201,16 +226,13 @@ function renderInputAlternatives($pdo, $table, $id_field, $name_field, $selected
         }
     } catch (PDOException $e) {
         error_log("Error rendering options for $table: " . $e->getMessage());
-        echo "<option value=''>Error: " . htmlspecialchars($e->getMessage()) . "</option>";
+        echo "<option value=''>Fel: " . htmlspecialchars($e->getMessage()) . "</option>";
     }
 }
 
 // Check if AJAX request
 $isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) &&
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) == 'xmlhttprequest';
-
-// Get user locale preference (default to 'sv')
-$locale = $_SESSION['locale'] ?? 'sv';
 
 function getAvailableStatusId($pdo) {
     try {
@@ -225,167 +247,145 @@ function getAvailableStatusId($pdo) {
 
 $availableStatusId = getAvailableStatusId($pdo);
 
-// Initialize ImageProcessor (needs the global $pdo and $app_config from init.php)
-global $pdo, $app_config; // Ensure these are accessible if not already by default
-$uploadDir = $app_config['uploads']['product_images_path']; // Correct access
-$imageProcessor = new ImageProcessor($pdo, $uploadDir); // Change $app_config to $uploadDir
-
-// Only process POST data
+// Handle POST requests (AJAX form submission)
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    // Turn off output buffering
-    if (ob_get_level())
+    // Turn off output buffering and error display for clean JSON response
+    if (ob_get_level()) {
         ob_end_clean();
-
-    // Set header for JSON response
+    }
+    
+    // Ensure we send JSON response for AJAX requests
     if ($isAjax) {
         header('Content-Type: application/json');
+        // Disable error display for JSON responses
+        ini_set('display_errors', 0);
     }
 
-    // Get form data
-    $formData = [
-        'title' => $_POST['title'] ?? null,
-        'status_id' => $_POST['status_id'] ?? 1,
-        'shelf_id' => $_POST['shelf_id'] ?? null,
-        'category_id' => $_POST['category_id'] ?? null,
-        'price' => $_POST['price'] ?? null,
-        'condition_id' => $_POST['condition_id'] ?? null,
-        'notes' => $_POST['notes'] ?? null,
-        'internal_notes' => $_POST['internal_notes'] ?? null,
-        'language_id' => $_POST['language_id'] ?? null,
-        'year' => $_POST['year'] ?? null,
-        'publisher' => $_POST['publisher'] ?? null,
-        'special_price' => isset($_POST['special_price']) ? 1 : 0,
-        'rare' => isset($_POST['rare']) ? 1 : 0,
-        'recommended' => isset($_POST['recommended']) ? 1 : 0
-    ];
+    try {
+        // Get form data
+        $formData = [
+            'title' => $_POST['title'] ?? null,
+            'status_id' => $_POST['status_id'] ?? 1,
+            'shelf_id' => $_POST['shelf_id'] ?? null,
+            'category_id' => $_POST['category_id'] ?? null,
+            'price' => $_POST['price'] ?? null,
+            'condition_id' => $_POST['condition_id'] ?? null,
+            'notes' => $_POST['notes'] ?? null,
+            'internal_notes' => $_POST['internal_notes'] ?? null,
+            'language_id' => $_POST['language_id'] ?? null,
+            'year' => $_POST['year'] ?? null,
+            'publisher' => $_POST['publisher'] ?? null,
+            'special_price' => isset($_POST['special_price']) ? 1 : 0,
+            'rare' => isset($_POST['rare']) ? 1 : 0,
+            'recommended' => isset($_POST['recommended']) ? 1 : 0
+        ];
 
-    // Get author information
-    $author_name = $_POST['author_name'] ?? null;
-    $authors_json = $_POST['authors_json'] ?? null;
-    $authors = [];
-
-    if (!empty($authors_json)) {
-        $authors = json_decode($authors_json, true);
-    } elseif (!empty($author_name)) {
-        $authors[] = $author_name;
-    }
-
-    $formData['authors'] = $authors;
-
-    // Get genre information
-    $genre_id = $_POST['genre_id'] ?? null;
-    $genres_json = $_POST['genres_json'] ?? null;
-    $genres = [];
-
-    if (!empty($genres_json)) {
-        $genres = json_decode($genres_json, true);
-    } elseif (!empty($genre_id)) {
-        $genres[] = $genre_id;
-    }
-
-    $formData['genres'] = $genres;
-
-      // Check if the required fields are filled
-      if ($formData['title'] && $formData['category_id']) {
-        try {
-            // Create the product
-            $product_id = createProduct($formData, $pdo); // Get the product ID
-
-            if ($product_id) {
-                // Process image uploads after product creation
-                // $_FILES['item_images'] will contain an array of files due to name="item_images[]"
-                $imageUploadResult = $imageProcessor->uploadProductImages($_FILES['item_images'], $product_id);
-
-                $successMsg = "Product added successfully!";
-                if (!$imageUploadResult['success']) {
-                    $successMsg .= " However, " . $imageUploadResult['message']; // Append image upload errors
-                    if (!empty($imageUploadResult['errors'])) {
-                        $successMsg .= " Details: " . implode(", ", $imageUploadResult['errors']); // Show detailed image errors
-                    }
-                }
-
-                if ($isAjax) {
-                    echo json_encode(['success' => true, 'message' => $successMsg]);
-                    exit();
-                } else {
-                    $_SESSION['message'] = $successMsg;
-                    header('Location: admin.php?tab=addproduct');
-                    exit();
-                }
-            } else {
-                throw new Exception("Failed to create product.");
-            }
-        } catch (Exception $e) {
-            $errorMsg = "An error occurred: " . $e->getMessage();
-            if ($isAjax) {
-                echo json_encode(['success' => false, 'message' => $errorMsg]);
-                exit();
-            } else {
-                $_SESSION['error_message'] = $errorMsg;
-                header('Location: admin.php?tab=addproduct');
-                exit();
+        // Process authors from JSON
+        $authorsJson = $_POST['authors_json'] ?? null;
+        $authors = [];
+        if (!empty($authorsJson)) {
+            $authors = json_decode($authorsJson, true);
+            if (!is_array($authors)) {
+                $authors = [];
             }
         }
-    } else {
-        $errorMsg = "Please fill in the required field: Title.";
+        $formData['authors'] = $authors;
+
+        // Process genres from JSON
+        $genresJson = $_POST['genres_json'] ?? null;
+        $genres = [];
+        if (!empty($genresJson)) {
+            $genres = json_decode($genresJson, true);
+            if (!is_array($genres)) {
+                $genres = [];
+            }
+        }
+        $formData['genres'] = $genres;
+
+        // Validate required fields
+        if (empty($formData['title'])) {
+            throw new Exception('Titel är obligatorisk');
+        }
+        
+        if (empty($formData['category_id'])) {
+            throw new Exception('Kategori är obligatorisk');
+        }
+
+        // Create the product
+        $result = createProduct($formData, $pdo);
+
+        if (!$result['success']) {
+            throw new Exception($result['message']);
+        }
+
+        $product_id = $result['product_id'];
+        
+        // Process image uploads after product creation
+        $imageUploadResult = ['success' => true, 'message' => '', 'uploaded_count' => 0];
+        
+        if (isset($_FILES['item_images']) && !empty($_FILES['item_images']['name'][0])) {
+            $imageUploadResult = $imageProcessor->uploadProductImages($_FILES['item_images'], $product_id);
+        }
+
+        // Prepare success message
+        $successMsg = "Produkt tillagd framgångsrikt!";
+        if (!$imageUploadResult['success'] && $imageUploadResult['uploaded_count'] == 0) {
+            $successMsg .= " Dock, " . $imageUploadResult['message'];
+            if (!empty($imageUploadResult['errors'])) {
+                $successMsg .= " Detaljer: " . implode(", ", $imageUploadResult['errors']);
+            }
+        } elseif ($imageUploadResult['uploaded_count'] > 0) {
+            $successMsg .= " " . $imageUploadResult['uploaded_count'] . " bilder uppladdade.";
+        }
+
+        // Send JSON response for AJAX
+        if ($isAjax) {
+            echo json_encode([
+                'success' => true, 
+                'message' => $successMsg,
+                'product_id' => $product_id
+            ]);
+            exit;
+        }
+
+        // Fallback for non-AJAX requests
+        $_SESSION['message'] = $successMsg;
+        header('Location: admin.php?tab=addproduct');
+        exit;
+
+    } catch (Exception $e) {
+        $errorMsg = "Ett fel inträffade: " . $e->getMessage();
+        error_log("Add product error: " . $e->getMessage());
+        
         if ($isAjax) {
             echo json_encode(['success' => false, 'message' => $errorMsg]);
-            exit();
-        } else {
-            $_SESSION['error_message'] = $errorMsg;
-            header('Location: admin.php?tab=addproduct');
-            exit();
+            exit;
         }
+        
+        $_SESSION['error_message'] = $errorMsg;
+        header('Location: admin.php?tab=addproduct');
+        exit;
     }
-
 }
+
+// If we reach here, it's a GET request - display the form
 ?>
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0"> <title>Add Product</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-    <style>
-        .zindex-dropdown {
-            z-index: 1000; /* Ensure dropdown is above other elements */
-        }
-        /* Style for image preview container for multiple images */
-        .item-image-previews {
-            display: flex;
-            flex-wrap: wrap;
-            gap: 10px; /* Space between images */
-            margin-bottom: 15px;
-        }
-        .item-image-previews img {
-            max-width: 100px; /* Smaller thumbnails */
-            height: 100px;
-            object-fit: cover;
-            border: 1px solid #ddd;
-            padding: 2px;
-        }
-        .item-image-previews img.default-preview {
-            max-width: 100%; /* Default image can be larger */
-            height: auto;
-        }
-    </style>
-</head>
-<body>
-
 <div class="tab-pane fade show active" id="add">
-    <form id="add-item-form" method="POST" action="" enctype="multipart/form-data">
+    <form id="add-item-form" method="POST" enctype="multipart/form-data">
         <div class="row">
             <div class="col-md-4 mb-4">
                 <div class="card">
                     <div class="card-body">
-                        <h5 class="card-title mb-3">Produktbilder</h5> <div class="item-image-previews mb-3" id="item-image-previews">
-                            <img src="assets/images/default_antiqe_image.webp" alt="Default Produktbild" class="img-fluid rounded shadow default-preview"
+                        <h5 class="card-title mb-3">Produktbilder</h5>
+                        <div class="item-image-previews mb-3" id="item-image-previews">
+                            <img src="assets/images/default_antiqe_image.webp" alt="Standard produktbild" class="img-fluid rounded shadow default-preview"
                                 id="default-image-preview">
                         </div>
                         <div class="mb-3">
-                            <label for="item-image-upload" class="form-label">Ladda upp bilder</label> <input class="form-control" type="file" id="item-image-upload" name="item_images[]" multiple accept="image/*"> <small class="form-text text-muted">Välj en eller flera bilder (Max <?php echo ($app_config['uploads']['max_size'] / (1024 * 1024)); ?>MB per bild, <?php echo strtoupper(implode(', ', $app_config['uploads']['allowed_extensions'])); ?>)</small>
+                            <label for="item-image-upload" class="form-label">Ladda upp bilder</label>
+                            <input class="form-control" type="file" id="item-image-upload" name="item_images[]" multiple accept="image/*">
+                            <small class="form-text text-muted">Välj en eller flera bilder (Max <?php echo ($app_config['uploads']['max_size'] / (1024 * 1024)); ?>MB per bild, <?php echo strtoupper(implode(', ', $app_config['uploads']['allowed_extensions'])); ?>)</small>
                         </div>
                     </div>
                 </div>
@@ -398,42 +398,51 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
                         <div class="row mb-3">
                             <div class="col-md-8">
-                                <label for="item-title" class="form-label">Titel</label>
-                                <input type="text" class="form-control" id="item-title" name="title" required>
+                                <label for="item-category" class="form-label">Kategori</label>
+                                <select class="form-select" id="item-category" name="category_id" required>
+                                    <option value="">Välj Kategori</option>
+                                    <?php renderInputAlternatives($pdo, 'category', 'category_id', 'category', '', $locale); ?>
+                                </select>
                             </div>
                             <div class="col-md-4">
-                            <label for="item-status" class="form-label">Status</label>
-                            <select class="form-select" id="item-status" name="status_id">
-                            <?php
-                                // Get available status ID
-                                $availableId = 1;
-                                try {
-                                    $statusStmt = $pdo->query("SELECT status_id FROM status WHERE status_sv_name = 'Tillgänglig' LIMIT 1");
-                                    if ($result = $statusStmt->fetch(PDO::FETCH_ASSOC)) {
-                                        $availableId = $result['status_id'];
+                                <label for="item-status" class="form-label">Status</label>
+                                <select class="form-select" id="item-status" name="status_id">
+                                    <?php
+                                    // Get available status ID
+                                    $availableId = 1;
+                                    try {
+                                        $statusStmt = $pdo->query("SELECT status_id FROM status WHERE status_sv_name = 'Tillgänglig' LIMIT 1");
+                                        if ($result = $statusStmt->fetch(PDO::FETCH_ASSOC)) {
+                                            $availableId = $result['status_id'];
+                                        }
+                                    } catch(Exception $e) {
+                                        error_log("Error getting available status ID: " . $e->getMessage());
                                     }
-                                } catch(Exception $e) {
-                                    error_log("Error getting available status ID: " . $e->getMessage());
-                                }
-                                // Render options with available status pre-selected
-                                renderInputAlternatives($pdo, 'status', 'status_id', 'status', $availableId, $locale);
-                                ?>
-                            </select>
+                                    // Render options with available status pre-selected
+                                    renderInputAlternatives($pdo, 'status', 'status_id', 'status', $availableId, $locale);
+                                    ?>
+                                </select>
                             </div>
                         </div>
 
-                        <div class="mb-3">
-                            <label class="form-label">Författare</label>
-                            <div class="selected-authors mb-2">
-                                <em class="text-muted">Ingen författare vald</em>
+                        <div class="row mb-3">
+                            <div class="col-md-12 position-relative mb-2">
+                                <label for="item-title" class="form-label">Titel</label>
+                                <input type="text" class="form-control" id="item-title" name="title" required>
                             </div>
+                        </div>
 
-                            <div class="row">
+                        <div class="row mb-3">
+                            <div class="col-md-12">
+                                <label class="form-label">Författare</label>
+                                <div class="selected-authors mb-2">
+                                    <em class="text-muted">Ingen författare vald</em>
+                                </div>
                                 <div class="col-md-12 position-relative mb-2">
-                                    <div class="input-group">
+                                    <div class="input-group input-plus">
                                         <input type="text" class="form-control" id="author-name" name="author_name"
                                             autocomplete="off" placeholder="Ange författarens namn">
-                                        <button type="button" class="btn btn-outline-secondary" id="add-author-btn">
+                                        <button type="button" class="btn btn-outline-secondary" style="height: 38px;" id="add-author-btn">
                                             <i class="fas fa-plus"></i> Lägg till
                                         </button>
                                     </div>
@@ -443,24 +452,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="row mb-3">
-                            <div class="col-md-6">
-                                <label for="item-category" class="form-label">Kategori</label>
-                                <select class="form-select" id="item-category" name="category_id" required>
-                                    <option value="">Välj Kategori</option>
-                                    <?php renderInputAlternatives($pdo, 'category', 'category_id', 'category', '', $locale); ?>
-                                </select>
-                            </div>
-
-                            <div class="col-md-6">
+                            <div class="col-md-12">
                                 <label for="item-genre" class="form-label">Genre</label>
-                                <select class="form-select" id="item-genre" name="genre_id">
-                                    <option value="">Välj Genre</option>
-                                    <?php renderInputAlternatives($pdo, 'genre', 'genre_id', 'genre', '', $locale); ?>
-                                </select>
-                                <div class="selected-genres mt-2"></div>
-                                <button type="button" class="btn btn-sm btn-outline-secondary mt-1" id="add-genre-btn">
-                                    <i class="fas fa-plus"></i> Lägg till genre
-                                </button>
+                                <div class="selected-genres mb-2">
+                                    <em class="text-muted">Ingen genre vald</em>
+                                </div>
+                                <div class="input-group input-plus">
+                                    <select class="form-select" id="item-genre" name="genre_id">
+                                        <option value="">Välj Genre</option>
+                                        <?php renderInputAlternatives($pdo, 'genre', 'genre_id', 'genre', '', $locale); ?>
+                                    </select>
+                                    <button type="button" class="btn btn-outline-secondary" style="height: 38px;" id="add-genre-btn">
+                                        <i class="fas fa-plus"></i> Lägg till
+                                    </button>
+                                </div>
                             </div>
                         </div>
 
@@ -495,7 +500,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                             <div class="col-md-4">
                                 <label for="item-year" class="form-label">År</label>
-                                <input type="number" class="form-control" id="item-year" name="year" min="1900"
+                                <input type="number" class="form-control" id="item-year" name="year" min="1400"
                                     max="<?php echo date('Y'); ?>">
                             </div>
                             <div class="col-md-4 position-relative">
@@ -512,10 +517,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                         </div>
 
                         <div class="mb-3">
-                            <label for="item-internal-notes" class="form-label">Intern beskrivning (endast för
-                                personal)</label>
-                            <textarea class="form-control" id="item-internal-notes" name="internal_notes"
-                                rows="2"></textarea>
+                            <label for="item-internal-notes" class="form-label">Intern beskrivning (endast för personal)</label>
+                            <textarea class="form-control" id="item-internal-notes" name="internal_notes" rows="2"></textarea>
                         </div>
 
                         <div class="row mb-3">
@@ -542,9 +545,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                             </div>
                         </div>
 
-                        <div class="d-flex justify-content-end">
+                        <div class="d-flex justify-content-between">
                             <button type="reset" class="btn btn-outline-secondary me-2">Rensa</button>
-                            <button type="submit" class="btn btn-primary">Add Product</button>
+                            <button type="submit" class="btn btn-primary">
+                                <span class="submit-text">Lägg till produkt</span>
+                                <span class="submit-spinner d-none">
+                                    <span class="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    Sparar...
+                                </span>
+                            </button>
                         </div>
 
                         <input type="hidden" id="authors-json" name="authors_json" value="">
@@ -556,7 +565,4 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </form>
 </div>
 
-<script src="assets/js/image-handler.js"></script>
-
-</body>
-</html>
+<script src="<?php echo url('assets/js/addproduct-handlers.js'); ?>"></script>
