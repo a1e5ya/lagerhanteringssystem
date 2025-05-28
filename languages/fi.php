@@ -32,7 +32,7 @@ $lang_strings = array(
 
     // General 
     'welcome' => 'Tervetuloa</br>Karjaan Antikvariaattiin',
-    'subtitle' => 'Paikallinen antikvariaattisi, jossa on laaja valikoima kirjoja, musiikkia ja keräilyesineitä',
+    'subtitle' => 'Paikallinen antikvariaattisi, jossa on laaja valikoima kirjoja, musiikkia ja keräilyesineitä.',
     'browse_button' => 'Selaa valikoimaamme',
     'about_heading' => 'Liikkeestämme',
     'about_p1' => 'Karjaan Antikvariaatilla on erittäin laaja valikoima kirjoja, mutta olemme erikoistuneet suomenruotsalaisiin kirjailijoihin, paikallishistoriaan ja merenkulkuun.',
@@ -62,7 +62,7 @@ $lang_strings = array(
 
     // Pagination
     'show' => 'Näytä',
-    'items' => 'kohdetta',
+    'items' => 'tuotetta',
     'showing' => 'Näytetään',
     'to' => '-',
     'of' => '/',
@@ -73,7 +73,7 @@ $lang_strings = array(
 
     // Featured sections
     'on_sale' => 'Alennuksessa',
-    'go_sale' => 'Alennukset - Klikkaa tästä!',
+    'go_sale' => 'Näytä kaikki alennustuotteet',
     'on_rec' => 'Suositellut',
 
     // Footer
@@ -93,10 +93,10 @@ $lang_strings = array(
     'close' => 'Sulje',
     'recaptcha_required' => 'Vahvista, että et ole robotti',
     'newsletter_already_subscribed' => 'Tilaat jo uutiskirjettämme. Tietosi on päivitetty.',
-'newsletter_reactivated' => 'Uutiskirjeen tilauksesi on aktivoitu uudelleen!',
-'technical_error' => 'Tekninen virhe. Yritä myöhemmin uudelleen.',
-'save_error' => 'Virhe tallennuksessa. Yritä uudelleen.',
-'activation_error' => 'Virhe aktivoinnissa. Yritä uudelleen.',
+    'newsletter_reactivated' => 'Uutiskirjeen tilauksesi on aktivoitu uudelleen!',
+    'technical_error' => 'Tekninen virhe. Yritä myöhemmin uudelleen.',
+    'save_error' => 'Virhe tallennuksessa. Yritä uudelleen.',
+    'activation_error' => 'Virhe aktivoinnissa. Yritä uudelleen.',
 
     // Other common elements
     'unknown_author' => 'Tuntematon kirjailija',
@@ -110,6 +110,7 @@ $lang_strings = array(
     'description' => 'Kuvaus',
     'special_price' => 'Erikoishinta',
     'rare_item' => 'Harvinainen tuote',
+    'recommended' => 'Suositeltu',
     'interested_product' => 'Kiinnostunut tästä tuotteesta?',
     'contact_to_reserve' => 'Ota yhteyttä varataksesi tämän tuotteen:',
     'product_sold' => 'Valitettavasti tämä tuote on jo myyty. Tutustu aiheeseen liittyviin tuotteisiin alla.',
@@ -124,7 +125,7 @@ $lang_strings = array(
     // Contact and company info
     'data_controller' => 'Rekisterinpitäjä',
     'data_contact_person' => 'Yhteyshenkilö henkilötietoasioissa',
-    'data_contact_info' => 'Henkilötietojen käsittelyä koskevissa kysymyksissä, ota yhteyttä',
+    'data_contact_info' => 'Henkilötietojen käsittelyä koskevissa kysymyksissä, ota yhteyttä:',
     'country' => 'Suomi',
     'phone' => 'Puhelin',
     'business_id' => 'Y-tunnus',
@@ -147,7 +148,7 @@ $lang_strings = array(
     'website_retention' => 'Istuntotiedot poistetaan selaimen sulkemisen yhteydessä. Palvelinlokeja säilytetään enintään 30 päivää.',
     
     // What we don't collect
-    'data_not_collected' => 'EMMÄ kerää seuraavia tietoja',
+    'data_not_collected' => 'Me EMME kerää seuraavia tietoja',
     'no_personal_browsing' => 'Henkilötietoja tuotteiden hakemisen tai selaamisen yhteydessä',
     'no_payment_data' => 'Luottokortti- tai maksutietoja (kaikki ostot tapahtuvat fyysisessä liikkeessä)',
     'no_tracking_cookies' => 'Seurantaan tai markkinointiin tarkoitettuja evästeitä',
@@ -184,12 +185,12 @@ $lang_strings = array(
     'security_measures' => 'Toteutamme asianmukaiset tekniset ja organisatoriset toimenpiteet henkilötietojesi suojaamiseksi luvattomalta pääsyltä, katoamiselta tai väärinkäytöltä.',
     'data_sharing' => 'Tietojen luovuttaminen',
     'no_data_sharing' => 'Emme luovuta henkilötietojasi kolmansille osapuolille, lukuun ottamatta:',
-    'technical_providers' => 'Teknisiä palveluntarjoajia, jotka auttavat verkkosivuston ylläpidossa (heillä on rajoitettu pääsy ja he saavat käsitellä tietoja vain ohjidemme mukaisesti)',
+    'technical_providers' => 'Teknisiä palveluntarjoajia, jotka auttavat verkkosivuston ylläpidossa (näillä on rajoitettu käyttöoikeus, ja saavat käsitellä tietoja ainoastaan ohjeidemme mukaisesti)',
     'legal_requirements' => 'Kun laki sitä edellyttää',
     
     // Changes and complaints
     'policy_changes' => 'Muutokset tähän rekisteriselosteeseen',
-    'policy_changes_info' => 'Voimme päivittää tätä rekisteriselostet. Olennaisista muutoksista ilmoitamme verkkosivuillamme.',
+    'policy_changes_info' => 'Voimme päivittää tätä rekisteriselostetta. Olennaisista muutoksista ilmoitamme verkkosivuillamme.',
     'complaints' => 'Valitukset',
     'complaints_intro' => 'Jos katsot, että käsittelemme henkilötietojasi virheellisesti, voit tehdä valituksen:',
     'data_protection_authority' => 'Tietosuojavaltuutetun toimisto',

@@ -61,7 +61,7 @@ $lang_strings = array(
 
     // Pagination
     'show' => 'Visa',
-    'items' => 'objekt',
+    'items' => 'produkter',
     'showing' => 'Visar',
     'to' => 'till',
     'of' => 'av',
@@ -72,14 +72,14 @@ $lang_strings = array(
 
     // Featured sections
     'on_sale' => 'På rea',
-    'go_sale' => 'Rea - Klicka här!',
+    'go_sale' => 'Visa alla reaprodukter',
     'on_rec' => 'Rekommenderat',
 
     // Footer
     'contact_us' => 'Kontakta oss',
     'opening_hours' => 'Öppettider',
     'newsletter' => 'Nyhetsbrev',
-    'newsletter_desc' => 'Prenumerera på vårt nyhetsbrev för att få information om nya objekt och erbjudanden.',
+    'newsletter_desc' => 'Prenumerera på vårt nyhetsbrev för att få information om nya produkter och erbjudanden.',
     'your_email' => 'Din e-postadress',
     'subscribe' => 'Prenumerera',
 
@@ -110,11 +110,11 @@ $lang_strings = array(
     'special_price' => 'Specialpris',
     'rare_item' => 'Sällsynt objekt',
     'interested_product' => 'Intresserad av denna produkt?',
-    'contact_to_reserve' => 'Kontakta oss för att reservera detta objekt:',
+    'contact_to_reserve' => 'Kontakta oss för att reservera denna produkt:',
     'product_sold' => 'Tyvärr är denna produkt redan såld. Kolla gärna in våra relaterade produkter nedan.',
     'product_reserved' => 'Denna produkt är för tillfället reserverad, men kan bli tillgänglig igen. Kontakta oss för mer information.',
     'product_unavailable' => 'Denna produkt är för närvarande inte tillgänglig för försäljning. Kontakta oss för mer information.',
-    'related_items' => 'Relaterade objekt',
+    'related_items' => 'Relaterade produkter',
 
     // Privacy Policy Page
     'privacy_policy_title' => 'Registerbeskrivning',
@@ -123,7 +123,7 @@ $lang_strings = array(
     // Contact and company info
     'data_controller' => 'Personuppgiftsansvarig',
     'data_contact_person' => 'Kontaktperson för personuppgifter',
-    'data_contact_info' => 'För frågor om behandling av personuppgifter, kontakta oss på',
+    'data_contact_info' => 'För frågor om behandling av personuppgifter, kontakta oss på:',
     'country' => 'Finland',
     'phone' => 'Telefon',
     'business_id' => 'FO-nummer',
