@@ -1,12 +1,24 @@
 <?php
+// Include initialization file
+require_once '../init.php';
+
+// Rate limiting for login attempts
+if (!checkRateLimit('login', 5, 300)) { // 5 attempts per 5 minutes
+    header('Location: ' . url('index.php', ['error' => 'För många inloggningsförsök. Vänta 5 minuter.']));
+    exit;
+}
+
+// Check CSRF token
+checkCSRFToken();
+
+
 /**
  * Login Process
  * 
  * Handles login form submissions
  */
 
-// Include initialization file
-require_once '../init.php';
+
 
 // Check if form was submitted
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {

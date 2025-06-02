@@ -1,7 +1,7 @@
 /**
- * addproduct-handlers.js - Fixed version with proper edit form support
+ * addproduct-handlers.js - Fixed version with proper image preview reset
  * Handles multiple authors, genres, image preview, and AJAX form submission
- * Now properly supports both add and edit product forms
+ * Now properly supports both add and edit product forms with image preview reset
  */
 
 (function() {
@@ -43,9 +43,47 @@
         initializeImagePreview();
         initializeAutocomplete();
         initializeFormSubmission();
+        initializeResetHandlers(); // NEW: Initialize reset handlers
         
         isInitialized = true;
         console.log('Product handlers initialized successfully');
+    }
+
+    /**
+     * NEW: Initialize reset button handlers
+     */
+    function initializeResetHandlers() {
+        console.log('Setting up reset handlers...');
+        
+        // Handle reset buttons
+        document.addEventListener('click', function(e) {
+            // Check if clicked element is a reset button
+            if (e.target && e.target.type === 'reset') {
+                const form = e.target.closest('form');
+                if (form && (form.id === 'add-item-form' || form.id === 'edit-product-form')) {
+                    // Prevent default reset to handle it manually
+                    e.preventDefault();
+                    
+                    console.log('Reset button clicked, performing custom reset');
+                    resetAllFormFields(form);
+                }
+            }
+        });
+        
+        // Also handle the native form reset event as a backup
+        document.addEventListener('reset', function(e) {
+            const form = e.target;
+            if (form && (form.id === 'add-item-form' || form.id === 'edit-product-form')) {
+                console.log('Form reset event triggered, performing custom reset');
+                
+                // Use setTimeout to let the native reset complete first
+                setTimeout(() => {
+                    resetImagePreview(form);
+                    renderSelectedAuthors();
+                    renderSelectedGenres();
+                }, 10);
+            }
+        });
     }
 
     /**
@@ -333,6 +371,8 @@
         
         console.log('Setting up image preview...');
         
+        // These are defined in the outer scope of initializeImagePreview,
+        // making them accessible to nested functions like renderImagePreviews and removeImage.
         const fileInput = document.getElementById('item-image-upload');
         const previewContainer = document.getElementById('item-image-previews');
         const defaultImage = document.getElementById('default-image-preview');
@@ -360,13 +400,13 @@
                     productImageFiles.push(file);
                 } else if (productImageFiles.length >= MAX_IMAGES) {
                     showMessage('Du kan ladda upp högst ' + MAX_IMAGES + ' bilder.', 'warning');
-                    return;
+                    return; // Exit forEach early if max is reached
                 }
             });
 
-            fileInput.value = '';
+            fileInput.value = ''; // Allow re-selecting the same file if removed
             updateFileInputFiles();
-            renderImagePreviews();
+            renderImagePreviews(); // Calls the updated renderImagePreviews
         });
 
         imageHandlerInitialized = true;
@@ -376,59 +416,57 @@
          * Render image previews
          */
         function renderImagePreviews() {
+            // previewContainer and defaultImage are accessible from the outer scope
             if (!previewContainer) return;
 
-            // Only clear and manage default image if this is the new images preview container
-            const isNewImageContainer = previewContainer.id === 'item-image-previews';
-            
+            const isNewImageContainer = previewContainer.id === 'item-image-previews'; 
+
             if (isNewImageContainer) {
-                previewContainer.innerHTML = '';
+                previewContainer.innerHTML = ''; 
             }
 
             if (productImageFiles.length > 0) {
-                if (defaultImage && isNewImageContainer) {
-                    defaultImage.style.display = 'none';
-                }
-
                 productImageFiles.forEach((file, index) => {
                     const reader = new FileReader();
 
                     reader.onload = function(e) {
-                        const imgWrapper = document.createElement('div');
-                        imgWrapper.classList.add('position-relative', 'd-inline-block', 'me-2', 'mb-2', 'border', 'rounded', 'shadow-sm');
-                        imgWrapper.style.maxWidth = '150px';
-                        imgWrapper.style.maxHeight = '150px';
-                        imgWrapper.style.overflow = 'hidden';
-                        imgWrapper.style.cursor = 'pointer';
+                        const imgContainer = document.createElement('div');
+                        imgContainer.classList.add(
+                            'd-flex',             // Use Bootstrap flexbox for side-by-side layout
+                            'align-items-center', // Vertically align items (image and button) in the middle
+                            'mb-3',               // Margin bottom for spacing between image rows
+                            'p-2',                // Padding inside the container
+                            'rounded'             // Rounded corners for the container
+                        );
 
                         const img = document.createElement('img');
                         img.src = e.target.result;
                         img.alt = `Produktbild förhandsgranskning ${index + 1}`;
-                        img.classList.add('img-fluid', 'rounded');
-                        img.style.objectFit = 'cover';
-                        img.style.width = '100%';
-                        img.style.height = '100%';
+                        img.classList.add('rounded'); // Apply rounded corners to the image itself
+                        img.style.maxWidth = '150px';
+                        img.style.maxHeight = '150px';
+                        img.style.objectFit = 'cover';    // Ensure the image covers the dimensions without distortion
+                        img.style.marginRight = '1rem';   // Add space between the image and the button
 
-                        const removeBtn = document.createElement('div');
-                        removeBtn.className = 'position-absolute top-0 end-0 bg-danger text-white rounded-circle d-flex align-items-center justify-content-center';
-                        removeBtn.style.width = '25px';
-                        removeBtn.style.height = '25px';
-                        removeBtn.style.fontSize = '14px';
-                        removeBtn.style.cursor = 'pointer';
-                        removeBtn.style.transform = 'translate(50%, -50%)';
-                        removeBtn.innerHTML = '×';
-                        removeBtn.title = 'Ta bort denna bild';
+                        const removeButton = document.createElement('button');
+                        removeButton.type = 'button';
+                        removeButton.className = 'btn btn-sm btn-danger'; 
+                        removeButton.innerHTML = 'Ta bort';
+                        removeButton.title = 'Ta bort bild från urval';
 
-                        removeBtn.onclick = (e) => {
-                            e.stopPropagation();
-                            if (confirm('Vill du ta bort den här bilden?')) {
-                                removeImage(index);
+                        removeButton.onclick = (event) => {
+                            event.stopPropagation(); 
+                            if (confirm('Vill du ta bort denna bild från förhandsgranskningen? Den är ännu inte uppladdad.')) {
+                                removeImage(index); 
                             }
                         };
 
-                        imgWrapper.appendChild(img);
-                        imgWrapper.appendChild(removeBtn);
-                        previewContainer.appendChild(imgWrapper);
+                        imgContainer.appendChild(img);
+                        imgContainer.appendChild(removeButton);
+                        
+                        if (previewContainer && isNewImageContainer) { 
+                           previewContainer.appendChild(imgContainer);
+                        }
                     };
 
                     reader.onerror = function() {
@@ -439,13 +477,9 @@
                     reader.readAsDataURL(file);
                 });
             } else {
-                // Only show default image if we're on add product page or edit page with no existing images
-                const existingImagesContainer = document.getElementById('existing-images');
-                const hasExistingImages = existingImagesContainer && existingImagesContainer.children.length > 0;
-                
-                if (defaultImage && isNewImageContainer && !hasExistingImages) {
-                    previewContainer.appendChild(defaultImage);
-                    defaultImage.style.display = 'block';
+                if (defaultImage && isNewImageContainer) {
+                    previewContainer.appendChild(defaultImage); 
+                    defaultImage.style.display = 'block'; 
                 }
             }
         }
@@ -454,11 +488,12 @@
          * Remove image from preview
          */
         function removeImage(indexToRemove) {
+            // previewContainer and defaultImage are accessible from the outer scope
             if (indexToRemove >= 0 && indexToRemove < productImageFiles.length) {
                 const removedFile = productImageFiles[indexToRemove];
                 productImageFiles.splice(indexToRemove, 1);
                 updateFileInputFiles();
-                renderImagePreviews();
+                renderImagePreviews(); // This will re-render based on the current state
                 
                 console.log('Removed image:', removedFile.name);
             }
@@ -468,6 +503,7 @@
          * Update file input with current files
          */
         function updateFileInputFiles() {
+            // fileInput is accessible from the outer scope
             if (!fileInput) return;
             
             try {
@@ -482,6 +518,46 @@
                 console.error('Error updating file input:', error);
             }
         }
+    }
+
+    /**
+     * NEW: Reset image preview to default state
+     */
+    function resetImagePreview(form) {
+        console.log('Resetting image preview...');
+        
+        // Clear the global image files array
+        productImageFiles = [];
+        
+        // Clear the file input
+        const fileInput = form ? form.querySelector('#item-image-upload') : document.getElementById('item-image-upload');
+        if (fileInput) {
+            fileInput.value = '';
+        }
+        
+        // Reset the preview container
+        const previewContainer = form ? form.querySelector('#item-image-previews') : document.getElementById('item-image-previews');
+        const defaultImage = form ? form.querySelector('#default-image-preview') : document.getElementById('default-image-preview');
+        
+        if (previewContainer) {
+            previewContainer.innerHTML = '';
+            if (defaultImage) {
+                // Clone the default image to avoid moving the original
+                const defaultClone = defaultImage.cloneNode(true);
+                previewContainer.appendChild(defaultClone);
+                defaultClone.style.display = 'block';
+            } else {
+                // If no default image element found, create one
+                const newDefaultImage = document.createElement('img');
+                newDefaultImage.src = 'assets/images/default_antiqe_image.webp';
+                newDefaultImage.alt = 'Standard produktbild';
+                newDefaultImage.className = 'img-fluid rounded shadow default-preview';
+                newDefaultImage.id = 'default-image-preview';
+                previewContainer.appendChild(newDefaultImage);
+            }
+        }
+        
+        console.log('Image preview reset completed');
     }
 
     /**
@@ -608,10 +684,8 @@
                 });
                 
                 // Show loading state
-                toggleSubmitButton(true);
-                showMessage('Sparar produkt...', 'info');
-                
-                // Submit form via AJAX
+                toggleSubmitButton(form, true); // Pass form context
+
                 submitFormAjax(form);
             });
         });
@@ -623,33 +697,32 @@
     function submitFormAjax(form) {
         const formData = new FormData(form);
         
-        // Debug: log form data
         console.log('Submitting form data:');
         for (let [key, value] of formData.entries()) {
-            console.log(key, value);
-        }
-        
-        // Get the correct URL for the request
-        let actionUrl = form.action || window.location.href;
-        
-        // Determine if this is add or edit form based on form ID
-        const isEditForm = form.id === 'edit-product-form';
-        
-        if (isEditForm) {
-            // For edit form, use the current URL (should already include the product ID)
-            if (!actionUrl.includes('adminsingleproduct.php')) {
-                // Fallback: construct the URL with current product ID
-                const urlParams = new URLSearchParams(window.location.search);
-                const productId = urlParams.get('id');
-                if (productId) {
-                    actionUrl = BASE_URL + '/admin/adminsingleproduct.php?id=' + productId;
-                }
+            // For File objects, log the name, not the object itself, for brevity.
+            if (value instanceof File) {
+                console.log(key, value.name);
+            } else {
+                console.log(key, value);
             }
-        } else {
-            // For add form, use addproduct.php
-            actionUrl = BASE_URL + '/admin/addproduct.php';
         }
         
+        let actionUrl = form.getAttribute('action') || window.location.href;
+        
+        const isEditForm = form.id === 'edit-product-form';
+        if (typeof BASE_URL !== 'undefined') {
+            if (isEditForm) {
+                if (!actionUrl.includes('adminsingleproduct.php')) {
+                    const urlParams = new URLSearchParams(window.location.search);
+                    const productId = urlParams.get('id');
+                    if (productId) {
+                        actionUrl = BASE_URL + '/admin/adminsingleproduct.php?id=' + productId;
+                    }
+                }
+            } else { // add-item-form
+                actionUrl = BASE_URL + '/admin/addproduct.php';
+            }
+        }
         console.log('Submitting to URL:', actionUrl);
         
         fetch(actionUrl, {
@@ -661,156 +734,155 @@
         })
         .then(response => {
             console.log('Response status:', response.status);
-            console.log('Response headers:', response.headers);
+            const contentType = response.headers.get('content-type');
+            console.log('Response content-type:', contentType);
             
             if (!response.ok) {
-                throw new Error(`HTTP error! status: ${response.status}`);
+                 return response.text().then(text => {
+                    throw new Error(`HTTP error ${response.status}: ${text.substring(0, 200)}`);
+                });
             }
             
-            // Check if response is actually JSON
-            const contentType = response.headers.get('content-type');
             if (!contentType || !contentType.includes('application/json')) {
                 return response.text().then(text => {
-                    console.log('Non-JSON response received:', text.substring(0, 500));
-                    throw new Error('Server returned HTML instead of JSON. Check PHP errors.');
+                    console.warn('Non-JSON response received:', text.substring(0, 500));
+                    if (response.ok && text.toLowerCase().includes("success")) {
+                         return { success: true, message: "Operation successful (non-JSON response)." };
+                    }
+                    throw new Error('Server returned non-JSON content. Check PHP errors or response type.');
                 });
             }
             
             return response.json();
         })
         .then(data => {
-            console.log('Server response:', data);
+            console.log('Server response data:', data);
             
             if (data.success) {
-                showMessage(data.message, 'success');
-                
-                // If it's add product form, reset the form
+                showMessage(data.message || 'Åtgärden lyckades!', 'success');
                 if (form.id === 'add-item-form') {
-                    resetAll();
-                    form.reset();
+                    resetAllFormFields(form);
                 }
             } else {
-                showMessage(data.message || 'Ett fel inträffade', 'danger');
+                showMessage(data.message || 'Ett fel inträffade.', 'danger');
             }
         })
         .catch(error => {
             console.error('AJAX submission error:', error);
-            showMessage('Ett fel inträffade vid sparande: ' + error.message, 'danger');
+            showMessage('Ett allvarligt fel inträffade vid kommunikation med servern: ' + error.message, 'danger');
         })
         .finally(() => {
-            // Hide loading state
-            toggleSubmitButton(false);
+            toggleSubmitButton(form, false);
         });
     }
 
     /**
      * Toggle submit button loading state
      */
-    function toggleSubmitButton(loading) {
-        const submitButtons = document.querySelectorAll('button[type="submit"]');
-        submitButtons.forEach(button => {
-            const submitText = button.querySelector('.submit-text');
-            const submitSpinner = button.querySelector('.submit-spinner');
-            
-            if (loading) {
-                button.disabled = true;
-                if (submitText) submitText.classList.add('d-none');
-                if (submitSpinner) submitSpinner.classList.remove('d-none');
-            } else {
-                button.disabled = false;
-                if (submitText) submitText.classList.remove('d-none');
-                if (submitSpinner) submitSpinner.classList.add('d-none');
-            }
-        });
+    function toggleSubmitButton(form, loading) {
+        const submitButton = form.querySelector('button[type="submit"]');
+        if (!submitButton) return;
+
+        const submitText = submitButton.querySelector('.submit-text');
+        const submitSpinner = submitButton.querySelector('.submit-spinner');
+        
+        if (loading) {
+            submitButton.disabled = true;
+            if (submitText) submitText.classList.add('d-none');
+            if (submitSpinner) submitSpinner.classList.remove('d-none');
+        } else {
+            submitButton.disabled = false;
+            if (submitText) submitText.classList.remove('d-none');
+            if (submitSpinner) submitSpinner.classList.add('d-none');
+        }
     }
 
     /**
-     * Show message to user (only warnings, errors, and save confirmations)
+     * Show message to user
      */
     function showMessage(message, type = 'info') {
         console.log(`Message (${type}):`, message);
         
-        // Try to use existing showMessage function
-        if (typeof window.showMessage === 'function') {
-            window.showMessage(message, type);
-            return;
-        }
-        
-        // Create message display
         let messageContainer = document.getElementById('message-container');
         if (!messageContainer) {
-            messageContainer = document.createElement('div');
-            messageContainer.id = 'message-container';
-            messageContainer.style.position = 'fixed';
-            messageContainer.style.top = '20px';
-            messageContainer.style.right = '20px';
-            messageContainer.style.zIndex = '9999';
-            messageContainer.style.maxWidth = '400px';
-            document.body.appendChild(messageContainer);
+            const formElement = document.getElementById('add-item-form') || document.getElementById('edit-product-form');
+            if (formElement && formElement.parentNode) {
+                messageContainer = document.createElement('div');
+                messageContainer.id = 'dynamic-message-container';
+                messageContainer.style.marginTop = '1rem';
+                formElement.parentNode.insertBefore(messageContainer, formElement);
+            } else {
+                messageContainer = document.createElement('div');
+                Object.assign(messageContainer.style, {
+                    position: 'fixed', top: '20px', right: '20px', zIndex: '1050', maxWidth: '400px'
+                });
+                document.body.appendChild(messageContainer);
+            }
         }
         
         const alert = document.createElement('div');
         alert.className = `alert alert-${type} alert-dismissible fade show`;
+        alert.setAttribute('role', 'alert');
         alert.innerHTML = `
             ${message}
             <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
         `;
         
+        if (messageContainer.id === 'dynamic-message-container') {
+            messageContainer.innerHTML = '';
+        }
         messageContainer.appendChild(alert);
         
-        // Auto-dismiss after 5 seconds
         setTimeout(() => {
-            if (alert.parentNode) {
-                alert.remove();
+            if (alert && alert.parentNode) {
+                const bsAlert = typeof bootstrap !== 'undefined' ? bootstrap.Alert.getInstance(alert) : null;
+                if (bsAlert) {
+                    bsAlert.close();
+                } else {
+                    alert.remove();
+                }
             }
-        }, 5000);
+            if (messageContainer.id === 'dynamic-message-container' && !messageContainer.hasChildNodes()) {
+                messageContainer.remove();
+            }
+        }, 7000);
     }
-
+    
     /**
-     * Reset all selections and image preview
+     * UPDATED: Reset all form fields, selections, and image previews for the given form.
      */
-    function resetAll() {
+    function resetAllFormFields(form) {
+        if (!form) return;
+        
+        console.log('Performing complete form reset for:', form.id);
+        
+        // Reset native form fields first
+        form.reset();
+
+        // Reset authors and genres
         window.productAuthors = [];
         window.productGenres = [];
-        productImageFiles = [];
-        
         renderSelectedAuthors();
         renderSelectedGenres();
         updateAuthorsJson();
         updateGenresJson();
+
+        // Reset image preview
+        resetImagePreview(form);
         
-        const fileInput = document.getElementById('item-image-upload');
-        if (fileInput) {
-            fileInput.value = '';
-        }
-        
-        const previewContainer = document.getElementById('item-image-previews');
-        const defaultImage = document.getElementById('default-image-preview');
-        
-        // Only show default image if we're on add product page or no existing images
-        const existingImagesContainer = document.getElementById('existing-images');
-        const hasExistingImages = existingImagesContainer && existingImagesContainer.children.length > 0;
-        
-        if (previewContainer) {
-            previewContainer.innerHTML = '';
-            if (defaultImage && !hasExistingImages) {
-                previewContainer.appendChild(defaultImage);
-                defaultImage.style.display = 'block';
-            }
-        }
+        console.log('Complete form reset finished for:', form.id);
     }
 
     // Initialize when DOM is ready
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initializeProductHandlers);
     } else {
-        // DOM is already ready
         initializeProductHandlers();
     }
 
-    // Also initialize when content is loaded via AJAX
+    // Also initialize when content is loaded via AJAX (if you use a custom 'contentLoaded' event)
     document.addEventListener('contentLoaded', function() {
-        console.log('Content loaded via AJAX, reinitializing...');
+        console.log('Content loaded via AJAX, reinitializing product handlers...');
         isInitialized = false;
         imageHandlerInitialized = false;
         initializeProductHandlers();
@@ -824,7 +896,11 @@
         removeGenre: removeGenre,
         updateAuthorsJson: updateAuthorsJson,
         updateGenresJson: updateGenresJson,
-        resetAll: resetAll,
+        resetImagePreview: resetImagePreview,
+        resetAll: function() {
+            const form = document.getElementById('add-item-form') || document.getElementById('edit-product-form');
+            if (form) resetAllFormFields(form);
+        },
         reinitialize: function() {
             isInitialized = false;
             imageHandlerInitialized = false;
@@ -832,6 +908,6 @@
         }
     };
 
-    console.log('Product handlers script loaded');
+    console.log('Product handlers script loaded with image preview reset functionality');
 
 })();

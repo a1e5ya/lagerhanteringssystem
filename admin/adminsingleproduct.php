@@ -18,10 +18,21 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     header('Content-Type: application/json');
     header('Cache-Control: no-cache, must-revalidate');
     ini_set('display_errors', 0);
+
+    // Add minimal required includes for database access (moved up)
+require_once dirname(__DIR__) . '/init.php';
+
+    // Check CSRF token for AJAX requests
+try {
+    checkCSRFToken();
+} catch (Exception $e) {
+    echo json_encode(['success' => false, 'message' => 'CSRF token validation failed']);
+    exit;
+}
     
     // Step 2: Add minimal required includes for database access
     try {
-        require_once dirname(__DIR__) . '/init.php';
+        
         checkAuth(2);
         
         // Step 3: Get product ID from POST data or URL
@@ -240,7 +251,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
 }
 
 // Step 11: Regular page loading (non-AJAX)
-require_once dirname(__DIR__) . '/init.php';
+
 checkAuth(2);
 
 $productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
@@ -394,7 +405,7 @@ include dirname(__DIR__) . '/templates/admin_header.php';
 </small>
 <small class="form-text text-muted mt-1 d-block">
     <i class="fas fa-compress-alt me-1"></i>
-    <a href="https://www.birme.net/?target_width=1000&target_height=1000&auto_width=true&auto_focal=false&image_format=webp&quality_webp=90" 
+    <a href="https://www.birme.net/?target_width=1000&target_height=1000&auto_width=true&auto_focal=false&image_format=webp&quality_webp=70" 
        target="_blank" class="text-decoration-none">
         För att förminska bilder använd Birme
     </a>

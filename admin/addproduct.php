@@ -13,6 +13,24 @@
 // init.php already includes config.php and ImageProcessor.php
 require_once '../init.php';
 
+// Handle POST requests (CSRF and rate limiting)
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    // Check rate limiting first
+    if (!checkRateLimit('add_product', 10, 300)) {
+        if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+            strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+            header('Content-Type: application/json');
+            echo json_encode(['success' => false, 'message' => 'För många försök. Vänta innan du försöker igen.']);
+            exit;
+        }
+        header('Location: ' . url('admin.php?tab=addproduct&error=rate_limit'));
+        exit;
+    }
+    
+    // Check CSRF token
+    checkCSRFToken();
+}
+
 // Check if user is authenticated and has admin or editor permissions
 checkAuth(2); // 2 or lower (Admin or Editor) role required
 
@@ -391,7 +409,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 </small>
 <small class="form-text text-muted mt-1 d-block">
     <i class="fas fa-compress-alt me-1"></i>
-    <a href="https://www.birme.net/?target_width=1000&target_height=1000&auto_width=true&auto_focal=false&image_format=webp&quality_webp=90" 
+    <a href="https://www.birme.net/?target_width=1000&target_height=1000&auto_width=true&auto_focal=false&image_format=webp&quality_webp=70" 
        target="_blank" class="text-decoration-none">
         För att förminska bilder använd Birme
     </a>

@@ -28,6 +28,7 @@ require_once $include_base . '/includes/ErrorHandler.php';
 require_once $include_base . '/includes/Database.php';
 require_once $include_base . '/includes/ImageProcessor.php';
 require_once $include_base . '/includes/Paginator.php';
+require_once $include_base . '/includes/security.php';
 
 // Determine current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';

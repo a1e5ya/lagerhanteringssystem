@@ -10,6 +10,9 @@ require_once '../init.php';
 // Check if user is authenticated with proper permissions
 checkAuth(2); // 2 or lower (Admin or Editor) role required
 
+// Check CSRF token
+checkCSRFToken();
+
 // Only handle POST requests
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
