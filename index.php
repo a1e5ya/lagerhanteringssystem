@@ -163,15 +163,16 @@ function getFeaturedProducts(PDO $pdo, int $limit = 4, bool $onlySpecial = false
 }
 
 /**
- * Render a product card with image carousel support (UPDATED VERSION)
+ * Render a product card with single image only (UPDATED VERSION)
  * 
  * @param object $product The product object
  */
 function renderProductCard(object $product): void {
     global $pdo;
     
-    // Get all product images
+    // Get first product image only
     $productImages = getProductImages($product->prod_id, $pdo);
+    $firstImage = !empty($productImages) ? $productImages[0]->image_path : asset('images', 'default_antiqe_image.webp');
     
     ?>
     <div class="col">
@@ -180,40 +181,9 @@ function renderProductCard(object $product): void {
             <div class="d-block d-md-none">
                 <div class="row g-0 h-100">
                     <div class="col-6">
-                        <?php if (!empty($productImages)): ?>
-                            <?php if (count($productImages) === 1): ?>
-                                <!-- Single image -->
-                                <img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
-                                     class="card-img-top h-100 object-fit-cover" 
-                                     alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
-                            <?php else: ?>
-                                <!-- Mini carousel for multiple images -->
-                                <div id="productCarousel<?php echo $product->prod_id; ?>" class="carousel slide h-100" data-bs-ride="carousel">
-                                    <div class="carousel-inner h-100">
-                                        <?php foreach ($productImages as $index => $image): ?>
-                                            <div class="carousel-item h-100 <?php echo $index === 0 ? 'active' : ''; ?>">
-                                                <img src="<?php echo safeEcho($image->image_path); ?>" 
-                                                     class="d-block w-100 h-100 object-fit-cover" 
-                                                     alt="<?php echo safeEcho($product->title); ?> - Bild <?php echo $index + 1; ?>">
-                                            </div>
-                                        <?php endforeach; ?>
-                                    </div>
-                                    <button class="carousel-control-prev" type="button" data-bs-target="#productCarousel<?php echo $product->prod_id; ?>" data-bs-slide="prev">
-                                        <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden">Föregående</span>
-                                    </button>
-                                    <button class="carousel-control-next" type="button" data-bs-target="#productCarousel<?php echo $product->prod_id; ?>" data-bs-slide="next">
-                                        <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                        <span class="visually-hidden">Nästa</span>
-                                    </button>
-                                </div>
-                            <?php endif; ?>
-                        <?php else: ?>
-                            <!-- Default image -->
-                            <img src="<?php echo asset('images', 'default_antiqe_image.webp'); ?>" 
-                                 class="card-img-top h-100 object-fit-cover" 
-                                 alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
-                        <?php endif; ?>
+                        <img src="<?php echo safeEcho($firstImage); ?>" 
+                             class="card-img-top h-100 object-fit-cover" 
+                             alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
                     </div>
                     <div class="col-6">
                         <div class="card-body d-flex flex-column h-100">
@@ -233,48 +203,9 @@ function renderProductCard(object $product): void {
             
             <!-- For laptop/desktop: vertical layout -->
             <div class="d-none d-md-block">
-                <?php if (!empty($productImages)): ?>
-                    <?php if (count($productImages) === 1): ?>
-                        <!-- Single image -->
-                        <img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
-                             class="card-img-top" style="height: 180px; object-fit: cover;" 
-                             alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
-                    <?php else: ?>
-                        <!-- Desktop carousel for multiple images -->
-                        <div id="productCarouselDesktop<?php echo $product->prod_id; ?>" class="carousel slide" data-bs-ride="carousel">
-                            <div class="carousel-indicators">
-                                <?php foreach ($productImages as $index => $image): ?>
-                                    <button type="button" data-bs-target="#productCarouselDesktop<?php echo $product->prod_id; ?>" 
-                                            data-bs-slide-to="<?php echo $index; ?>" 
-                                            <?php echo $index === 0 ? 'class="active" aria-current="true"' : ''; ?>
-                                            aria-label="Bild <?php echo $index + 1; ?>"></button>
-                                <?php endforeach; ?>
-                            </div>
-                            <div class="carousel-inner">
-                                <?php foreach ($productImages as $index => $image): ?>
-                                    <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
-                                        <img src="<?php echo safeEcho($image->image_path); ?>" 
-                                             class="d-block w-100" style="height: 180px; object-fit: cover;" 
-                                             alt="<?php echo safeEcho($product->title); ?> - Bild <?php echo $index + 1; ?>">
-                                    </div>
-                                <?php endforeach; ?>
-                            </div>
-                            <button class="carousel-control-prev" type="button" data-bs-target="#productCarouselDesktop<?php echo $product->prod_id; ?>" data-bs-slide="prev">
-                                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Föregående</span>
-                            </button>
-                            <button class="carousel-control-next" type="button" data-bs-target="#productCarouselDesktop<?php echo $product->prod_id; ?>" data-bs-slide="next">
-                                <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                <span class="visually-hidden">Nästa</span>
-                            </button>
-                        </div>
-                    <?php endif; ?>
-                <?php else: ?>
-                    <!-- Default image -->
-                    <img src="<?php echo asset('images', 'default_antiqe_image.webp'); ?>" 
-                         class="card-img-top" style="height: 180px; object-fit: cover;" 
-                         alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
-                <?php endif; ?>
+                <img src="<?php echo safeEcho($firstImage); ?>" 
+                     class="card-img-top" style="height: 180px; object-fit: cover;" 
+                     alt="<?php echo safeEcho($product->title); ?>" loading="lazy">
                 
                 <div class="card-body">
                     <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>

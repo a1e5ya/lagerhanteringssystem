@@ -359,8 +359,15 @@ include 'templates/header.php';
                 <?php endif; ?>
             </div>
             
-            <!-- Column 3: Price, Status and Contact Info -->
+<!-- Column 3: Price, Status and Contact Info -->
             <div class="col-md-4 item-price-status">
+                
+                <!-- Back to Browse Button -->
+                <div class="mb-5">
+                    <a href="<?php echo url('index.php'); ?>#browse" class="btn btn-outline-primary">
+                        <i class="fas fa-arrow-left me-2"></i><?php echo $strings['back_to_browse'] ?? 'Tillbaka till sortiment'; ?>
+                    </a>
+                </div>
 
                 <div class="price-container">
                     <span class="badge <?php echo $statusClass; ?> fs-6" id="item-status"><?php echo safeEcho($product->status_name); ?></span>
