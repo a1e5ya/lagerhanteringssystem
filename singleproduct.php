@@ -365,7 +365,7 @@ include 'templates/header.php';
                 <!-- Back to Browse Button -->
                 <div class="mb-5">
                     <a href="<?php echo url('index.php'); ?>#browse" class="btn btn-outline-primary">
-                        <i class="fas fa-arrow-left me-2"></i><?php echo $strings['back_to_browse'] ?? 'Tillbaka till sortiment'; ?>
+                    <i class="fas fa-arrow-left me-2"></i><?php echo $strings['back_to_browse'] ?? 'Tillbaka till sortiment'; ?>
                     </a>
                 </div>
 

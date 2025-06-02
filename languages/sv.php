@@ -49,6 +49,7 @@ $lang_strings = array(
     // Sale page specific
     'sales_heading' => 'Produkter på Rea',
     'search_sale_placeholder' => 'Sök bland reaprodukter',
+    'back_to_browse' => 'Tillbaka till sortiment',
 
     // Table headers
     'title' => 'Titel',

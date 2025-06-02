@@ -50,6 +50,7 @@ $lang_strings = array(
     // Sale page specific
     'sales_heading' => 'Alennustuotteet',
     'search_sale_placeholder' => 'Etsi alennustuotteista',
+    'back_to_browse' => 'Takaisin valikoimaan',
 
     // Table headers
     'title' => 'Nimike',
