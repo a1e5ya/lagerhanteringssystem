@@ -3,11 +3,12 @@
  * Get Public Products
  *
  * Server-side script to handle product data for public index page
+ * Modified to include 1000 product limit when no filters are applied
  *
  * @package     KarisAntikvariat
  * @subpackage  API
  * @author      Axxell
- * @version     1.0
+ * @version     1.1
  */
 
 require_once dirname(__DIR__) . '/init.php';
@@ -37,6 +38,36 @@ $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
 
 // Create formatter instance with appropriate locale
 $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
+
+// MAXIMUM PRODUCTS LIMIT - only applies when no filters are used
+const MAX_PRODUCTS_WITHOUT_FILTERS = 1000;
+
+/**
+ * Check if any filters are applied
+ * 
+ * @param string $search Search term
+ * @param string $category Category filter
+ * @param bool $isSalePageRequest Whether this is from the sale page
+ * @return bool True if filters are applied
+ */
+function hasFiltersApplied($search, $category, $isSalePageRequest) {
+    // If there's a search term, filters are applied
+    if (!empty($search)) {
+        return true;
+    }
+    
+    // If category is not empty and not 'all', filters are applied
+    if (!empty($category) && $category !== 'all') {
+        return true;
+    }
+    
+    // If this is from the sale page (special_price filter), filters are applied
+    if ($isSalePageRequest) {
+        return true;
+    }
+    
+    return false;
+}
 
 try {
     if ($randomSamples && empty($search) && ($category === 'all' || empty($category)) && !$isSalePageRequest) {
@@ -75,6 +106,9 @@ try {
         echo json_encode($response);
         return;
     }
+
+    // Check if filters are applied
+    $filtersApplied = hasFiltersApplied($search, $category, $isSalePageRequest);
 
     // Build SQL query for public products
     $sql = "SELECT 
@@ -179,10 +213,31 @@ try {
         }
     }
     $stmt->execute();
-    $totalItems = $stmt->fetchColumn();
+    $actualTotalItems = $stmt->fetchColumn();
     
-    // Add LIMIT clause for main query
-    $sql .= " LIMIT " . (($page - 1) * $limit) . ", " . $limit;
+    // Apply the 1000 limit if no filters are applied
+    $totalItems = $actualTotalItems;
+    $limitApplied = false;
+    
+    if (!$filtersApplied && $actualTotalItems > MAX_PRODUCTS_WITHOUT_FILTERS) {
+        $totalItems = MAX_PRODUCTS_WITHOUT_FILTERS;
+        $limitApplied = true;
+        
+        // Add LIMIT to the main query to respect the 1000 limit
+        $maxOffset = ($page - 1) * $limit;
+        if ($maxOffset >= MAX_PRODUCTS_WITHOUT_FILTERS) {
+            // If trying to access beyond the limit, show empty results
+            $sql .= " LIMIT 0";
+        } else {
+            // Calculate how many items we can actually fetch
+            $remainingItems = MAX_PRODUCTS_WITHOUT_FILTERS - $maxOffset;
+            $actualLimit = min($limit, $remainingItems);
+            $sql .= " LIMIT " . $maxOffset . ", " . $actualLimit;
+        }
+    } else {
+        // Normal pagination without the 1000 limit
+        $sql .= " LIMIT " . (($page - 1) * $limit) . ", " . $limit;
+    }
 
     // Execute main query
     $stmt = $pdo->prepare($sql);
@@ -219,7 +274,9 @@ try {
             'lastRecord' => $lastRecord,
             'pageSizeOptions' => [10, 25, 50, 100, 200],
             'sort' => $sort,
-            'order' => $order
+            'order' => $order,
+            'limitApplied' => $limitApplied, // to inform frontend
+            'actualTotalItems' => $actualTotalItems // to show real total
         ]
     ];
     
@@ -236,6 +293,7 @@ try {
         'message' => 'Ett fel inträffade: ' . $e->getMessage()
     ]);
 }
+
 
 /**
  * Get random sample products from each category

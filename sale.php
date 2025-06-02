@@ -268,7 +268,7 @@ document.addEventListener('DOMContentLoaded', function() {
             document.getElementById('public-sort-direction').value = newSortDirection;
             
             sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-            this.classList.add(`sort-${newSortDirection}`);
+            this.classList.add(`sort-${newSortDirection === 'asc' ? 'desc' : 'asc'}`);
             
             // Get current search parameters
             const searchInput = document.getElementById('public-search');

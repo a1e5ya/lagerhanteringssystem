@@ -71,6 +71,10 @@ $lang_strings = array(
     'no_results' => 'Ei hakua vastaavia tuotteita.',
     'use_search' => 'Käytä yllä olevaa hakukenttää etsiäksesi tuotteita.',
 
+    // Search limit messages
+    'limit_notification_short' => 'Näytetään ensimmäiset {limit} tuotetta yhteensä {total}:sta.',
+    'use_filters_text' => 'Käytä hakua tai suodattimia nähdäksesi lisää tuotteita.',
+
     // Featured sections
     'on_sale' => 'Alennuksessa',
     'go_sale' => 'Näytä kaikki alennustuotteet',

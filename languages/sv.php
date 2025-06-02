@@ -70,6 +70,10 @@ $lang_strings = array(
     'no_results' => 'Inga produkter hittades som matchar din sökning.',
     'use_search' => 'Använd sökfältet ovan för att söka efter produkter.',
 
+    // Search limit messages
+    'limit_notification_short' => 'Visar de första {limit} produkterna av totalt {total}.',
+    'use_filters_text' => 'Använd sök eller filter för att se fler produkter.',
+
     // Featured sections
     'on_sale' => 'På rea',
     'go_sale' => 'Visa alla reaprodukter',
@@ -91,11 +95,11 @@ $lang_strings = array(
     'success' => 'Tack!',
     'close' => 'Stäng',
     'recaptcha_required' => 'Vänligen verifiera att du inte är en robot',
-'newsletter_already_subscribed' => 'Du prenumererar redan på vårt nyhetsbrev. Dina uppgifter har uppdaterats.',
-'newsletter_reactivated' => 'Din prenumeration har återaktiverats!',
-'technical_error' => 'Tekniskt fel. Försök igen senare.',
-'save_error' => 'Fel vid sparande. Försök igen.',
-'activation_error' => 'Fel vid aktivering. Försök igen.',
+    'newsletter_already_subscribed' => 'Du prenumererar redan på vårt nyhetsbrev. Dina uppgifter har uppdaterats.',
+    'newsletter_reactivated' => 'Din prenumeration har återaktiverats!',
+    'technical_error' => 'Tekniskt fel. Försök igen senare.',
+    'save_error' => 'Fel vid sparande. Försök igen.',
+    'activation_error' => 'Fel vid aktivering. Försök igen.',
 
     // Other common elements
     'unknown_author' => 'Okänd författare',

@@ -613,6 +613,12 @@ include 'templates/footer.php';
 
 
 <script>
+    // Translations for JavaScript
+const translations = {
+    limitNotification: '<?php echo addslashes($lang_strings['limit_notification'] ?? 'Visar de första 1000 produkterna av totalt {total}. Använd sök eller filter för att se fler produkter.'); ?>',
+    limitNotificationShort: '<?php echo addslashes($lang_strings['limit_notification_short'] ?? 'Visar de första {limit} produkterna av totalt {total}.'); ?>',
+    useFiltersText: '<?php echo addslashes($lang_strings['use_filters_text'] ?? 'Använd sök eller filter för att se fler produkter.'); ?>'
+};
 document.addEventListener('DOMContentLoaded', function () {
     // Make table rows clickable
     makeRowsClickable();
@@ -675,7 +681,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
             // Update visual indicators
             sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
-            this.classList.add(`sort-${newSortDirection}`);
+            this.classList.add(`sort-${newSortDirection === 'asc' ? 'desc' : 'asc'}`);
 
             // Get current search parameters
             const searchTerm = document.getElementById('public-search').value;
@@ -813,11 +819,11 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
                 sortHeaders.forEach(h => h.classList.remove('sort-asc', 'sort-desc'));
 
                 if (sort) {
-                    const activeHeader = document.querySelector(`th[data-sort="${sort}"]`);
-                    if (activeHeader) {
-                        activeHeader.classList.add(`sort-${order}`);
-                    }
+                const activeHeader = document.querySelector(`th[data-sort="${sort}"]`);
+                if (activeHeader) {
+                    activeHeader.classList.add(`sort-${order === 'asc' ? 'desc' : 'asc'}`);
                 }
+            }
             } else {
                 // Show error message
                 if (tableBody) {
@@ -828,7 +834,7 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 10, s
 }
 
 /**
- * Update pagination information
+ * Update pagination information with 1000 limit support and translations
  * 
  * @param {object} pagination - Pagination data
  * @param {boolean} randomSamples - Whether we're in random samples mode
@@ -850,7 +856,37 @@ function updatePaginationInfo(pagination, randomSamples = false) {
         totalItems.textContent = pagination.totalItems;
     }
 
-    // Update pagination links
+    // Check if limit was applied and show notification
+    const paginationInfo = document.getElementById('pagination-info');
+    if (paginationInfo && pagination.limitApplied) {
+        // Create or update the limit notification
+        let limitNotification = document.getElementById('limit-notification');
+        if (!limitNotification) {
+            limitNotification = document.createElement('div');
+            limitNotification.id = 'limit-notification';
+            limitNotification.className = 'mt-2 mb-0 p-2 border rounded';
+            paginationInfo.parentNode.insertBefore(limitNotification, paginationInfo.nextSibling);
+        }
+        
+        // Create the notification text using translations
+        const limitText = translations.limitNotificationShort
+            .replace('{limit}', pagination.totalItems.toLocaleString())
+            .replace('{total}', pagination.actualTotalItems.toLocaleString());
+        
+        limitNotification.innerHTML = `
+            <small>
+                ${limitText} ${translations.useFiltersText}
+            </small>
+        `;
+    } else {
+        // Remove notification if it exists and limit is not applied
+        const limitNotification = document.getElementById('limit-notification');
+        if (limitNotification) {
+            limitNotification.remove();
+        }
+    }
+
+    // Rest of the pagination function remains the same...
     const paginationLinks = document.getElementById('pagination-links');
     if (paginationLinks) {
         let html = '';
