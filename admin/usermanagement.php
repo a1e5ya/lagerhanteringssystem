@@ -410,9 +410,11 @@ function removeUser($userId) {
 }
 
 
+
+
 /**
- * Enhanced renderEditUserForm function
- * Add this modification to your usermanagement.php
+ * SIMPLE FIX - Replace your renderEditUserForm function
+ * Only protects against deleting yourself or the very last admin
  */
 
 function renderEditUserForm($userId = null) {
@@ -443,16 +445,21 @@ function renderEditUserForm($userId = null) {
         }
     }
     
-    // Define available roles
+    // Define available roles - ONLY Admin and Redaktör
     $roles = [
         ['r_id' => 1, 'r_name' => 'Admin'],
-        ['r_id' => 2, 'r_name' => 'Redaktör'],
-        ['r_id' => 3, 'r_name' => 'Gäst']
+        ['r_id' => 2, 'r_name' => 'Redaktör']
     ];
     
-    // Check if this is the last admin
-    $isLastAdmin = false;
-    if ($userData && $userData['user_role'] == 1) {
+    // SIMPLE CHECK: Only block if it's the current user OR it's the very last admin
+    $cannotDelete = false;
+    $warningMessage = '';
+    
+    if ($isCurrentUser) {
+        $cannotDelete = true;
+        $warningMessage = 'Du kan inte ta bort ditt eget konto.';
+    } elseif ($userData && $userData['user_role'] == 1) {
+        // Only check "last admin" if the user we're editing is actually an admin
         $stmt = $pdo->prepare("
             SELECT COUNT(*) as admin_count 
             FROM user 
@@ -460,22 +467,22 @@ function renderEditUserForm($userId = null) {
         ");
         $stmt->execute([$userId]);
         $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        $isLastAdmin = ($result['admin_count'] < 1);
+        
+        if ($result['admin_count'] < 1) {
+            $cannotDelete = true;
+            $warningMessage = 'Detta är den sista aktiva administratören och kan inte tas bort.';
+        }
     }
+    
+    // For status checkbox - same logic
+    $cannotDeactivate = $cannotDelete;
     
     ?>
     <div class="card-body">
-        <?php if ($isCurrentUser): ?>
-        <div class="alert alert-info">
-            <i class="fas fa-info-circle me-2"></i>
-            <strong>Observera:</strong> Du redigerar ditt eget konto. Du kan inte inaktivera eller ta bort ditt eget konto av säkerhetsskäl.
-        </div>
-        <?php endif; ?>
-        
-        <?php if ($isLastAdmin): ?>
+        <?php if ($cannotDelete): ?>
         <div class="alert alert-warning">
             <i class="fas fa-exclamation-triangle me-2"></i>
-            <strong>Varning:</strong> Detta är den sista aktiva administratören. Kontot kan inte inaktiveras eller tas bort.
+            <strong>Varning:</strong> <?php echo $warningMessage; ?>
         </div>
         <?php endif; ?>
         
@@ -525,15 +532,15 @@ function renderEditUserForm($userId = null) {
                     <div class="form-check mt-2">
                         <input class="form-check-input" type="checkbox" id="active" name="active" 
                             <?php echo (isset($userData['user_is_active']) && $userData['user_is_active'] == 1) ? 'checked' : ''; ?>
-                            <?php echo ($isCurrentUser || $isLastAdmin) ? 'disabled' : ''; ?>>
+                            <?php echo $cannotDeactivate ? 'disabled' : ''; ?>>
                         <label class="form-check-label" for="active">
                             Aktivt konto
-                            <?php if ($isCurrentUser): ?>
-                                <small class="text-muted">(kan inte ändras för eget konto)</small>
-                            <?php elseif ($isLastAdmin): ?>
-                                <small class="text-muted">(sista admin kan inte inaktiveras)</small>
-                            <?php endif; ?>
                         </label>
+                        
+                        <!-- Keep the value if disabled and checked -->
+                        <?php if ($cannotDeactivate && isset($userData['user_is_active']) && $userData['user_is_active'] == 1): ?>
+                            <input type="hidden" name="active" value="1">
+                        <?php endif; ?>
                     </div>
                 <?php endif; ?>
                 </div>
@@ -563,20 +570,16 @@ function renderEditUserForm($userId = null) {
             
             <div class="d-grid gap-2 d-md-flex justify-content-md-between">
                 <?php if ($userId): ?>
-                <button type="button" class="btn btn-danger" 
-                        data-bs-toggle="modal" data-bs-target="#deleteUserModal"
-                        <?php echo ($isCurrentUser || $isLastAdmin) ? 'disabled' : ''; ?>>
-                    <i class="fas fa-trash-alt me-2"></i>Ta bort användare
-                    <?php if ($isCurrentUser): ?>
-                        <small>(inte tillgängligt för eget konto)</small>
-                    <?php elseif ($isLastAdmin): ?>
-                        <small>(sista admin kan inte tas bort)</small>
-                    <?php endif; ?>
-                </button>
+                    <!-- Delete button - only disabled if cannotDelete is true -->
+                    <button type="button" class="btn btn-danger" 
+                            data-bs-toggle="modal" data-bs-target="#deleteUserModal"
+                            <?php echo $cannotDelete ? 'disabled title="' . htmlspecialchars($warningMessage) . '"' : ''; ?>>
+                        <i class="fas fa-trash-alt me-2"></i>Ta bort användare
+                    </button>
                 <?php else: ?>
-                <button type="button" class="btn btn-outline-secondary" onclick="resetForm(this.form)">
-                    <i class="fas fa-eraser me-2"></i>Rensa
-                </button>
+                    <button type="button" class="btn btn-outline-secondary" onclick="resetForm(this.form)">
+                        <i class="fas fa-eraser me-2"></i>Rensa
+                    </button>
                 <?php endif; ?>
                 
                 <button type="submit" name="<?php echo $userId ? 'update_user' : 'create_user'; ?>" class="btn btn-primary">
@@ -586,8 +589,8 @@ function renderEditUserForm($userId = null) {
         </form>
     </div>
     
-    <?php if ($userId && !$isCurrentUser && !$isLastAdmin): ?>
-    <!-- Delete User Confirmation Modal -->
+    <?php if ($userId && !$cannotDelete): ?>
+    <!-- Delete User Confirmation Modal - only show if deletion is allowed -->
     <div class="modal fade" id="deleteUserModal" tabindex="-1" aria-labelledby="deleteUserModalLabel" aria-hidden="true">
         <div class="modal-dialog">
             <div class="modal-content">
@@ -597,13 +600,16 @@ function renderEditUserForm($userId = null) {
                 </div>
                 <div class="modal-body">
                     <p>Är du säker på att du vill ta bort användaren <strong><?php echo htmlspecialchars($userData['user_username'] ?? ''); ?></strong>?</p>
+                    <?php if ($userData['user_role'] == 1): ?>
+                    <p class="text-warning"><i class="fas fa-exclamation-triangle me-2"></i>Du tar bort en administratör!</p>
+                    <?php endif; ?>
                     <p class="text-danger"><i class="fas fa-exclamation-triangle me-2"></i>Denna åtgärd kan inte ångras!</p>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Tillbaka</button>
-                    <form action="<?php echo url('admin/usermanagement.php', ['tab' => 'edit', 'user_id' => $userId]); ?>" method="POST">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
+                    <form action="<?php echo url('admin/usermanagement.php', ['tab' => 'edit', 'user_id' => $userId]); ?>" method="POST" style="display: inline;">
                         <input type="hidden" name="delete_user_id" value="<?php echo $userId; ?>">
-                        <button type="submit" name="delete_user" class="btn btn-danger">Ta bort</button>
+                        <button type="submit" name="delete_user" class="btn btn-danger">Ta bort användare</button>
                     </form>
                 </div>
             </div>
@@ -611,20 +617,22 @@ function renderEditUserForm($userId = null) {
     </div>
     <?php endif; ?>
     
-    <!-- User Activity Log Section -->
+    <!-- Activity Log Section (keeping this shorter) -->
     <?php if ($userId): ?>
     <div class="card mt-4">
         <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Användarens aktivitetslogg</h5>
+            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Aktivitetslogg</h5>
         </div>
         <div class="card-body">
-            <!-- Your existing activity log code here -->
+            <p class="text-muted">Senaste aktiviteter för denna användare visas här.</p>
         </div>
     </div>
     <?php endif; ?>
     
     <?php
 }
+
+
 
 
 // Process form submissions
