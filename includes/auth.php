@@ -19,48 +19,253 @@ if (session_status() === PHP_SESSION_NONE) {
 define('SESSION_LIFETIME', 3600); // 1 hour in seconds
 define('SESSION_NAME', 'KA_SESSION');
 
+
 /**
- * Authenticate a user
+ * Simple Brute Force Protection - Core Implementation Only
  * 
- * @param string $username The username
- * @param string $password The password
- * @param bool $remember Whether to remember the user (for future implementation)
- * @return array Result with success flag and message
+ * Add this to your existing auth.php file (replace the login function)
+ */
+
+/**
+ * Simple brute force protection functionsgit 
+ * No complex dashboard needed - just core protection
+ */
+
+/**
+ * Check if IP has too many recent failed attempts
+ */
+function checkBruteForce($username = null) {
+    global $pdo;
+    
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $timeWindow = 15; // 15 minutes
+    $maxAttemptsIP = 10; // Max 10 attempts per IP
+    $maxAttemptsUser = 5; // Max 5 attempts per username
+    $lockoutTime = 30; // 30 minutes lockout
+    
+    try {
+        // Check IP-based attempts
+        $stmt = $pdo->prepare("
+            SELECT COUNT(*) as attempts, 
+                   MAX(attempt_time) as last_attempt,
+                   MAX(blocked_until) as blocked_until
+            FROM login_attempts 
+            WHERE ip_address = ? 
+            AND success = 0 
+            AND attempt_time > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+        ");
+        $stmt->execute([$ip, $timeWindow]);
+        $ipData = $stmt->fetch(PDO::FETCH_ASSOC);
+        
+        // Check if IP is currently blocked
+        if ($ipData['blocked_until'] && strtotime($ipData['blocked_until']) > time()) {
+            $remainingTime = strtotime($ipData['blocked_until']) - time();
+            return [
+                'blocked' => true,
+                'message' => 'För många inloggningsförsök från din IP. Försök igen om ' . 
+                           ceil($remainingTime / 60) . ' minuter.',
+                'remaining' => $remainingTime
+            ];
+        }
+        
+        // Check if IP should be blocked
+        if ($ipData['attempts'] >= $maxAttemptsIP) {
+            return [
+                'blocked' => true,
+                'message' => 'För många inloggningsförsök. Försök igen om ' . $lockoutTime . ' minuter.',
+                'remaining' => $lockoutTime * 60
+            ];
+        }
+        
+        // Check username-based attempts if provided
+        if ($username) {
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as attempts,
+                       MAX(blocked_until) as blocked_until
+                FROM login_attempts 
+                WHERE username = ? 
+                AND success = 0 
+                AND attempt_time > DATE_SUB(NOW(), INTERVAL ? MINUTE)
+            ");
+            $stmt->execute([$username, $timeWindow]);
+            $userData = $stmt->fetch(PDO::FETCH_ASSOC);
+            
+            // Check if user is currently blocked
+            if ($userData['blocked_until'] && strtotime($userData['blocked_until']) > time()) {
+                $remainingTime = strtotime($userData['blocked_until']) - time();
+                return [
+                    'blocked' => true,
+                    'message' => 'Detta konto är tillfälligt låst. Försök igen om ' . 
+                               ceil($remainingTime / 60) . ' minuter.',
+                    'remaining' => $remainingTime
+                ];
+            }
+            
+            // Check if user should be blocked
+            if ($userData['attempts'] >= $maxAttemptsUser) {
+                return [
+                    'blocked' => true,
+                    'message' => 'För många inloggningsförsök för detta konto. Försök igen om ' . $lockoutTime . ' minuter.',
+                    'remaining' => $lockoutTime * 60
+                ];
+            }
+        }
+        
+        // Progressive delay based on attempts
+        $delay = 0;
+        if ($ipData['attempts'] >= 3) {
+            $delay = min(($ipData['attempts'] - 2) * 2, 10); // Max 10 second delay
+        }
+        
+        return [
+            'blocked' => false,
+            'delay' => $delay,
+            'attempts_ip' => $ipData['attempts'],
+            'attempts_user' => $userData['attempts'] ?? 0
+        ];
+        
+    } catch (PDOException $e) {
+        error_log("Brute force check error: " . $e->getMessage());
+        return ['blocked' => false, 'delay' => 0];
+    }
+}
+
+/**
+ * Record login attempt
+ */
+function recordLoginAttempt($username, $success) {
+    global $pdo;
+    
+    $ip = $_SERVER['REMOTE_ADDR'] ?? '0.0.0.0';
+    $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'Unknown';
+    
+    try {
+        // Record the attempt
+        $stmt = $pdo->prepare("
+            INSERT INTO login_attempts (ip_address, username, success, user_agent, attempt_time) 
+            VALUES (?, ?, ?, ?, NOW())
+        ");
+        $stmt->execute([$ip, $username, $success ? 1 : 0, $userAgent]);
+        
+        // If failed attempt, check if we need to block
+        if (!$success) {
+            $lockoutTime = 30; // 30 minutes
+            $blockUntil = date('Y-m-d H:i:s', time() + ($lockoutTime * 60));
+            
+            // Check if IP should be blocked (10+ attempts in 15 minutes)
+            $stmt = $pdo->prepare("
+                SELECT COUNT(*) as attempts
+                FROM login_attempts 
+                WHERE ip_address = ? 
+                AND success = 0 
+                AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+            ");
+            $stmt->execute([$ip]);
+            $ipAttempts = $stmt->fetchColumn();
+            
+            if ($ipAttempts >= 10) {
+                $stmt = $pdo->prepare("
+                    UPDATE login_attempts 
+                    SET blocked_until = ? 
+                    WHERE ip_address = ? 
+                    AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                ");
+                $stmt->execute([$blockUntil, $ip]);
+            }
+            
+            // Check if username should be blocked (5+ attempts in 15 minutes)
+            if ($username) {
+                $stmt = $pdo->prepare("
+                    SELECT COUNT(*) as attempts
+                    FROM login_attempts 
+                    WHERE username = ? 
+                    AND success = 0 
+                    AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                ");
+                $stmt->execute([$username]);
+                $userAttempts = $stmt->fetchColumn();
+                
+                if ($userAttempts >= 5) {
+                    $stmt = $pdo->prepare("
+                        UPDATE login_attempts 
+                        SET blocked_until = ? 
+                        WHERE username = ? 
+                        AND attempt_time > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
+                    ");
+                    $stmt->execute([$blockUntil, $username]);
+                }
+            }
+        } else {
+            // On successful login, clear any blocks for this IP/user
+            $stmt = $pdo->prepare("
+                UPDATE login_attempts 
+                SET blocked_until = NULL 
+                WHERE ip_address = ? OR username = ?
+            ");
+            $stmt->execute([$ip, $username]);
+        }
+        
+        // Cleanup old records occasionally (5% chance)
+        if (rand(1, 100) <= 5) {
+            $stmt = $pdo->prepare("
+                DELETE FROM login_attempts 
+                WHERE attempt_time < DATE_SUB(NOW(), INTERVAL 24 HOUR)
+            ");
+            $stmt->execute();
+        }
+        
+    } catch (PDOException $e) {
+        error_log("Record login attempt error: " . $e->getMessage());
+    }
+}
+
+/**
+ * Enhanced login function with simple brute force protection
  */
 function login($username, $password, $remember = false) {
     global $pdo;
     
-    // SECURITY: Backdoor has been REMOVED for production security
-    // All login attempts must go through proper database authentication
+    // Check for brute force attempts
+    $bruteCheck = checkBruteForce($username);
+    
+    if ($bruteCheck['blocked']) {
+        recordLoginAttempt($username, false);
+        return [
+            'success' => false,
+            'message' => $bruteCheck['message'],
+            'blocked' => true
+        ];
+    }
+    
+    // Apply progressive delay if needed
+    if (isset($bruteCheck['delay']) && $bruteCheck['delay'] > 0) {
+        sleep($bruteCheck['delay']);
+    }
     
     try {
-        // Prepare statement to prevent SQL injection
+        // Normal login process
         $stmt = $pdo->prepare("SELECT * FROM user WHERE user_username = ? AND user_is_active = 1");
         $stmt->execute([$username]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Check if user exists and password is correct
         if ($user && password_verify($password, $user['user_password_hash'])) {
+            // Record successful attempt
+            recordLoginAttempt($username, true);
+            
             // Set session variables
             $_SESSION['user_id'] = $user['user_id'];
             $_SESSION['user_username'] = $user['user_username'];
             $_SESSION['user_role'] = $user['user_role'];
             $_SESSION['user_email'] = $user['user_email'];
             $_SESSION['logged_in'] = true;
-            
-            // Set last activity time
             $_SESSION['last_activity'] = time();
-            
-            // Set a unique session identifier
             $_SESSION['session_token'] = generateSessionToken();
             
             // Update last login time
             $updateStmt = $pdo->prepare("UPDATE user SET user_last_login = NOW() WHERE user_id = ?");
             $updateStmt->execute([$user['user_id']]);
             
-            // TODO: Implement remember me functionality if $remember is true
-            
-            // Log successful login in event_log
+            // Log successful login
             $logStmt = $pdo->prepare("
                 INSERT INTO event_log (user_id, event_type, event_description)
                 VALUES (?, 'login', ?)
@@ -76,26 +281,45 @@ function login($username, $password, $remember = false) {
                 'redirect' => 'admin.php'
             ];
         } else {
-            // Log failed login attempt
+            // Record failed attempt
+            recordLoginAttempt($username, false);
+            
+            // Log failed attempt
             $logStmt = $pdo->prepare("
                 INSERT INTO event_log (event_type, event_description)
                 VALUES ('login_failed', ?)
             ");
             $logStmt->execute(['Failed login attempt for username: ' . $username]);
             
+            // Give user feedback about remaining attempts
+            $remainingIP = max(0, 10 - ($bruteCheck['attempts_ip'] ?? 0));
+            $remainingUser = max(0, 5 - ($bruteCheck['attempts_user'] ?? 0));
+            
+            $message = 'Ogiltigt användarnamn eller lösenord.';
+            
+            if (($bruteCheck['attempts_ip'] ?? 0) >= 3 || ($bruteCheck['attempts_user'] ?? 0) >= 2) {
+                $minRemaining = min($remainingIP, $remainingUser);
+                if ($minRemaining > 0) {
+                    $message .= " Du har $minRemaining försök kvar.";
+                }
+            }
+            
             return [
                 'success' => false,
-                'message' => 'Fel.'
+                'message' => $message
             ];
         }
     } catch (PDOException $e) {
         error_log("Login error: " . $e->getMessage());
+        recordLoginAttempt($username, false);
+        
         return [
             'success' => false,
             'message' => 'Ett systemfel inträffade. Försök igen senare.'
         ];
     }
 }
+
 
 /**
  * Generate a unique session token
