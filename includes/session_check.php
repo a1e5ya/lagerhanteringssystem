@@ -10,12 +10,19 @@
 // Include initialization file instead of multiple requires
 require_once '../init.php';
 
-// Return JSON response
+// Check CSRF token for POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    checkCSRFToken();
+}
+
 header('Content-Type: application/json');
 
 // Check if session is valid
-$isValid = validateSession();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 
-// Return result
+$isValid = isset($_SESSION['logged_in']) && $_SESSION['logged_in'] === true;
+
 echo json_encode(['valid' => $isValid]);
 ?>

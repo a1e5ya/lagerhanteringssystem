@@ -1,10 +1,11 @@
 <?php
 /**
- * Admin Header Template (Updated with Routing System)
+ * Admin Header Template (Updated with CSRF Protection and Security Headers)
  * 
  * Contains:
  * - Admin header with navigation tabs
  * - User info and logout button
+ * - CSRF protection and security headers
  */
 
 // Get current page for active menu highlighting
@@ -25,6 +26,9 @@ $userRole = $currentUser['user_role'];
 
 // Session check URL - using routing system
 $sessionCheckUrl = url('includes/session_check.php');
+
+// Generate CSRF token for this page
+$csrfToken = generateCSRFToken();
 ?><!DOCTYPE html>
 <html lang="sv">
 <head>
@@ -45,12 +49,27 @@ $sessionCheckUrl = url('includes/session_check.php');
     <link rel="stylesheet" href="<?php echo asset('css', 'admin.css'); ?>">
     <link rel="stylesheet" href="<?php echo asset('css', 'pagination.css'); ?>">
     
+    <!-- CSRF Token and Base URL for JavaScript -->
+    <script>
+        window.CSRF_TOKEN = '<?php echo $csrfToken; ?>';
+        window.BASE_URL = '<?php echo rtrim(BASE_PATH, '/'); ?>';
+    </script>
     
-    <!-- Session check script -->
+    <!-- Session check script with CSRF protection -->
     <script>
         // Function to check session status
         function checkSession() {
-            fetch('<?php echo $sessionCheckUrl; ?>')
+            fetch('<?php echo $sessionCheckUrl; ?>', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRF-Token': window.CSRF_TOKEN,
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: JSON.stringify({
+                    csrf_token: window.CSRF_TOKEN
+                })
+            })
                 .then(response => response.json())
                 .then(data => {
                     if (!data.valid) {
@@ -71,6 +90,54 @@ $sessionCheckUrl = url('includes/session_check.php');
             if (document.visibilityState === 'visible') {
                 checkSession();
             }
+        });
+
+        // Add CSRF token to all AJAX requests
+        document.addEventListener('DOMContentLoaded', function() {
+            // Override fetch to automatically include CSRF token
+            const originalFetch = window.fetch;
+            window.fetch = function(url, options = {}) {
+                if (options.method && options.method.toUpperCase() === 'POST') {
+                    options.headers = options.headers || {};
+                    
+                    // Add CSRF token to headers
+                    if (!options.headers['X-CSRF-Token']) {
+                        options.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+                    }
+                    
+                    // If body is FormData, add CSRF token to it
+                    if (options.body instanceof FormData && !options.body.has('csrf_token')) {
+                        options.body.append('csrf_token', window.CSRF_TOKEN);
+                    }
+                    
+                    // If body is JSON, add CSRF token
+                    if (options.headers['Content-Type'] === 'application/json' && typeof options.body === 'string') {
+                        try {
+                            const jsonData = JSON.parse(options.body);
+                            if (!jsonData.csrf_token) {
+                                jsonData.csrf_token = window.CSRF_TOKEN;
+                                options.body = JSON.stringify(jsonData);
+                            }
+                        } catch (e) {
+                            // If parsing fails, leave as is
+                        }
+                    }
+                }
+                
+                return originalFetch(url, options);
+            };
+
+            // Add CSRF token to all forms
+            const forms = document.querySelectorAll('form');
+            forms.forEach(function(form) {
+                if (form.method.toLowerCase() === 'post' && !form.querySelector('input[name="csrf_token"]')) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = window.CSRF_TOKEN;
+                    form.appendChild(csrfInput);
+                }
+            });
         });
     </script>
 </head>
@@ -101,9 +168,14 @@ $sessionCheckUrl = url('includes/session_check.php');
                         <span class="text-light me-3">
                             <i class="fas fa-user me-1"></i><?php echo htmlspecialchars($username); ?>
                         </span>
-                        <a class="btn btn-outline-light" href="<?php echo url('index.php', ['logout' => 1]); ?>">
-                            <i class="fas fa-sign-out-alt me-1"></i>Logga ut
-                        </a>
+                        <!-- Logout form with CSRF protection -->
+                        <form method="POST" action="<?php echo url('index.php'); ?>" class="d-inline">
+                            <?php echo getCSRFTokenField(); ?>
+                            <input type="hidden" name="logout" value="1">
+                            <button type="submit" class="btn btn-outline-light">
+                                <i class="fas fa-sign-out-alt me-1"></i>Logga ut
+                            </button>
+                        </form>
                     </div>
                 </div>
             </div>
@@ -118,6 +190,9 @@ $sessionCheckUrl = url('includes/session_check.php');
             <div>
                 <span class="badge bg-secondary">
                     <i class="fas fa-calendar me-1"></i><?php echo date('Y-m-d'); ?>
+                </span>
+                <span class="badge bg-info ms-2">
+                    <i class="fas fa-shield-alt me-1"></i>Säker session
                 </span>
             </div>
         </div>

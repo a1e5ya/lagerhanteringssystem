@@ -1,15 +1,19 @@
 <?php
 /**
- * AJAX Handler for Lists - COMPLETE AND FIXED
- * 
+ * AJAX Handler for Lists - FIXED IMAGE DELETION
  * Processes AJAX requests from lists.php
  * Handles batch operations with support for "select all pages" functionality
  */
 
-require_once '../init.php';
+require_once '../init.php'; // This should include your config.php where UPLOAD_PATH is defined
 
 // Check authentication - requires admin or editor role
 checkAuth(2); // Role 2 (Editor) or above required
+
+// Check CSRF token for POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    checkCSRFToken();
+}
 
 // Set response header
 header('Content-Type: application/json');
@@ -67,12 +71,16 @@ try {
             break;
     }
 } catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'Error: ' . $e->getMessage()]);
+    // Log the detailed error on the server
+    error_log("AJAX Handler Exception: " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+    error_log("Stack Trace: " . $e->getTraceAsString());
+    
+    // Send a generic error message to the client
+    echo json_encode(['success' => false, 'message' => 'Ett oväntat fel inträffade. Försök igen senare.']);
 }
 
 /**
  * Get product IDs that match the current filters (for "select all pages" functionality)
- * 
  * @param array $filters Current filter parameters
  * @return array Product IDs
  */
@@ -209,19 +217,24 @@ function getProductIdsWithFilters($filters) {
 
 /**
  * Performs batch operations on multiple products
- * 
  * @param array $productIds Product IDs to operate on
  * @param string $operation Operation type
  * @param array $params Additional parameters
  * @return array Result with success flag and message
  */
 function batchOperations($productIds, $operation, $params = []) {
-    global $pdo;
+    global $pdo; // $pdo is made available via init.php
 
     if (empty($productIds)) {
         return ['success' => false, 'message' => 'Inga produkter valda.'];
     }
     
+    // Ensure UPLOAD_PATH is defined (it should be via init.php -> config.php)
+    if ($operation === 'delete' && !defined('UPLOAD_PATH')) {
+        error_log("FATAL ERROR: UPLOAD_PATH constant is not defined in list_ajax_handler.php during product deletion.");
+        return ['success' => false, 'message' => 'Serverkonfigurationsfel: UPLOAD_PATH är inte definierad.'];
+    }
+
     try {
         $pdo->beginTransaction();
         
@@ -339,8 +352,59 @@ function batchOperations($productIds, $operation, $params = []) {
                 
             case 'delete':
                 // Delete products from the database
-                // First, make sure to delete related records to avoid foreign key constraints
+                $deletedImagesCount = 0;
+                $imageErrors = [];
+                
                 foreach ($productIds as $productId) {
+                    // Fetch image paths for this product
+                    $imageSql = "SELECT image_id, image_path FROM image WHERE prod_id = ?";
+                    $imageStmt = $pdo->prepare($imageSql);
+                    $imageStmt->execute([$productId]);
+                    $imagesToDelete = $imageStmt->fetchAll(PDO::FETCH_ASSOC);
+
+                    // Delete actual image files
+                    foreach ($imagesToDelete as $img) {
+                        if (!empty($img['image_path'])) {
+                            // FIXED: Proper file path construction
+                            // The image_path in the database might be:
+                            // 1. Just the filename (e.g., "image123.jpg")
+                            // 2. A relative path (e.g., "subfolder/image123.jpg")
+                            // 3. A full relative path from web root
+                            
+                            // Try different path combinations to find the actual file
+                            $possiblePaths = [
+                                UPLOAD_PATH . DIRECTORY_SEPARATOR . $img['image_path'], // Standard path
+                                UPLOAD_PATH . DIRECTORY_SEPARATOR . basename($img['image_path']), // Just filename
+                                realpath(dirname(__DIR__)) . DIRECTORY_SEPARATOR . $img['image_path'], // From project root
+                                realpath(dirname(__DIR__)) . DIRECTORY_SEPARATOR . 'assets' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'products' . DIRECTORY_SEPARATOR . basename($img['image_path'])
+                            ];
+                            
+                            $fileDeleted = false;
+                            foreach ($possiblePaths as $filePath) {
+                                $filePath = str_replace(['/', '\\'], DIRECTORY_SEPARATOR, $filePath); // Normalize path separators
+                                
+                                if (file_exists($filePath) && is_file($filePath)) {
+                                    if (@unlink($filePath)) {
+                                        $deletedImagesCount++;
+                                        $fileDeleted = true;
+                                        error_log("Successfully deleted image file: " . $filePath . " for product_id: " . $productId);
+                                        break; // File found and deleted, stop trying other paths
+                                    } else {
+                                        $imageErrors[] = "Failed to delete file: " . $filePath . " (permissions issue)";
+                                        error_log("Failed to delete image file: " . $filePath . " for product_id: " . $productId . ". Check permissions.");
+                                    }
+                                }
+                            }
+                            
+                            if (!$fileDeleted) {
+                                $imageErrors[] = "Image file not found: " . $img['image_path'] . " (tried multiple paths)";
+                                error_log("Image file not found for deletion, tried multiple paths. Image path from DB: " . $img['image_path'] . " for product_id: " . $productId);
+                                error_log("UPLOAD_PATH constant value: " . UPLOAD_PATH);
+                                error_log("Tried paths: " . implode(', ', $possiblePaths));
+                            }
+                        }
+                    }
+
                     // Delete product_author relationships
                     $stmt = $pdo->prepare("DELETE FROM product_author WHERE product_id = ?");
                     $stmt->execute([$productId]);
@@ -349,7 +413,7 @@ function batchOperations($productIds, $operation, $params = []) {
                     $stmt = $pdo->prepare("DELETE FROM product_genre WHERE product_id = ?");
                     $stmt->execute([$productId]);
                     
-                    // Delete images
+                    // Delete image records from DB (after attempting to delete files)
                     $stmt = $pdo->prepare("DELETE FROM image WHERE prod_id = ?");
                     $stmt->execute([$productId]);
                     
@@ -361,9 +425,17 @@ function batchOperations($productIds, $operation, $params = []) {
                 // Now delete the products
                 $placeholders = implode(',', array_fill(0, count($productIds), '?'));
                 $stmt = $pdo->prepare("DELETE FROM product WHERE prod_id IN ($placeholders)");
-                $stmt->execute($productIds);
+                $stmt->execute($productIds); 
                 
                 $message = count($productIds) . ' produkter har tagits bort.';
+                if ($deletedImagesCount > 0) {
+                    $message .= ' ' . $deletedImagesCount . ' bildfiler raderade.';
+                }
+                if (!empty($imageErrors)) {
+                    error_log("Image deletion errors: " . implode('; ', $imageErrors));
+                    // Optionally add to message for debugging (remove in production)
+                    // $message .= ' Varning: vissa bildfiler kunde inte raderas.';
+                }
                 break;
                 
             default:
@@ -378,7 +450,8 @@ function batchOperations($productIds, $operation, $params = []) {
             VALUES (?, ?, ?)
         ");
         $eventType = 'batch_' . $operation;
-        $eventDescription = 'Batch operation: ' . $message;
+        $eventDescSuffix = ($operation === 'delete' && count($productIds) < 10) ? ' IDs: ' . implode(', ', $productIds) : '';
+        $eventDescription = 'Batch operation: ' . $message . $eventDescSuffix;
         $logStmt->execute([$userId, $eventType, $eventDescription]);
         
         $pdo->commit();
@@ -388,7 +461,15 @@ function batchOperations($productIds, $operation, $params = []) {
         if ($pdo->inTransaction()) {
             $pdo->rollBack();
         }
-        error_log("Batch operation error: " . $e->getMessage());
-        return ['success' => false, 'message' => 'Ett fel inträffade: ' . $e->getMessage()];
+        error_log("Batch operation error (PDO): " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+        error_log("PDO ErrorInfo: " . print_r($e->errorInfo, true));
+        return ['success' => false, 'message' => 'Ett databasfel inträffade. Kontrollera serverloggarna.'];
+    } catch (Exception $e) {
+        if ($pdo && $pdo->inTransaction()) {
+            $pdo->rollBack();
+        }
+        error_log("Batch operation error (General): " . $e->getMessage() . " in " . $e->getFile() . " on line " . $e->getLine());
+        return ['success' => false, 'message' => 'Ett allmänt fel inträffade. Kontrollera serverloggarna.'];
     }
 }
+?>
