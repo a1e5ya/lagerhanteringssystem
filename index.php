@@ -16,6 +16,36 @@
 // Include initialization file (replaces multiple require statements)
 require_once 'init.php';
 
+// Handle logout (POST request with CSRF protection)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
+    // Check CSRF token for logout
+    checkCSRFToken();
+    
+    // Perform logout
+    $result = logout();
+    
+    // Redirect to homepage
+    header('Location: ' . url('index.php', ['message' => urlencode($result['message'])]));
+    exit;
+}
+
+
+// Handle language switching (POST request with CSRF protection)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lang'])) {
+    // Check CSRF token for language change
+    checkCSRFToken();
+    
+    // Validate language parameter
+    $language = ($_POST['lang'] === 'fi') ? 'fi' : 'sv';
+    
+    // Update session with new language
+    $_SESSION['language'] = $language;
+    
+    // Redirect back to the same page to refresh with new language
+    header('Location: ' . url('index.php'));
+    exit;
+}
+
 // Clean URL for default view
 if (empty($_GET['search']) && 
     (empty($_GET['category']) || $_GET['category'] === 'all') &&

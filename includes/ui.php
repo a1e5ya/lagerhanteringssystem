@@ -3,11 +3,9 @@
  * UI Functions
  * 
  * Contains:
- * - changeLanguage() - Sets UI language
+ * - loadLanguageStrings() - Loads language strings
+ * - changeLanguage() - Sets UI language (deprecated - use direct session handling)
  */
-?>
-
-<?php
 
 /**
  * Loads the appropriate language strings
@@ -16,14 +14,14 @@
  * @return array The language strings
  */
 function loadLanguageStrings($language) {
-    $langFile = __DIR__ . '/../languages/' . $language . '.php'; // <--- CHANGE THIS LINE
+    $langFile = __DIR__ . '/../languages/' . $language . '.php';
     
     if (file_exists($langFile)) {
         include $langFile;
         return $lang_strings;
     } else {
         // Fallback to Swedish if language file doesn't exist
-        include __DIR__ . '/../languages/sv.php'; // <--- CHANGE THIS LINE
+        include __DIR__ . '/../languages/sv.php';
         return $lang_strings;
     }
 }
@@ -33,6 +31,7 @@ function loadLanguageStrings($language) {
  * 
  * @param string $language The language code ('sv' for Swedish, 'fi' for Finnish)
  * @return void
+ * @deprecated Use direct session handling in individual pages instead
  */
 function changeLanguage($language) {
     // Validate language parameter (only accept 'sv' or 'fi')
@@ -76,10 +75,5 @@ function changeLanguage($language) {
     // Redirect to the appropriate page
     header('Location: ' . $redirectUrl);
     exit;
-}
-
-// Handle language switching request if present
-if (isset($_GET['lang'])) {
-    changeLanguage($_GET['lang']);
 }
 ?>
