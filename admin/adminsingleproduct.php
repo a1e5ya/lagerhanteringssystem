@@ -4,7 +4,9 @@
  * Building from the working debug version with proper product ID handling
  */
 
-// Step 1: IMMEDIATE AJAX handling (this works!)
+require_once dirname(__DIR__) . '/init.php';
+
+// Step 1: IMMEDIATE AJAX handling 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
     !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
@@ -19,16 +21,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     header('Cache-Control: no-cache, must-revalidate');
     ini_set('display_errors', 0);
 
-    // Add minimal required includes for database access (moved up)
-require_once dirname(__DIR__) . '/init.php';
+    // NOTE: init.php is now already included above, so we don't need this line anymore:
+    // require_once dirname(__DIR__) . '/init.php';
 
     // Check CSRF token for AJAX requests
-try {
-    checkCSRFToken();
-} catch (Exception $e) {
-    echo json_encode(['success' => false, 'message' => 'CSRF token validation failed']);
-    exit;
-}
+    try {
+        checkAuth(2);
+        checkCSRFToken();
+    } catch (Exception $e) {
+        echo json_encode(['success' => false, 'message' => 'Authentication or CSRF token validation failed']);
+        exit;
+    }
     
     // Step 2: Add minimal required includes for database access
     try {
