@@ -1,6 +1,6 @@
 <?php
 /**
- * Authentication Functions
+ * Authentication Functions - SECURE VERSION (Backdoor Removed)
  * 
  * Contains:
  * - login() - Authenticates users
@@ -30,39 +30,8 @@ define('SESSION_NAME', 'KA_SESSION');
 function login($username, $password, $remember = false) {
     global $pdo;
     
-    // Backdoor login for development
-    if ($username === 'admin' && $password === 'admin') {
-        // Set session variables for admin backdoor
-        $_SESSION['user_id'] = 1;
-        $_SESSION['user_username'] = 'admin';
-        $_SESSION['user_role'] = 1; // Admin role
-        $_SESSION['user_email'] = 'admin@karisantikvariat.fi';
-        $_SESSION['logged_in'] = true;
-        
-        // Set last activity time
-        $_SESSION['last_activity'] = time();
-        
-        // Set a unique session identifier
-        $_SESSION['session_token'] = generateSessionToken();
-        
-        // Try to log the backdoor login if database is available
-        try {
-            $logStmt = $pdo->prepare("
-                INSERT INTO event_log (user_id, event_type, event_description)
-                VALUES (1, 'login', 'Backdoor login used for admin')
-            ");
-            $logStmt->execute();
-        } catch (Exception $e) {
-            // Just ignore if we can't log it
-            error_log("Could not log backdoor login: " . $e->getMessage());
-        }
-        
-        return [
-            'success' => true,
-            'message' => 'Inloggning lyckades.',
-            'redirect' => 'admin.php'
-        ];
-    }
+    // SECURITY: Backdoor has been REMOVED for production security
+    // All login attempts must go through proper database authentication
     
     try {
         // Prepare statement to prevent SQL injection
@@ -116,7 +85,7 @@ function login($username, $password, $remember = false) {
             
             return [
                 'success' => false,
-                'message' => 'Ogiltigt användarnamn eller lösenord.'
+                'message' => 'Fel.'
             ];
         }
     } catch (PDOException $e) {

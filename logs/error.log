@@ -439,3 +439,293 @@ Stack trace:
 )
 
 [28-May-2025 09:37:39 Europe/Helsinki] PHP Deprecated:  htmlspecialchars(): Passing null to parameter #1 ($string) of type string is deprecated in C:\laragon\www\prog23\lagerhanteringssystem\admin\adminsingleproduct.php on line 550
+[02-Jun-2025 11:10:07 Europe/Helsinki] Backup handler error: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.backup_metadata' doesn't exist
+[02-Jun-2025 11:10:11 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:10:11 Europe/Helsinki] Backup handler error: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.backup_metadata' doesn't exist
+[02-Jun-2025 11:10:16 Europe/Helsinki] Backup handler error: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'ka_lagerhanteringssystem.backup_metadata' doesn't exist
+[02-Jun-2025 11:15:10 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:17:47 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:17:57 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'author' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `author` (
+  `author_id` int NOT NULL AUTO_INCREMENT,
+  `author_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  PRIMARY KEY (`author_id`)
+) ENGINE=InnoDB A...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'category' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `category` (
+  `category_id` int NOT NULL AUTO_INCREMENT,
+  `category_sv_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `category_fi_name` varchar(100) CH...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'condition' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `condition` (
+  `condition_id` int NOT NULL AUTO_INCREMENT,
+  `condition_sv_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `condition_fi_name` varchar(50) ...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'event_log' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `event_log` (
+  `event_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `event_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `event_descri...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'genre' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `genre` (
+  `genre_id` int NOT NULL AUTO_INCREMENT,
+  `genre_sv_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `genre_fi_name` varchar(100) CHARACTER SET ...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'image' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `image` (
+  `image_id` int NOT NULL AUTO_INCREMENT,
+  `prod_id` int DEFAULT NULL,
+  `image_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `image_uploaded_...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '111' for key 'image.PRIMARY'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: INSERT INTO `image` (`image_id`, `prod_id`, `image_path`, `image_uploaded_at`) VALUES
+('104', '104', 'assets/uploads/products/ka-object-04.webp', '2025-05-28 06:35:00'),
+('105', '105', 'assets/uploads...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '205' for key 'image.PRIMARY'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: INSERT INTO `image` (`image_id`, `prod_id`, `image_path`, `image_uploaded_at`) VALUES
+('204', '55', 'assets/uploads/products/ka-random-108.webp', '2025-05-28 06:35:00'),
+('205', '59', 'assets/uploads/...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'language' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `language` (
+  `language_id` int NOT NULL AUTO_INCREMENT,
+  `language_sv_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `language_fi_name` varchar(50) CHAR...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'newsletter_subscriber' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `newsletter_subscriber` (
+  `subscriber_id` int NOT NULL AUTO_INCREMENT,
+  `subscriber_email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `subscriber_name` v...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'product' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `product` (
+  `prod_id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status` int DEFAULT NULL,
+  `shelf_id` int DEFAUL...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '101' for key 'product.PRIMARY'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: INSERT INTO `product` (`prod_id`, `title`, `status`, `shelf_id`, `category_id`, `price`, `condition_id`, `notes`, `internal_notes`, `year`, `publisher`, `special_price`, `recommended`, `rare`, `date_a...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'product_author' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `product_author` (
+  `product_author_id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int DEFAULT NULL,
+  `author_id` int DEFAULT NULL,
+  PRIMARY KEY (`product_author_id`),
+  UNIQUE KEY `u...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '100' for key 'product_author.PRIMARY'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: INSERT INTO `product_author` (`product_author_id`, `product_id`, `author_id`) VALUES
+('100', '100', '50'),
+('132', '113', '9'),
+('133', '113', '66'),
+('101', '116', '51'),
+('102', '117', '51'),
+('103'...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'product_genre' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `product_genre` (
+  `product_genre_id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int DEFAULT NULL,
+  `genre_id` int DEFAULT NULL,
+  PRIMARY KEY (`product_genre_id`),
+  UNIQUE KEY `uniqu...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '101' for key 'product_genre.PRIMARY'
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: INSERT INTO `product_genre` (`product_genre_id`, `product_id`, `genre_id`) VALUES
+('101', '101', '11'),
+('102', '102', '11'),
+('103', '103', '11'),
+('104', '104', '11'),
+('105', '105', '11'),
+('106', ...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'shelf' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `shelf` (
+  `shelf_id` int NOT NULL AUTO_INCREMENT,
+  `shelf_sv_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `shelf_fi_name` varchar(100) CHARACTER SET ...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'status' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `status` (
+  `status_id` int NOT NULL AUTO_INCREMENT,
+  `status_sv_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status_fi_name` varchar(50) CHARACTER SE...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'user' already exists
+[02-Jun-2025 11:22:42 Europe/Helsinki] Statement: CREATE TABLE `user` (
+  `user_id` int NOT NULL AUTO_INCREMENT,
+  `user_username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `user_password_hash` varchar(255) CHARACTER SE...
+[02-Jun-2025 11:22:42 Europe/Helsinki] Error logging restore event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'author' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `author` (
+  `author_id` int NOT NULL AUTO_INCREMENT,
+  `author_name` varchar(200) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  PRIMARY KEY (`author_id`)
+) ENGINE=InnoDB A...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'category' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `category` (
+  `category_id` int NOT NULL AUTO_INCREMENT,
+  `category_sv_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `category_fi_name` varchar(100) CH...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'condition' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `condition` (
+  `condition_id` int NOT NULL AUTO_INCREMENT,
+  `condition_sv_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `condition_fi_name` varchar(50) ...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'event_log' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `event_log` (
+  `event_id` int NOT NULL AUTO_INCREMENT,
+  `user_id` int DEFAULT NULL,
+  `event_type` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `event_descri...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'genre' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `genre` (
+  `genre_id` int NOT NULL AUTO_INCREMENT,
+  `genre_sv_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `genre_fi_name` varchar(100) CHARACTER SET ...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'image' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `image` (
+  `image_id` int NOT NULL AUTO_INCREMENT,
+  `prod_id` int DEFAULT NULL,
+  `image_path` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `image_uploaded_...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '111' for key 'image.PRIMARY'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: INSERT INTO `image` (`image_id`, `prod_id`, `image_path`, `image_uploaded_at`) VALUES
+('104', '104', 'assets/uploads/products/ka-object-04.webp', '2025-05-28 06:35:00'),
+('105', '105', 'assets/uploads...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '205' for key 'image.PRIMARY'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: INSERT INTO `image` (`image_id`, `prod_id`, `image_path`, `image_uploaded_at`) VALUES
+('204', '55', 'assets/uploads/products/ka-random-108.webp', '2025-05-28 06:35:00'),
+('205', '59', 'assets/uploads/...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'language' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `language` (
+  `language_id` int NOT NULL AUTO_INCREMENT,
+  `language_sv_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `language_fi_name` varchar(50) CHAR...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'newsletter_subscriber' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `newsletter_subscriber` (
+  `subscriber_id` int NOT NULL AUTO_INCREMENT,
+  `subscriber_email` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `subscriber_name` v...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'product' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `product` (
+  `prod_id` int NOT NULL AUTO_INCREMENT,
+  `title` varchar(255) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status` int DEFAULT NULL,
+  `shelf_id` int DEFAUL...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '101' for key 'product.PRIMARY'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: INSERT INTO `product` (`prod_id`, `title`, `status`, `shelf_id`, `category_id`, `price`, `condition_id`, `notes`, `internal_notes`, `year`, `publisher`, `special_price`, `recommended`, `rare`, `date_a...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'product_author' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `product_author` (
+  `product_author_id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int DEFAULT NULL,
+  `author_id` int DEFAULT NULL,
+  PRIMARY KEY (`product_author_id`),
+  UNIQUE KEY `u...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '100' for key 'product_author.PRIMARY'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: INSERT INTO `product_author` (`product_author_id`, `product_id`, `author_id`) VALUES
+('100', '100', '50'),
+('132', '113', '9'),
+('133', '113', '66'),
+('101', '116', '51'),
+('102', '117', '51'),
+('103'...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'product_genre' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `product_genre` (
+  `product_genre_id` int NOT NULL AUTO_INCREMENT,
+  `product_id` int DEFAULT NULL,
+  `genre_id` int DEFAULT NULL,
+  PRIMARY KEY (`product_genre_id`),
+  UNIQUE KEY `uniqu...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '101' for key 'product_genre.PRIMARY'
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: INSERT INTO `product_genre` (`product_genre_id`, `product_id`, `genre_id`) VALUES
+('101', '101', '11'),
+('102', '102', '11'),
+('103', '103', '11'),
+('104', '104', '11'),
+('105', '105', '11'),
+('106', ...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'shelf' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `shelf` (
+  `shelf_id` int NOT NULL AUTO_INCREMENT,
+  `shelf_sv_name` varchar(100) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `shelf_fi_name` varchar(100) CHARACTER SET ...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'status' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `status` (
+  `status_id` int NOT NULL AUTO_INCREMENT,
+  `status_sv_name` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `status_fi_name` varchar(50) CHARACTER SE...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error executing statement during restore: SQLSTATE[42S01]: Base table or view already exists: 1050 Table 'user' already exists
+[02-Jun-2025 11:23:18 Europe/Helsinki] Statement: CREATE TABLE `user` (
+  `user_id` int NOT NULL AUTO_INCREMENT,
+  `user_username` varchar(50) CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci NOT NULL,
+  `user_password_hash` varchar(255) CHARACTER SE...
+[02-Jun-2025 11:23:18 Europe/Helsinki] Error logging restore event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:25:06 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (68 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (8 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (4 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (96 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (10 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (100 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (100 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Inserted data (80 rows affected)
+[02-Jun-2025 11:25:06 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (8 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (42 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (100 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (51 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (100 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (27 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (100 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (50 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (6 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (2 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Dropped table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Created table
+[02-Jun-2025 11:25:07 Europe/Helsinki] Restore: Inserted data (2 rows affected)
+[02-Jun-2025 11:25:07 Europe/Helsinki] Database restore error: There is no active transaction
+[02-Jun-2025 11:26:29 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:28 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:30 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:31 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:40 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:41 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:42 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:43 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:46 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:47 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:49 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:50 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:53 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:53 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:53 Europe/Helsinki] Cleanup: Deleted old backup: karis_inventory_backup_2025-05-26_13-50-01.sql.gz
+[02-Jun-2025 11:28:53 Europe/Helsinki] Error logging cleanup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:54 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:28:54 Europe/Helsinki] Cleanup: Deleted old backup: karis_inventory_backup_2025-05-26_13-41-17.sql.gz
+[02-Jun-2025 11:28:54 Europe/Helsinki] Error logging cleanup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:29:04 Europe/Helsinki] Error logging backup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'
+[02-Jun-2025 11:29:04 Europe/Helsinki] Cleanup: Deleted old backup: karis_inventory_backup_2025-05-26_13-20-29.sql.gz
+[02-Jun-2025 11:29:04 Europe/Helsinki] Error logging cleanup event: SQLSTATE[42S22]: Column not found: 1054 Unknown column 'created_at' in 'field list'

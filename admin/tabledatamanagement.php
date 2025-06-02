@@ -382,22 +382,22 @@ if (isset($_SESSION['error'])) {
             </div>
 
             <!-- Backup List -->
-            <div class="table-responsive">
-                <table class="table table-sm" id="backup-table">
-                    <thead>
-                        <tr>
-                            <th>Datum</th>
-                            <th>Tid</th>
-                            <th>Storlek</th>
-                            <th>Produkt Kvantitet</th>
-                            <th width="200px">Åtgärder</th>
-                        </tr>
-                    </thead>
-                    <tbody id="backup-list">
-                        <!-- Backup list will be loaded here -->
-                    </tbody>
-                </table>
-            </div>
+<div class="table-responsive">
+    <table class="table table-sm" id="backup-table">
+        <thead>
+            <tr>
+                <th>Datum</th>
+                <th>Tid</th>
+                <th>Storlek</th>
+                <th>Produkt Kvantitet</th>
+                <th width="250px">Åtgärder</th>
+            </tr>
+        </thead>
+        <tbody id="backup-list">
+            <!-- Backup list will be loaded here -->
+        </tbody>
+    </table>
+</div>
         </div>
     </div>
 
@@ -553,47 +553,50 @@ $(document).ready(function() {
     }
     
     // Function to load backup list
-    function loadBackupList() {
-        $.ajax({
-            url: '<?php echo url('admin/backup_handler.php'); ?>',
-            type: 'GET',
-            data: { action: 'list' },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    var backupList = $('#backup-list');
-                    backupList.empty();
-                    
-                    if (response.backups.length === 0) {
-                        backupList.append('<tr><td colspan="5" class="text-center text-muted">Inga backups hittades</td></tr>');
-                    } else {
-                        response.backups.forEach(function(backup) {
-                            var rowClass = backup.hidden ? 'backup-hidden' : '';
-                            var hideText = backup.hidden ? 'Visa' : 'Dölj';
-                            var hideAction = backup.hidden ? 'show' : 'hide';
-                            
-                            var row = '<tr class="' + rowClass + '">' +
-                                '<td>' + backup.date + '</td>' +
-                                '<td>' + backup.time + '</td>' +
-                                '<td>' + backup.size + '</td>' +
-                                '<td>' + backup.product_count + '</td>' +
-                                '<td>' +
-                                    '<button class="btn btn-sm btn-primary restore-btn me-1" data-filename="' + backup.filename + '">Återställa</button>' +
-                                    '<button class="btn btn-sm btn-secondary hide-btn" data-filename="' + backup.filename + '" data-action="' + hideAction + '">' + hideText + '</button>' +
-                                '</td>' +
-                            '</tr>';
-                            backupList.append(row);
-                        });
-                    }
+function loadBackupList() {
+    $.ajax({
+        url: '<?php echo url('admin/backup_handler.php'); ?>',
+        type: 'GET',
+        data: { action: 'list' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                var backupList = $('#backup-list');
+                backupList.empty();
+                
+                if (response.backups.length === 0) {
+                    backupList.append('<tr><td colspan="5" class="text-center text-muted">Inga backups hittades</td></tr>');
                 } else {
-                    showMessage('Kunde inte ladda backup-lista: ' + response.message, 'danger');
+                    response.backups.forEach(function(backup) {
+                        var rowClass = backup.hidden ? 'backup-hidden' : '';
+                        var hideText = backup.hidden ? 'Visa' : 'Dölj';
+                        var hideAction = backup.hidden ? 'show' : 'hide';
+                        
+                        var row = '<tr class="' + rowClass + '">' +
+                            '<td>' + backup.date + '</td>' +
+                            '<td>' + backup.time + '</td>' +
+                            '<td>' + backup.size + '</td>' +
+                            '<td>' + backup.product_count + '</td>' +
+                            '<td>' +
+                                '<button class="btn btn-sm btn-success download-backup-btn me-1" data-filename="' + backup.filename + '" title="Ladda ner backup">' +
+                                    '<i class="fas fa-download"></i> Ladda ner' +
+                                '</button>' +
+                                '<button class="btn btn-sm btn-primary restore-btn me-1" data-filename="' + backup.filename + '" title="Återställ från backup">Återställ</button>' +
+                                '<button class="btn btn-sm btn-secondary hide-btn" data-filename="' + backup.filename + '" data-action="' + hideAction + '" title="Dölj backup">' + hideText + '</button>' +
+                            '</td>' +
+                        '</tr>';
+                        backupList.append(row);
+                    });
                 }
-            },
-            error: function() {
-                showMessage('Fel vid laddning av backup-lista.', 'danger');
+            } else {
+                showMessage('Kunde inte ladda backup-lista: ' + response.message, 'danger');
             }
-        });
-    }
+        },
+        error: function() {
+            showMessage('Fel vid laddning av backup-lista.', 'danger');
+        }
+    });
+}
     
     // Collapse advanced filters by default
     $('#filter-body').hide();
@@ -821,38 +824,79 @@ $(document).ready(function() {
         document.documentElement.style.overflow = 'auto';
     });
     
-    // Create backup button click
-    $('#create-backup-btn').off('click').on('click', function() {
-        var button = $(this);
-        var originalText = button.html();
-        
-        // Disable button and show loading state
-        button.prop('disabled', true);
-        button.html('<i class="fas fa-spinner fa-spin"></i> Skapar backup...');
-        
-        $.ajax({
-            url: '<?php echo url('admin/backup_handler.php'); ?>',
-            type: 'POST',
-            data: { action: 'create' },
-            dataType: 'json',
-            success: function(response) {
-                if (response.success) {
-                    showMessage(response.message, 'success');
-                    loadBackupList(); // Reload the backup list
-                } else {
-                    showMessage('Fel vid skapande av backup: ' + response.message, 'danger');
+
+
+// Create backup button click with auto-download
+$('#create-backup-btn').off('click').on('click', function() {
+    var button = $(this);
+    var originalText = button.html();
+    
+    // Disable button and show loading state
+    button.prop('disabled', true);
+    button.html('<i class="fas fa-spinner fa-spin"></i> Skapar backup...');
+    
+    $.ajax({
+        url: '<?php echo url('admin/backup_handler.php'); ?>',
+        type: 'POST',
+        data: { action: 'create' },
+        dataType: 'json',
+        success: function(response) {
+            if (response.success) {
+                showMessage(response.message, 'success');
+                loadBackupList(); // Reload the backup list
+                
+                // Trigger automatic download if download_url is provided
+                if (response.download_url) {
+                    // Create a temporary link and trigger download
+                    var downloadLink = document.createElement('a');
+                    downloadLink.href = response.download_url;
+                    downloadLink.download = response.filename || 'backup.sql';
+                    downloadLink.style.display = 'none';
+                    
+                    // Add to document, click, and remove
+                    document.body.appendChild(downloadLink);
+                    downloadLink.click();
+                    document.body.removeChild(downloadLink);
+                    
+                    // Show additional success message about download
+                    setTimeout(function() {
+                        showMessage('Backup-fil har laddats ner till din dator.', 'info');
+                    }, 1000);
                 }
-            },
-            error: function() {
-                showMessage('Ett fel inträffade vid skapande av backup.', 'danger');
-            },
-            complete: function() {
-                // Re-enable button
-                button.prop('disabled', false);
-                button.html(originalText);
+            } else {
+                showMessage('Fel vid skapande av backup: ' + response.message, 'danger');
             }
-        });
+        },
+        error: function(xhr, status, error) {
+            console.error('Backup creation error:', error);
+            showMessage('Ett fel inträffade vid skapande av backup.', 'danger');
+        },
+        complete: function() {
+            // Re-enable button
+            button.prop('disabled', false);
+            button.html(originalText);
+        }
     });
+});
+
+// Optional: Add manual download buttons for existing backups
+$(document).off('click', '.download-backup-btn');
+$(document).on('click', '.download-backup-btn', function() {
+    var filename = $(this).data('filename');
+    var downloadUrl = '<?php echo url('admin/backup_handler.php'); ?>?action=download&filename=' + encodeURIComponent(filename);
+    
+    // Create temporary link and trigger download
+    var downloadLink = document.createElement('a');
+    downloadLink.href = downloadUrl;
+    downloadLink.download = filename;
+    downloadLink.style.display = 'none';
+    
+    document.body.appendChild(downloadLink);
+    downloadLink.click();
+    document.body.removeChild(downloadLink);
+    
+    showMessage('Laddar ner: ' + filename, 'info');
+});
     
     // Handle restore button clicks using event delegation
     $(document).off('click', '.restore-btn');
