@@ -14,11 +14,14 @@
 // Include initialization file (replaces multiple require statements)
 require_once 'init.php';
 
-// Get product ID from URL parameter
-$productId = isset($_GET['id']) ? (int)$_GET['id'] : 0;
+
+// Get and validate product ID from URL parameter
+$productId = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT, [
+    'options' => ['min_range' => 1]
+]);
 
 // Check if product ID is valid
-if ($productId <= 0) {
+if ($productId === false || $productId === null) {
     // Redirect to home page if invalid product ID
     header("Location: " . url('index.php'));
     exit;

@@ -1,11 +1,12 @@
 <?php
 /**
- * Admin Header Template (Updated with CSRF Protection and Security Headers)
+ * Admin Header Template (FIXED - Enhanced CSRF Protection and Security Headers)
  * 
  * Contains:
  * - Admin header with navigation tabs
  * - User info and logout button
- * - CSRF protection and security headers
+ * - CSRF protection for both fetch() and jQuery AJAX
+ * - Enhanced security headers
  */
 
 // Get current page for active menu highlighting
@@ -55,9 +56,9 @@ $csrfToken = generateCSRFToken();
         window.BASE_URL = '<?php echo rtrim(BASE_PATH, '/'); ?>';
     </script>
     
-    <!-- Session check script with CSRF protection -->
+    <!-- Enhanced Security and CSRF Protection Script -->
     <script>
-        // Function to check session status
+        // Function to check session status with CSRF protection
         function checkSession() {
             fetch('<?php echo $sessionCheckUrl; ?>', {
                 method: 'POST',
@@ -92,7 +93,7 @@ $csrfToken = generateCSRFToken();
             }
         });
 
-        // Add CSRF token to all AJAX requests
+        // ENHANCED CSRF PROTECTION FOR ALL AJAX REQUESTS
         document.addEventListener('DOMContentLoaded', function() {
             // Override fetch to automatically include CSRF token
             const originalFetch = window.fetch;
@@ -127,6 +128,67 @@ $csrfToken = generateCSRFToken();
                 return originalFetch(url, options);
             };
 
+            // FIXED: Enhanced jQuery AJAX setup for CSRF protection
+            if (typeof $ !== 'undefined') {
+                // Set up global AJAX defaults for jQuery
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        // Only add CSRF token to POST requests
+                        if (settings.type && settings.type.toUpperCase() === 'POST') {
+                            // Add CSRF token to headers
+                            xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+                            xhr.setRequestHeader('X-Requested-With', 'XMLHttpRequest');
+                            
+                            // Add CSRF token to data if not already present
+                            if (settings.data) {
+                                if (typeof settings.data === 'string') {
+                                    // For serialized data
+                                    if (settings.data.indexOf('csrf_token=') === -1) {
+                                        settings.data += (settings.data ? '&' : '') + 'csrf_token=' + encodeURIComponent(window.CSRF_TOKEN);
+                                    }
+                                } else if (typeof settings.data === 'object' && !(settings.data instanceof FormData)) {
+                                    // For object data
+                                    if (!settings.data.csrf_token) {
+                                        settings.data.csrf_token = window.CSRF_TOKEN;
+                                    }
+                                } else if (settings.data instanceof FormData) {
+                                    // For FormData
+                                    if (!settings.data.has('csrf_token')) {
+                                        settings.data.append('csrf_token', window.CSRF_TOKEN);
+                                    }
+                                }
+                            } else {
+                                // If no data, create it with CSRF token
+                                settings.data = { csrf_token: window.CSRF_TOKEN };
+                            }
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Global error handler for AJAX requests
+                        if (xhr.status === 401) {
+                            alert('Din session har gått ut. Du kommer att omdirigeras till inloggningssidan.');
+                            window.location.href = BASE_URL + '/index.php?auth_error=2';
+                        } else if (xhr.status === 403) {
+                            if (typeof showMessage === 'function') {
+                                showMessage('Du har inte behörighet att utföra denna åtgärd.', 'danger');
+                            } else {
+                                alert('Du har inte behörighet att utföra denna åtgärd.');
+                            }
+                        } else if (xhr.status === 419) {
+                            // CSRF token mismatch
+                            alert('Säkerhetstoken har gått ut. Sidan kommer att laddas om.');
+                            window.location.reload();
+                        } else if (xhr.status >= 500) {
+                            if (typeof showMessage === 'function') {
+                                showMessage('Ett serverfel inträffade. Försök igen senare.', 'danger');
+                            } else {
+                                alert('Ett serverfel inträffade. Försök igen senare.');
+                            }
+                        }
+                    }
+                });
+            }
+
             // Add CSRF token to all forms
             const forms = document.querySelectorAll('form');
             forms.forEach(function(form) {
@@ -138,7 +200,82 @@ $csrfToken = generateCSRFToken();
                     form.appendChild(csrfInput);
                 }
             });
+
+            // Monitor for dynamically added forms
+            const observer = new MutationObserver(function(mutations) {
+                mutations.forEach(function(mutation) {
+                    mutation.addedNodes.forEach(function(node) {
+                        if (node.nodeType === 1) { // Element node
+                            // Check if the added node is a form
+                            if (node.tagName === 'FORM' && node.method.toLowerCase() === 'post') {
+                                if (!node.querySelector('input[name="csrf_token"]')) {
+                                    const csrfInput = document.createElement('input');
+                                    csrfInput.type = 'hidden';
+                                    csrfInput.name = 'csrf_token';
+                                    csrfInput.value = window.CSRF_TOKEN;
+                                    node.appendChild(csrfInput);
+                                }
+                            }
+                            // Check for forms inside the added node
+                            const forms = node.querySelectorAll && node.querySelectorAll('form[method="post"], form[method="POST"]');
+                            if (forms) {
+                                forms.forEach(function(form) {
+                                    if (!form.querySelector('input[name="csrf_token"]')) {
+                                        const csrfInput = document.createElement('input');
+                                        csrfInput.type = 'hidden';
+                                        csrfInput.name = 'csrf_token';
+                                        csrfInput.value = window.CSRF_TOKEN;
+                                        form.appendChild(csrfInput);
+                                    }
+                                });
+                            }
+                        }
+                    });
+                });
+            });
+
+            // Start observing
+            observer.observe(document.body, {
+                childList: true,
+                subtree: true
+            });
         });
+
+        // Function to refresh CSRF token if needed
+        window.refreshCSRFToken = function() {
+            return fetch(BASE_URL + '/includes/get_csrf_token.php', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-Requested-With': 'XMLHttpRequest'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success && data.token) {
+                    window.CSRF_TOKEN = data.token;
+                    // Update all hidden CSRF inputs
+                    document.querySelectorAll('input[name="csrf_token"]').forEach(input => {
+                        input.value = data.token;
+                    });
+                    return data.token;
+                } else {
+                    throw new Error('Failed to refresh CSRF token');
+                }
+            });
+        };
+
+        // Enhanced security headers check
+        function checkSecurityHeaders() {
+            // This function can be called to verify security headers are properly set
+            // Mainly for debugging purposes
+            if (window.location.protocol !== 'https:' && window.location.hostname !== 'localhost') {
+                console.warn('Security Warning: Site is not using HTTPS');
+            }
+        }
+
+        // Call security check on load
+        document.addEventListener('DOMContentLoaded', checkSecurityHeaders);
     </script>
 </head>
 <body class="d-flex flex-column min-vh-100">

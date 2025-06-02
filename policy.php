@@ -15,10 +15,7 @@
 // Include initialization file
 require_once 'init.php';
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+
 
 // Determine current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';

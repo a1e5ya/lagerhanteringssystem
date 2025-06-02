@@ -1,0 +1,111 @@
+# Karis Antikvariat - Security Implementation Guide
+
+## Current Problem
+AJAX table updates and batch operations are broken after security implementation. We need to fix functionality while maintaining security requirements.
+
+## SECURITY REQUIREMENTS TO IMPLEMENT
+
+### 1. CSRF Protection Requirements
+- ALL POST requests MUST include CSRF tokens
+- Use `checkCSRFToken()` at the top of every POST endpoint
+- GET requests for data display are exempt from CSRF checks
+- AJAX requests MUST include CSRF token in headers: `'X-CSRF-Token': window.CSRF_TOKEN`
+- Forms MUST include `<?php echo getCSRFTokenField(); ?>`
+- Language switching and logout MUST use POST with CSRF protection
+
+### 2. PHP Security Headers Requirements
+- Hide PHP version completely (`expose_php = Off`)
+- Set security headers in every response via `setSecurityHeaders()`
+- Use CSP that allows necessary CDNs but blocks unsafe sources
+- Force HTTPS redirects for all traffic
+- Set `X-Frame-Options: DENY` to prevent clickjacking
+- Set `X-Content-Type-Options: nosniff` to prevent MIME sniffing
+
+### 3. Error Handling Requirements
+- NEVER display errors to users in production
+- ALL errors MUST be logged to secure log files
+- Use custom error handlers that log details but show generic messages
+- Database errors MUST be caught and logged, not displayed
+- Set `display_errors = Off` in production
+
+### 4. Database Security Requirements
+- ALL database queries MUST use prepared statements (PDO)
+- NEVER concatenate user input into SQL strings
+- Use transactions for multi-step database operations
+- Validate and sanitize ALL input before database operations
+- Use specific column names, not `SELECT *`
+
+### 5. Session Security Requirements
+- Set `session.cookie_httponly = 1`
+- Set `session.cookie_secure = 1` for HTTPS
+- Set `session.cookie_samesite = Strict`
+- Regenerate session ID on login/logout
+- Implement session timeout (30 minutes inactive)
+- Use `session.use_strict_mode = 1`
+
+### 6. Input/Output Security Requirements
+- Use `safeEcho()` for ALL user data output
+- Validate ALL input with appropriate filters
+- Sanitize ALL user input before processing
+- Use `htmlspecialchars()` with `ENT_QUOTES` and UTF-8
+- Never trust user input, always validate server-side
+
+### 7. File Security Requirements (.htaccess)
+- Deny access to ALL files by default
+- Explicitly allow only necessary file types
+- Block access to config files, logs, and sensitive directories
+- Disable directory browsing
+- Force HTTPS redirects
+
+### 8. PHP Configuration Security Requirements
+- Disable dangerous functions: `exec, shell_exec, system, passthru, eval`
+- Set `allow_url_fopen = Off`
+- Set `allow_url_include = Off`
+- Set `register_globals = Off`
+- Set appropriate file upload limits
+- Disable `expose_php`
+
+### 9. Code Documentation Requirements
+- ALL functions MUST have PHPDoc comments
+- ALL JavaScript functions MUST have JSDoc comments
+- Document security considerations in function headers
+- Include `@param`, `@return`, and `@throws` in all docs
+- Document CSRF requirements in API endpoints
+
+### 10. Rate Limiting Requirements
+- Implement rate limiting on login attempts
+- Implement rate limiting on form submissions
+- Block repeated failed attempts from same IP
+- Use session-based rate limiting for authenticated users
+
+### 11. File Upload Security Requirements
+- Validate file types by content, not extension
+- Limit file sizes appropriately
+- Store uploaded files outside web root when possible
+- Rename uploaded files to prevent conflicts
+- Scan uploads for malicious content
+
+### 12. API Security Requirements
+- ALL API endpoints MUST validate authentication
+- Use proper HTTP status codes for responses
+- Implement request/response logging for auditing
+- Validate content-type headers
+- Implement API versioning
+
+## IMPLEMENTATION PRIORITY ORDER
+1. Fix AJAX CSRF issues (restore functionality)
+2. Complete error handling and logging
+3. Implement session security
+4. Configure .htaccess security
+5. Set PHP security configuration
+6. Add comprehensive input validation
+7. Implement rate limiting
+8. Complete code documentation
+
+## TESTING REQUIREMENTS
+- Test ALL forms work with CSRF protection
+- Test ALL AJAX operations work properly
+- Verify error messages are logged, not displayed
+- Confirm session security settings work
+- Test rate limiting doesn't block normal users
+- Verify file uploads are secure

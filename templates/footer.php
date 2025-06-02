@@ -12,6 +12,8 @@
 // Load language strings if not already loaded
 if (!isset($strings)) {
     $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+    // Validate language parameter
+    $language = in_array($language, ['sv', 'fi']) ? $language : 'sv';
     $strings = loadLanguageStrings($language);
 }
 ?>

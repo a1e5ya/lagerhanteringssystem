@@ -30,21 +30,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['logout'])) {
 }
 
 
-// Handle language switching (POST request with CSRF protection)
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lang'])) {
-    // Check CSRF token for language change
-    checkCSRFToken();
-    
-    // Validate language parameter
-    $language = ($_POST['lang'] === 'fi') ? 'fi' : 'sv';
-    
-    // Update session with new language
-    $_SESSION['language'] = $language;
-    
-    // Redirect back to the same page to refresh with new language
-    header('Location: ' . url('index.php'));
-    exit;
-}
+
 
 // Clean URL for default view
 if (empty($_GET['search']) && 
@@ -56,10 +42,7 @@ if (empty($_GET['search']) &&
     exit;
 }
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+
 
 // Determine current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
@@ -439,7 +422,7 @@ include 'templates/header.php';
                     <div class="col-md-6 mb-3 mb-md-0">
                         <input type="text" class="form-control" id="public-search" name="search" 
                             placeholder="<?php echo $lang_strings['search_placeholder'] ?? 'Sök'; ?>" 
-                            value="<?= isset($_GET['search']) ? (function_exists('safeEcho') ? safeEcho($_GET['search']) : htmlspecialchars($_GET['search'])) : '' ?>">
+                            value="<?= isset($_GET['search']) ? safeEcho($_GET['search']) : '' ?>">
                     </div>
                     <div class="col-md-4 mb-3 mb-md-0">
                         <select class="form-select" id="public-category" name="category">
@@ -657,21 +640,35 @@ document.addEventListener('DOMContentLoaded', function () {
         });
     });
 
-    // Load initial products - always use random samples on initial load
-    const urlParams = new URLSearchParams(window.location.search);
-    const searchTerm = urlParams.get('search') || '';
-    const category = urlParams.get('category') || 'all';
-    const sort = urlParams.get('sort') || '';
-    const order = urlParams.get('order') || 'asc';
-    const limit = urlParams.get('limit') || 10;
-    const page = urlParams.get('page') || 1;
+// Load initial products - only if there are URL parameters, otherwise use clean initial load
+const urlParams = new URLSearchParams(window.location.search);
 
+// Check if we have any meaningful parameters that should trigger a search
+const searchTerm = urlParams.get('search') || '';
+const category = urlParams.get('category') || 'all';
+const sort = urlParams.get('sort') || '';
+const order = urlParams.get('order') || 'asc';
+const limit = urlParams.get('limit') || 10;
+const page = urlParams.get('page') || 1;
+
+// Only load products via AJAX if we have actual parameters in URL
+const hasUrlParameters = urlParams.has('search') || 
+                         urlParams.has('category') || 
+                         urlParams.has('sort') || 
+                         urlParams.has('page') || 
+                         urlParams.has('limit') ||
+                         urlParams.has('random_samples');
+
+if (hasUrlParameters) {
     // Determine if random samples should be loaded
-    // If there's a sort parameter in the URL, don't use random samples
-    const isRandomSamples = !searchTerm && category === 'all' && !sort && !urlParams.has('random_samples');
-
+    const isRandomSamples = !searchTerm && category === 'all' && !sort && urlParams.has('random_samples');
+    
     // Load products with the current parameters
     loadProducts(searchTerm, category, page, limit, sort, order, isRandomSamples);
+} else {
+    // Clean initial load - load random samples without updating URL
+    loadProductsInitial();
+}
 });
 
 /**
@@ -980,4 +977,68 @@ document.addEventListener('click', function(event) {
         }
     }
 });
+
+/**
+ * Load initial products without updating URL (for clean homepage)
+ */
+function loadProductsInitial() {
+    // Show loading indicator
+    const tableBody = document.getElementById('public-inventory-body');
+    if (tableBody) {
+        tableBody.innerHTML = `
+            <tr>
+                <td colspan="7" class="text-center">
+                    <div class="spinner-border text-primary" role="status">
+                        <span class="visually-hidden">Laddar...</span>
+                    </div>
+                </td>
+            </tr>
+        `;
+    }
+
+    // Set request parameters for random samples
+    const requestParams = {
+        search: '',
+        category: '',
+        page: 1,
+        limit: 10,
+        sort: '',
+        order: 'asc',
+        random_samples: 'true'
+    };
+
+    // Fetch products but DON'T update URL
+    fetch('api/get_public_products.php?' + new URLSearchParams(requestParams))
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('Network response was not ok');
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Update table with products
+                if (data.html && tableBody) {
+                    tableBody.innerHTML = data.html;
+                    makeRowsClickable(); // Re-initialize clickable rows
+                }
+
+                // Update pagination info
+                if (data.pagination) {
+                    updatePaginationInfo(data.pagination, true); // true = random samples mode
+                }
+            } else {
+                // Show error message
+                if (tableBody) {
+                    tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">${data.message || 'Ett fel inträffade'}</td></tr>`;
+                }
+            }
+        })
+        .catch(error => {
+            console.error('Error loading initial products:', error);
+            if (tableBody) {
+                tableBody.innerHTML = `<tr><td colspan="7" class="text-center text-danger">Ett fel inträffade vid laddning av produkter</td></tr>`;
+            }
+        });
+}
 </script>

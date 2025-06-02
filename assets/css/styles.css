@@ -799,3 +799,7 @@ address i {
     height: 180px !important;
     object-fit: cover !important;
 }
+
+.d-inline {
+    padding: 0 5px;
+}

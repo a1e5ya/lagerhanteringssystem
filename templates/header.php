@@ -9,7 +9,24 @@
  * - CSRF protection
  */
 
-// Get current page for active menu highlighting
+/**
+ * Header Template - CENTRALIZED SECURITY
+ */
+
+// Set security headers for ALL pages
+setSecurityHeaders();
+
+// Handle language switching for ALL pages with CSRF protection
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lang'])) {
+    checkCSRFToken();
+    $language = in_array($_POST['lang'], ['sv', 'fi']) ? $_POST['lang'] : 'sv';
+    $_SESSION['language'] = $language;
+    header('Location: ' . $_SERVER['REQUEST_URI']);
+    exit;
+}
+
+
+ // Get current page for active menu highlighting
 $currentPage = basename($_SERVER['PHP_SELF']);
 
 // Check if user is logged in
@@ -93,23 +110,23 @@ $csrfToken = generateCSRFToken();
                         </li>
                     </ul>
                     <div class="d-flex align-items-center">
-                        <!-- Language Switcher with CSRF protection -->
-                        <div class="language-switcher me-3">
-                            <form method="POST" action="<?php echo url(''); ?>" class="d-inline">
-                                <?php echo getCSRFTokenField(); ?>
-                                <input type="hidden" name="lang" value="sv">
-                                <button type="submit" class="btn btn-sm btn-outline-light <?php echo ($language == 'sv') ? 'active' : ''; ?> square-btn">
-                                    SV
-                                </button>
-                            </form>
-                            <form method="POST" action="<?php echo url(''); ?>" class="d-inline">
-                                <?php echo getCSRFTokenField(); ?>
-                                <input type="hidden" name="lang" value="fi">
-                                <button type="submit" class="btn btn-sm btn-outline-light <?php echo ($language == 'fi') ? 'active' : ''; ?> square-btn">
-                                    FI
-                                </button>
-                            </form>
-                        </div>
+<!-- Language Switcher with CSRF protection -->
+<div class="language-switcher me-3">
+    <form method="POST" action="" class="d-inline">
+        <?php echo getCSRFTokenField(); ?>
+        <input type="hidden" name="lang" value="sv">
+        <button type="submit" class="btn btn-sm btn-outline-light <?php echo ($language == 'sv') ? 'active' : ''; ?> square-btn">
+            SV
+        </button>
+    </form>
+    <form method="POST" action="" class="d-inline">
+        <?php echo getCSRFTokenField(); ?>
+        <input type="hidden" name="lang" value="fi">
+        <button type="submit" class="btn btn-sm btn-outline-light <?php echo ($language == 'fi') ? 'active' : ''; ?> square-btn">
+            FI
+        </button>
+    </form>
+</div>
                         
                         <?php if ($isLoggedIn): ?>
                             <!-- Admin Button (only when logged in) -->
@@ -230,25 +247,40 @@ $csrfToken = generateCSRFToken();
                 }
             });
 
-            // Override fetch to automatically include CSRF token
-            const originalFetch = window.fetch;
-            window.fetch = function(url, options = {}) {
-                if (options.method && options.method.toUpperCase() === 'POST') {
-                    options.headers = options.headers || {};
-                    
-                    // Add CSRF token to headers
-                    if (!options.headers['X-CSRF-Token']) {
-                        options.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
-                    }
-                    
-                    // If body is FormData, add CSRF token to it
-                    if (options.body instanceof FormData && !options.body.has('csrf_token')) {
-                        options.body.append('csrf_token', window.CSRF_TOKEN);
-                    }
+// Override fetch to automatically include CSRF token for POST requests
+const originalFetch = window.fetch;
+window.fetch = function(url, options = {}) {
+    // Only modify POST requests
+    if (options.method && options.method.toUpperCase() === 'POST') {
+        options.headers = options.headers || {};
+        
+        // Add CSRF token to headers if not already present
+        if (!options.headers['X-CSRF-Token'] && !options.headers['x-csrf-token']) {
+            options.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
+        }
+        
+        // If body is FormData and doesn't have csrf_token, add it
+        if (options.body instanceof FormData && !options.body.has('csrf_token')) {
+            options.body.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
+        // If body is JSON string, we need to handle it differently
+        if (typeof options.body === 'string' && options.headers['Content-Type'] === 'application/json') {
+            try {
+                const jsonData = JSON.parse(options.body);
+                if (!jsonData.csrf_token) {
+                    jsonData.csrf_token = window.CSRF_TOKEN;
+                    options.body = JSON.stringify(jsonData);
                 }
-                
-                return originalFetch(url, options);
-            };
+            } catch (e) {
+                // If parsing fails, just use headers
+                console.warn('Could not parse JSON body for CSRF token injection');
+            }
+        }
+    }
+    
+    return originalFetch(url, options);
+};
         });
     </script>
     

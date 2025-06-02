@@ -16,10 +16,7 @@ if (empty($_GET['search']) &&
 }
 
 
-// Start session if not already started
-if (session_status() === PHP_SESSION_NONE) {
-    session_start();
-}
+
 
 // Determine current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
@@ -87,10 +84,10 @@ function renderProductCard(object $product): void {
     <div class="col">
         <a href="singleproduct.php?id=<?php echo $product->prod_id; ?>" class="card-link">
         <div class="card h-100">
-            <img src="<?php echo $imageToShow; ?>" class="card-img-top" style="height: 200px; object-fit: cover;" alt="<?php echo htmlspecialchars($product->title); ?>">
+            <img src="<?php echo $imageToShow; ?>" class="card-img-top" style="height: 200px; object-fit: cover;" alt="<?php echo safeEcho($product->title); ?>">
             <div class="card-body">
-                <h5 class="card-title"><?php echo htmlspecialchars($product->title); ?></h5>
-                <p class="card-text"><?php echo htmlspecialchars($product->author_name); ?></p>
+                <h5 class="card-title"><?php echo safeEcho($product->title); ?></h5>
+                <p class="card-text"><?php echo safeEcho($product->author_name); ?></p>
                 <p class="card-text fw-bold text-success"><?php echo number_format($product->price, 2); ?> €</p>
                 
             </div>
@@ -193,9 +190,7 @@ include 'templates/header.php';
 include 'templates/footer.php';
 ?>
 
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="assets/js/main.js"></script>
+
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
