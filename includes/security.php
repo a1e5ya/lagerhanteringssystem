@@ -1,7 +1,7 @@
 <?php
 /**
  * CSRF Protection and Security Headers Implementation
- * Add this to your init.php file or create a separate security.php file
+ * Updated with more permissive CSP for common CDNs
  */
 
 /**
@@ -22,12 +22,26 @@ function setSecurityHeaders() {
         header('Strict-Transport-Security: max-age=31536000; includeSubDomains; preload');
     }
     
-    // Content Security Policy
+    // Content Security Policy - Updated to allow common CDNs
     $csp = "default-src 'self'; " .
-           "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
-           "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com; " .
+           "script-src 'self' 'unsafe-inline' 'unsafe-eval' " .
+           "https://cdn.jsdelivr.net " .
+           "https://cdnjs.cloudflare.com " .
+           "https://code.jquery.com " .
+           "https://ajax.googleapis.com " .
+           "https://unpkg.com " .
+           "https://stackpath.bootstrapcdn.com; " .
+           "style-src 'self' 'unsafe-inline' " .
+           "https://cdn.jsdelivr.net " .
+           "https://cdnjs.cloudflare.com " .
+           "https://fonts.googleapis.com " .
+           "https://stackpath.bootstrapcdn.com " .
+           "https://code.jquery.com; " .
            "img-src 'self' data: https:; " .
-           "font-src 'self' https://cdnjs.cloudflare.com; " .
+           "font-src 'self' " .
+           "https://cdnjs.cloudflare.com " .
+           "https://fonts.gstatic.com " .
+           "https://stackpath.bootstrapcdn.com; " .
            "connect-src 'self'; " .
            "frame-ancestors 'none';";
     header("Content-Security-Policy: $csp");
