@@ -1,11 +1,12 @@
 <?php
 /**
- * Admin Header Template (Updated with CSRF Protection and Security Headers)
+ * Admin Header Template (Updated with CSRF Protection and Enhanced Debugging)
  * 
  * Contains:
  * - Admin header with navigation tabs
  * - User info and logout button
  * - CSRF protection and security headers
+ * - Enhanced CSRF debugging and global setup
  */
 
 // Get current page for active menu highlighting
@@ -55,6 +56,117 @@ $csrfToken = generateCSRFToken();
         window.BASE_URL = '<?php echo rtrim(BASE_PATH, '/'); ?>';
     </script>
     
+    <!-- Enhanced CSRF Setup and Debugging Script -->
+    <script>
+        /**
+         * CSRF Debug and Global Setup Script
+         * Ensures proper CSRF token handling and provides debugging information
+         */
+        document.addEventListener('DOMContentLoaded', function() {
+            // Debug: Check if CSRF token is available
+            if (!window.CSRF_TOKEN) {
+                console.error('CRITICAL: CSRF_TOKEN is not available globally!');
+                console.log('Available global variables:', Object.keys(window).filter(key => key.includes('CSRF') || key.includes('TOKEN')));
+            } else {
+                console.log('✓ CSRF Token loaded successfully:', window.CSRF_TOKEN.substring(0, 10) + '...');
+            }
+            
+            // Ensure BASE_URL is available
+            if (!window.BASE_URL) {
+                console.error('CRITICAL: BASE_URL is not available globally!');
+            } else {
+                console.log('✓ BASE_URL loaded successfully:', window.BASE_URL);
+            }
+            
+            // Global error handler for AJAX requests to catch CSRF issues
+            window.addEventListener('unhandledrejection', function(event) {
+                if (event.reason && event.reason.message && event.reason.message.includes('403')) {
+                    console.error('CSRF Protection Error: Request was blocked (403 Forbidden)');
+                    console.log('This is likely due to missing or invalid CSRF token');
+                }
+            });
+            
+            // Override jQuery AJAX to automatically include CSRF token
+            if (typeof $ !== 'undefined' && $.ajaxSetup) {
+                $.ajaxSetup({
+                    beforeSend: function(xhr, settings) {
+                        // Only add CSRF token to POST requests
+                        if (settings.type === 'POST') {
+                            // Add CSRF token to headers
+                            xhr.setRequestHeader('X-CSRF-Token', window.CSRF_TOKEN);
+                            
+                            // If data is a string (URL-encoded), add CSRF token to it
+                            if (typeof settings.data === 'string' && settings.data.indexOf('csrf_token=') === -1) {
+                                settings.data = settings.data + (settings.data ? '&' : '') + 'csrf_token=' + encodeURIComponent(window.CSRF_TOKEN);
+                            }
+                            
+                            // If data is a FormData object, add CSRF token to it
+                            if (settings.data instanceof FormData && !settings.data.has('csrf_token')) {
+                                settings.data.append('csrf_token', window.CSRF_TOKEN);
+                            }
+                            
+                            // If data is an object, add CSRF token to it
+                            if (typeof settings.data === 'object' && settings.data !== null && 
+                                !(settings.data instanceof FormData) && !settings.data.csrf_token) {
+                                settings.data.csrf_token = window.CSRF_TOKEN;
+                            }
+                        }
+                    }
+                });
+                
+                console.log('✓ jQuery AJAX setup configured with CSRF protection');
+            }
+            
+            // Add CSRF token to all existing forms
+            const forms = document.querySelectorAll('form');
+            let formsUpdated = 0;
+            
+            forms.forEach(function(form) {
+                if (form.method.toLowerCase() === 'post' && !form.querySelector('input[name="csrf_token"]')) {
+                    const csrfInput = document.createElement('input');
+                    csrfInput.type = 'hidden';
+                    csrfInput.name = 'csrf_token';
+                    csrfInput.value = window.CSRF_TOKEN;
+                    form.appendChild(csrfInput);
+                    formsUpdated++;
+                }
+            });
+            
+            if (formsUpdated > 0) {
+                console.log(`✓ Added CSRF tokens to ${formsUpdated} forms`);
+            }
+            
+            // Set up a global function to manually add CSRF to any request
+            window.addCSRFToRequest = function(data) {
+                if (data instanceof FormData) {
+                    if (!data.has('csrf_token')) {
+                        data.append('csrf_token', window.CSRF_TOKEN);
+                    }
+                } else if (typeof data === 'object' && data !== null) {
+                    if (!data.csrf_token) {
+                        data.csrf_token = window.CSRF_TOKEN;
+                    }
+                }
+                return data;
+            };
+            
+            // Global function to check if a request has CSRF protection
+            window.hasCSRFProtection = function(data, headers) {
+                // Check in data
+                if (data instanceof FormData && data.has('csrf_token')) return true;
+                if (typeof data === 'object' && data !== null && data.csrf_token) return true;
+                if (typeof data === 'string' && data.includes('csrf_token=')) return true;
+                
+                // Check in headers
+                if (headers && headers['X-CSRF-Token']) return true;
+                
+                return false;
+            };
+            
+            console.log('✓ CSRF debugging and global setup completed');
+        });
+    </script>
+    
     <!-- Session check script with CSRF protection -->
     <script>
         // Function to check session status
@@ -92,7 +204,7 @@ $csrfToken = generateCSRFToken();
             }
         });
 
-        // Add CSRF token to all AJAX requests
+        // Add CSRF token to all AJAX requests using fetch API override
         document.addEventListener('DOMContentLoaded', function() {
             // Override fetch to automatically include CSRF token
             const originalFetch = window.fetch;

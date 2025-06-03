@@ -1,0 +1,2 @@
+[03-Jun-2025 08:36:55 Europe/Helsinki] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\laragon\www\Prog23\lagerhanteringssystem\templates\admin_header.php:56) in C:\laragon\www\Prog23\lagerhanteringssystem\admin\usermanagement.php on line 650
+[03-Jun-2025 08:37:22 Europe/Helsinki] PHP Warning:  Cannot modify header information - headers already sent by (output started at C:\laragon\www\Prog23\lagerhanteringssystem\templates\admin_header.php:56) in C:\laragon\www\Prog23\lagerhanteringssystem\admin\usermanagement.php on line 691

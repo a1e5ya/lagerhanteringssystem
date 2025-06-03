@@ -10,13 +10,19 @@
 // Set the absolute base path for includes
 $include_base = __DIR__;
 
+// 1. Include configuration first (might define constants needed by security.php)
+require_once $include_base . '/config/config.php';
+
+// 2. Include security settings (this should contain session ini_set() calls)
+//    This MUST come BEFORE session_start().
+require_once $include_base . '/includes/security.php'; 
+
+
+
 // Start session if not already started
 if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
-
-// Include configuration first (which also includes routing)
-require_once $include_base . '/config/config.php';
 
 // Include core files
 require_once $include_base . '/includes/functions.php';
@@ -28,7 +34,7 @@ require_once $include_base . '/includes/ErrorHandler.php';
 require_once $include_base . '/includes/Database.php';
 require_once $include_base . '/includes/ImageProcessor.php';
 require_once $include_base . '/includes/Paginator.php';
-require_once $include_base . '/includes/security.php';
+
 
 // Determine current language
 $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';

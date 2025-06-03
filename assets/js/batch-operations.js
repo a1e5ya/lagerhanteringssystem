@@ -1,5 +1,6 @@
 /**
  * batch-operations.js - Batch operations functionality for Karis Antikvariat
+ * FIXED VERSION with proper CSRF handling and modal focus management
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -96,7 +97,7 @@ document.addEventListener('DOMContentLoaded', function() {
         const hasSelection = window.selectedItems.length > 0;
         
         // Enable/disable batch action buttons
-        const buttons = document.querySelectorAll('#batch-update-price, #batch-update-status, #batch-move-shelf, #batch-delete');
+        const buttons = document.querySelectorAll('#batch-update-price, #batch-update-status, #batch-move-shelf, #batch-delete, #batch-toggle-sale, #batch-toggle-rare, #batch-toggle-recommended');
         buttons.forEach(button => {
             if (button) {
                 button.disabled = !hasSelection;
@@ -226,6 +227,135 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         }
         
+        // Toggle Special Price
+        const batchToggleSaleBtn = document.getElementById('batch-toggle-sale');
+        const confirmToggleSpecialPriceBtn = document.getElementById('confirm-toggle-special-price');
+        
+        if (batchToggleSaleBtn) {
+            batchToggleSaleBtn.addEventListener('click', function() {
+                if (window.selectedItems.length > 0) {
+                    // Update count in modal
+                    const specialPriceCountElement = document.getElementById('special-price-count');
+                    if (specialPriceCountElement) {
+                        specialPriceCountElement.textContent = window.selectedItems.length;
+                    }
+                    
+                    // Show modal
+                    const toggleSpecialPriceModal = document.getElementById('toggleSpecialPriceModal');
+                    if (toggleSpecialPriceModal) {
+                        try {
+                            const modal = new bootstrap.Modal(toggleSpecialPriceModal);
+                            modal.show();
+                        } catch (err) {
+                            alert('Error showing modal: ' + err.message);
+                        }
+                    } else {
+                        alert('Toggle special price modal not found');
+                    }
+                }
+            });
+        }
+        
+        if (confirmToggleSpecialPriceBtn) {
+            confirmToggleSpecialPriceBtn.addEventListener('click', function() {
+                const specialPriceActionSelect = document.getElementById('special-price-action');
+                const action = specialPriceActionSelect ? specialPriceActionSelect.value : '';
+                
+                if (action === '') {
+                    alert('Vänligen välj en åtgärd.');
+                    return;
+                }
+                
+                performBatchAction('set_special_price', {special_price_value: action});
+            });
+        }
+        
+        // Toggle Rare
+        const batchToggleRareBtn = document.getElementById('batch-toggle-rare');
+        const confirmToggleRareBtn = document.getElementById('confirm-toggle-rare');
+        
+        if (batchToggleRareBtn) {
+            batchToggleRareBtn.addEventListener('click', function() {
+                if (window.selectedItems.length > 0) {
+                    // Update count in modal
+                    const rareCountElement = document.getElementById('rare-count');
+                    if (rareCountElement) {
+                        rareCountElement.textContent = window.selectedItems.length;
+                    }
+                    
+                    // Show modal
+                    const toggleRareModal = document.getElementById('toggleRareModal');
+                    if (toggleRareModal) {
+                        try {
+                            const modal = new bootstrap.Modal(toggleRareModal);
+                            modal.show();
+                        } catch (err) {
+                            alert('Error showing modal: ' + err.message);
+                        }
+                    } else {
+                        alert('Toggle rare modal not found');
+                    }
+                }
+            });
+        }
+        
+        if (confirmToggleRareBtn) {
+            confirmToggleRareBtn.addEventListener('click', function() {
+                const rareActionSelect = document.getElementById('rare-action');
+                const action = rareActionSelect ? rareActionSelect.value : '';
+                
+                if (action === '') {
+                    alert('Vänligen välj en åtgärd.');
+                    return;
+                }
+                
+                performBatchAction('set_rare', {rare_value: action});
+            });
+        }
+        
+        // Toggle Recommended
+        const batchToggleRecommendedBtn = document.getElementById('batch-toggle-recommended');
+        const confirmToggleRecommendedBtn = document.getElementById('confirm-toggle-recommended');
+        
+        if (batchToggleRecommendedBtn) {
+            batchToggleRecommendedBtn.addEventListener('click', function() {
+                if (window.selectedItems.length > 0) {
+                    // Update count in modal
+                    const recommendedCountElement = document.getElementById('recommended-count');
+                    if (recommendedCountElement) {
+                        recommendedCountElement.textContent = window.selectedItems.length;
+                    }
+                    
+                    // Show modal
+                    const toggleRecommendedModal = document.getElementById('toggleRecommendedModal');
+                    if (toggleRecommendedModal) {
+                        try {
+                            const modal = new bootstrap.Modal(toggleRecommendedModal);
+                            modal.show();
+                        } catch (err) {
+                            alert('Error showing modal: ' + err.message);
+                        }
+                    } else {
+                        alert('Toggle recommended modal not found');
+                    }
+                }
+            });
+        }
+        
+        if (confirmToggleRecommendedBtn) {
+            confirmToggleRecommendedBtn.addEventListener('click', function() {
+                const recommendedActionSelect = document.getElementById('recommended-action');
+                const action = recommendedActionSelect ? recommendedActionSelect.value : '';
+                
+                if (action === '') {
+                    alert('Vänligen välj en åtgärd.');
+                    return;
+                }
+                
+                performBatchAction('set_recommended', {recommended_value: action});
+            });
+        }
+        
         // Delete
         const batchDeleteBtn = document.getElementById('batch-delete');
         const confirmDeleteBtn = document.getElementById('confirm-delete');
@@ -262,66 +392,103 @@ document.addEventListener('DOMContentLoaded', function() {
         }
     }
     
-    // Perform batch action via AJAX
+    // FIXED: Perform batch action via AJAX with proper focus management and CSRF protection
     function performBatchAction(action, params = {}) {
         if (window.selectedItems.length === 0) {
             alert('Inga produkter valda.');
             return;
         }
         
-        // Create request data
+        // CRITICAL FIX: Remove focus from any active element before hiding modals
+        if (document.activeElement) {
+            document.activeElement.blur();
+        }
+        
+        // Create request data with CSRF token
         const requestData = {
             action: 'batch_action',
             batch_action: action,
-            product_ids: JSON.stringify(window.selectedItems)
+            product_ids: JSON.stringify(window.selectedItems),
+            csrf_token: window.CSRF_TOKEN // <-- CRITICAL: Include CSRF token
         };
         
         // Add additional parameters
         Object.assign(requestData, params);
         
-        // Send AJAX request
-        $.ajax({
-            url: BASE_URL + '/admin/list_ajax_handler.php',
-            type: 'POST',
-            data: requestData,
-            dataType: 'json',
-            success: function(response) {
-                // Hide modals
-                try {
-                    const modals = document.querySelectorAll('.modal');
-                    modals.forEach(modal => {
-                        const modalInstance = bootstrap.Modal.getInstance(modal);
-                        if (modalInstance) {
-                            modalInstance.hide();
-                        }
-                    });
-                } catch (err) {
-                    // Error hiding modals
+        console.log('CSRF Token being sent:', window.CSRF_TOKEN); // Debug logging
+        console.log('Request Data being sent:', requestData);    // Debug logging
+
+        // Send AJAX request using modern fetch API for better error handling
+        fetch(BASE_URL + '/admin/list_ajax_handler.php', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/x-www-form-urlencoded',
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
+            body: new URLSearchParams(requestData)
+        })
+        .then(response => {
+            // Hide modals AFTER request is sent but before processing response
+            try {
+                const modals = document.querySelectorAll('.modal');
+                modals.forEach(modal => {
+                    const modalInstance = bootstrap.Modal.getInstance(modal);
+                    if (modalInstance) {
+                        modalInstance.hide();
+                    }
+                });
+            } catch (err) {
+                console.warn('Error hiding modals:', err);
+            }
+            
+            // Parse JSON response
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(data => {
+            if (data.success) {
+                // Show success message
+                alert(data.message);
+                
+                // Reload products
+                if (typeof loadProducts === 'function') {
+                    loadProducts();
+                } else if (typeof loadListsProducts === 'function') {
+                    // For lists.js integration
+                    loadListsProducts();
+                } else {
+                    window.location.reload();
                 }
                 
-                if (response.success) {
-                    // Show success message
-                    alert(response.message);
-                    
-                    // Reload products
-                    if (typeof loadProducts === 'function') {
-                        loadProducts();
-                    } else {
-                        window.location.reload();
-                    }
-                    
-                    // Reset selected items
+                // Reset selected items for delete operations
+                if (action === 'delete') {
                     window.selectedItems = [];
                     updateSelectedCount();
                     updateBatchButtons();
-                } else {
-                    // Show error message
-                    alert(response.message || 'Ett fel inträffade');
                 }
-            },
-            error: function(xhr, status, error) {
-                alert('Ett fel inträffade. Försök igen senare.');
+            } else {
+                // Show error message
+                alert(data.message || 'Ett fel inträffade');
             }
+        })
+        .catch(error => {
+            console.error('Batch operation error:', error);
+            
+            // Provide more specific error messages
+            let errorMessage = 'Ett fel inträffade. Försök igen senare.';
+            
+            if (error.message.includes('403')) {
+                errorMessage = 'Åtkomst nekad. Kontrollera dina behörigheter.';
+            } else if (error.message.includes('400')) {
+                errorMessage = 'Felaktig begäran. Kontrollera formulärdata.';
+            } else if (error.message.includes('500')) {
+                errorMessage = 'Serverfel. Kontakta administratören.';
+            }
+            
+            alert(errorMessage);
         });
     }
     
@@ -332,7 +499,9 @@ document.addEventListener('DOMContentLoaded', function() {
                 (mutation.target.id === 'lists-body' || 
                  mutation.target.querySelector('#lists-body'))) {
                 setupCheckboxes();
-                makeRowsClickable();
+                if (typeof makeRowsClickable === 'function') {
+                    makeRowsClickable();
+                }
             }
         });
     });

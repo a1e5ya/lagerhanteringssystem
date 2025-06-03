@@ -1,6 +1,7 @@
 /**
- * FINAL OPTIMIZED lists.js - Production Ready
- * - No console logs (fast performance)
+ * FINAL OPTIMIZED lists.js - Production Ready with CSRF and Modal Focus Fix
+ * - Fixed aria-hidden focus issue with Bootstrap modals
+ * - CSRF token properly included in batch operations
  * - Advanced filters collapsed by default
  * - Filters only apply on button click
  * - Batch operations don't clear filters
@@ -569,7 +570,7 @@ $(document).on('click', '#batch-delete', function() {
     }
 });
 
-// Modal confirmations
+// Modal confirmations with proper focus management
 $(document).on('click', '#confirm-update-price', function() {
     const newPrice = $('#new-price').val();
     if (newPrice && parseFloat(newPrice) > 0) {
@@ -626,12 +627,22 @@ function getSelectionCount() {
     return window.selectedItems.length;
 }
 
-// FIXED: Batch operations don't clear filters anymore
+/**
+ * FIXED: Perform batch action with proper modal focus management and CSRF protection
+ */
 function performBatchAction(action, params = {}) {
     if (!hasValidSelection()) {
         alert('Inga produkter valda.');
         return;
     }
+    
+    // CRITICAL FIX: Blur any focused element before hiding modals
+    if (document.activeElement) {
+        document.activeElement.blur();
+    }
+    
+    // Store reference to currently active modal before hiding
+    const activeModal = $('.modal:visible');
     
     const loadingDiv = $('<div class="loading-overlay" style="position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.3);display:flex;justify-content:center;align-items:center;z-index:9999;"><div class="spinner-border text-primary"><span class="visually-hidden">Loading...</span></div></div>');
     $('body').append(loadingDiv);
@@ -639,21 +650,35 @@ function performBatchAction(action, params = {}) {
     // Store current filter state and selections
     const selectedBeforeOperation = [...window.selectedItems];
     
+    // FIXED: Properly include CSRF token
     let requestData = {
         action: 'batch_action',
         batch_action: action,
         product_ids: JSON.stringify(window.selectedItems),
+        csrf_token: window.CSRF_TOKEN, // ← CRITICAL: Include CSRF token
         ...params
     };
+    
+    // Debug logging
+    console.log('Sending CSRF Token:', window.CSRF_TOKEN);
+    console.log('Request Data:', requestData);
     
     $.ajax({
         url: BASE_URL + '/admin/list_ajax_handler.php',
         type: 'POST',
         data: requestData,
         dataType: 'json',
+        beforeSend: function() {
+            // Hide modals AFTER blurring focus and BEFORE sending request
+            activeModal.each(function() {
+                const modalInstance = bootstrap.Modal.getInstance(this);
+                if (modalInstance) {
+                    modalInstance.hide();
+                }
+            });
+        },
         success: function(response) {
             loadingDiv.remove();
-            $('.modal').modal('hide');
             
             if (response.success) {
                 showMessage(response.message, 'success');
@@ -678,8 +703,27 @@ function performBatchAction(action, params = {}) {
         },
         error: function(xhr, status, error) {
             loadingDiv.remove();
-            $('.modal').modal('hide');
-            showMessage('Ett fel inträffade: ' + error, 'danger');
+            
+            // Enhanced error logging for debugging
+            console.error('AJAX Error Details:', {
+                status: xhr.status,
+                statusText: xhr.statusText,
+                responseText: xhr.responseText,
+                error: error
+            });
+            
+            let errorMessage = 'Ett fel inträffade: ' + error;
+            
+            // Provide more specific error messages
+            if (xhr.status === 403) {
+                errorMessage = 'Åtkomst nekad. Kontrollera dina behörigheter.';
+            } else if (xhr.status === 400) {
+                errorMessage = 'Felaktig begäran. Kontrollera formulärdata.';
+            } else if (xhr.status === 500) {
+                errorMessage = 'Serverfel. Kontakta administratören.';
+            }
+            
+            showMessage(errorMessage, 'danger');
         }
     });
 }
