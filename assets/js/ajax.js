@@ -20,88 +20,110 @@ const InventoryAjax = {
      * @param {Function} errorCallback - Callback for error responses
      * @return {Promise} - Promise for chaining
      */
-    request: function(url, method, data, successCallback, errorCallback) {
-        // Show global loading indicator
-        this.showLoader();
-        
-        // Determine if we're using GET or POST
-        const isGet = method.toUpperCase() === 'GET';
-        const requestOptions = {
-            method: method.toUpperCase(),
-            headers: {
-                'X-Requested-With': 'XMLHttpRequest'
-            }
-        };
-        
-        // Handle data differently for GET vs POST
-let finalUrl = url;
-// Add BASE_URL to relative URLs
-if (url.indexOf('http') !== 0 && url.indexOf('/') !== 0) {
-    finalUrl = BASE_URL + '/' + url;
-} else if (url.indexOf('/') === 0) {
-    finalUrl = BASE_URL + url;
-}
+// REPLACE the entire request function in ajax.js with this:
 
-if (isGet && data) {
-    // For GET, convert data to query string
-    const params = new URLSearchParams();
-    Object.keys(data).forEach(key => {
-        params.append(key, data[key]);
-    });
-    finalUrl = `${finalUrl}?${params.toString()}`;
-} else if (!isGet && data) {
-    // For POST, add data to body
-    if (data instanceof FormData) {
-        requestOptions.body = data;
-    } else {
-        requestOptions.headers['Content-Type'] = 'application/json';
-        requestOptions.body = JSON.stringify(data);
+request: function(url, method, data, successCallback, errorCallback) {
+    // Show global loading indicator
+    this.showLoader();
+    
+    // Determine if we're using GET or POST
+    const isGet = method.toUpperCase() === 'GET';
+    const requestOptions = {
+        method: method.toUpperCase(),
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest'
+        }
+    };
+    
+    // Add CSRF token for non-GET requests
+    if (!isGet && window.CSRF_TOKEN) {
+        requestOptions.headers['X-CSRF-Token'] = window.CSRF_TOKEN;
     }
-}
-        
-        // Make the request using fetch API
-        return fetch(finalUrl, requestOptions)
-            .then(response => {
-                if (!response.ok) {
-                    throw new Error(`Server responded with status: ${response.status}`);
+    
+    // Handle data differently for GET vs POST
+    let finalUrl = url;
+    // Add BASE_URL to relative URLs
+    if (url.indexOf('http') !== 0 && url.indexOf('/') !== 0) {
+        finalUrl = BASE_URL + '/' + url;
+    } else if (url.indexOf('/') === 0) {
+        finalUrl = BASE_URL + url;
+    }
+
+    if (isGet && data) {
+        // For GET, convert data to query string
+        const params = new URLSearchParams();
+        Object.keys(data).forEach(key => {
+            params.append(key, data[key]);
+        });
+        finalUrl = `${finalUrl}?${params.toString()}`;
+    } else if (!isGet && data) {
+        // For POST, add data to body
+        if (data instanceof FormData) {
+            // Add CSRF token to FormData if not already present
+            if (window.CSRF_TOKEN && !data.has('csrf_token')) {
+                data.append('csrf_token', window.CSRF_TOKEN);
+            }
+            requestOptions.body = data;
+        } else {
+            requestOptions.headers['Content-Type'] = 'application/json';
+            // Add CSRF token to JSON data
+            if (window.CSRF_TOKEN && typeof data === 'object') {
+                data.csrf_token = window.CSRF_TOKEN;
+            }
+            requestOptions.body = JSON.stringify(data);
+        }
+    }
+    
+    // Make the request using fetch API
+    return fetch(finalUrl, requestOptions)
+        .then(response => {
+            // Handle CSRF token expiry
+            if (response.status === 419) {
+                console.log('CSRF token expired, refreshing page...');
+                window.location.reload();
+                return Promise.reject(new Error('CSRF token expired'));
+            }
+            
+            if (!response.ok) {
+                throw new Error(`Server responded with status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(responseData => {
+            // Hide loader on success
+            this.hideLoader();
+            
+            // Check for success flag in standardized response
+            if (responseData.success === true) {
+                if (typeof successCallback === 'function') {
+                    successCallback(responseData);
                 }
-                return response.json();
-            })
-            .then(responseData => {
-                // Hide loader on success
-                this.hideLoader();
-                
-                // Check for success flag in standardized response
-                if (responseData.success === true) {
-                    if (typeof successCallback === 'function') {
-                        successCallback(responseData);
-                    }
-                    return responseData;
-                } else {
-                    // Application-level error
-                    const errorMsg = responseData.message || 'Unknown error occurred';
-                    this.showMessage(errorMsg, 'danger');
-                    
-                    if (typeof errorCallback === 'function') {
-                        errorCallback(responseData);
-                    }
-                    throw new Error(errorMsg);
-                }
-            })
-            .catch(error => {
-                // Hide loader on error
-                this.hideLoader();
-                
-                // Show error message
-                this.showMessage(error.message || 'Request failed', 'danger');
+                return responseData;
+            } else {
+                // Application-level error
+                const errorMsg = responseData.message || 'Unknown error occurred';
+                this.showMessage(errorMsg, 'danger');
                 
                 if (typeof errorCallback === 'function') {
-                    errorCallback(error);
+                    errorCallback(responseData);
                 }
-                
-                return Promise.reject(error);
-            });
-    },
+                throw new Error(errorMsg);
+            }
+        })
+        .catch(error => {
+            // Hide loader on error
+            this.hideLoader();
+            
+            // Show error message
+            this.showMessage(error.message || 'Request failed', 'danger');
+            
+            if (typeof errorCallback === 'function') {
+                errorCallback(error);
+            }
+            
+            return Promise.reject(error);
+        });
+},
     
     /**
      * Convenience method for GET requests
@@ -769,63 +791,7 @@ if (response.redirect) {
         }
     },
     
-    /**
-     * Show message to user
-     * 
-     * @param {string} message - Message text
-     * @param {string} type - Message type (success, danger, warning, info)
-     */
-    showMessage: function(message, type = 'success') {
-        // Use existing showMessage function if available
-        if (typeof window.showMessage === 'function') {
-            window.showMessage(message, type);
-            return;
-        }
-        
-        // Create a message container if not exists
-        let messageContainer = document.getElementById('message-container');
-        if (!messageContainer) {
-            messageContainer = document.createElement('div');
-            messageContainer.id = 'message-container';
-            messageContainer.className = 'message-container';
-            
-            // Insert at the top of the main content
-            const mainContent = document.querySelector('.container') || document.body;
-            mainContent.insertBefore(messageContainer, mainContent.firstChild);
-        }
-        
-        // Make sure container is visible
-        messageContainer.style.display = 'block';
-        
-        // Create alert element
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.role = 'alert';
-        alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        // Add to container
-        messageContainer.appendChild(alert);
-        
-        // Auto dismiss after 5 seconds
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.classList.remove('show');
-                setTimeout(() => {
-                    if (alert.parentNode) {
-                        alert.remove();
-                        
-                        // Hide container if empty
-                        if (messageContainer.children.length === 0) {
-                            messageContainer.style.display = 'none';
-                        }
-                    }
-                }, 150);
-            }
-        }, 5000);
-    },
+
     
     /**
      * Update URL parameters without reloading the page

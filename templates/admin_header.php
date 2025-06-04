@@ -277,6 +277,14 @@ $csrfToken = generateCSRFToken();
         // Call security check on load
         document.addEventListener('DOMContentLoaded', checkSecurityHeaders);
     </script>
+    <!-- Load JavaScript using the centralized loader -->
+<?php 
+// Include the JS loader if not already included
+require_once __DIR__ . '/../includes/js_loader.php';
+
+// For admin pages, load all admin JS files
+echo loadAdminJavaScript();
+?>
 </head>
 <body class="d-flex flex-column min-vh-100">
     <!-- Header/Navigation for Admin Pages -->

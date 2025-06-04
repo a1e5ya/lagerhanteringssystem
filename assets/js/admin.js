@@ -288,29 +288,7 @@ $(document).ready(function() {
   `;
   document.head.appendChild(style);
 
-  // Helper function to show messages (if not already defined)
-  if (typeof showMessage === 'undefined') {
-    window.showMessage = function(message, type = 'info') {
-      const messageContainer = $('#message-container');
-      if (messageContainer.length) {
-        const alert = $('<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' +
-                       message +
-                       '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                       '</div>');
-        
-        messageContainer.append(alert);
-        messageContainer.show();
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(function() {
-          alert.alert('close');
-        }, 5000);
-      } else {
-        // Fallback to alert if no message container
-        alert(message);
-      }
-    };
-  }
+
 
   // Helper function to make table rows clickable (if not already defined)
   if (typeof makeRowsClickable === 'undefined') {

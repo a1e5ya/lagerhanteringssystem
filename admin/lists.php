@@ -227,8 +227,6 @@ $dropdownOptions = getDropdownOptions();
         </div>
     </div>
 
-    <!-- Explicit message container -->
-    <div id="message-container" style="display:none;"></div>
 
     <!-- Product List Table -->
     <div class="table-responsive">

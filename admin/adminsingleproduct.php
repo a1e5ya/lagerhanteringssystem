@@ -345,8 +345,7 @@ function renderSelectOptions($pdo, $table, $idField, $nameField, $selectedValue 
 include dirname(__DIR__) . '/templates/admin_header.php';
 ?>
 
-<!-- Messages -->
-<div id="message-container"></div>
+
 
 <!-- Main Content Container -->
 <div class="container my-4">
@@ -716,24 +715,6 @@ function resetForm() {
     }
 }
 
-// Show message function
-function showMessage(message, type = 'info') {
-    const messageContainer = document.getElementById('message-container');
-    const alert = document.createElement('div');
-    alert.className = `alert alert-${type} alert-dismissible fade show`;
-    alert.innerHTML = `
-        ${message}
-        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-    `;
-    
-    messageContainer.appendChild(alert);
-    
-    setTimeout(() => {
-        if (alert.parentNode) {
-            alert.remove();
-        }
-    }, 5000);
-}
 
 // Delete single product function (different from data-operations.js)
 function deleteSingleProduct(productId) {

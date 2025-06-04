@@ -66,8 +66,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['action']) && $_POST['
         <input type="hidden" id="admin-page-limit" name="limit" value="<?= isset($_GET['limit']) ? safeEcho($_GET['limit']) : '20' ?>">
     </form>
 
-    <!-- Explicit message container -->
-    <div id="message-container" style="display:none;"></div>
+
 
     <!-- Direct Implementation of Products Table -->
     <div class="table-responsive">
@@ -497,45 +496,7 @@ function changeProductStatus(productId, newStatus) {
     });
 }
 
-/**
- * Display message to user
- * 
- * @param {string} message Message text
- * @param {string} type Message type (success, danger, warning, info)
- */
-function showMessage(message, type = 'info') {
-    console.log('Showing message:', { message, type });
-    
-    const messageContainer = $('#message-container');
-    if (!messageContainer.length) return;
-    
-    // Clear previous messages
-    messageContainer.html('');
-    
-    // Create message element
-    const alertHtml = `
-        <div class="alert alert-${type} alert-dismissible fade show">
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        </div>
-    `;
-    
-    // Add to container and show
-    messageContainer.html(alertHtml).show();
-    
-    // Auto-hide after 5 seconds
-    setTimeout(function() {
-        messageContainer.find('.alert').removeClass('show');
-        setTimeout(function() {
-            messageContainer.find('.alert').remove();
-            
-            // Hide container if empty
-            if (messageContainer.children().length === 0) {
-                messageContainer.hide();
-            }
-        }, 150);
-    }, 5000);
-}
+
 
 // Make functions globally available for compatibility with admin.js
 window.attachSearchEventHandlers = attachSearchEventHandlers;

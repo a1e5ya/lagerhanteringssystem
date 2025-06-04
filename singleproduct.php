@@ -276,48 +276,50 @@ include 'templates/header.php';
         <div class="row mb-5">
             <!-- Column 1: Item Image -->
             <div class="col-md-4 mb-4 mb-md-0">
-                <div class="item-image-container">
+                <div class="index-item-image-container">
                     <?php if (!empty($productImages)): ?>
                         <?php if (count($productImages) === 1): ?>
                             <!-- Single image -->
-                            <img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
-                                 alt="<?php echo safeEcho($product->title); ?>" 
-                                 class="img-fluid rounded shadow" id="item-image">
+<img src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
+     alt="<?php echo safeEcho($product->title); ?>" 
+     class="img-fluid rounded shadow product-image" 
+     id="item-image" style="cursor: pointer;">
                         <?php else: ?>
-                            <!-- Carousel for multiple images -->
-                            <div id="productImageCarousel" class="carousel slide" data-bs-ride="carousel">
-                                <div class="carousel-indicators">
+
+                            <!-- Simple Carousel for multiple images -->
+                            <div id="simpleCarousel">
+                                <img id="carouselImage" 
+                                     src="<?php echo safeEcho($productImages[0]->image_path); ?>" 
+                                     alt="<?php echo safeEcho($product->title); ?>" 
+                                     class="product-image">
+                                
+                                <!-- Navigation buttons -->
+                                <button id="prevBtn" class="carousel-nav-btn prev-btn">&lt;</button>
+                                <button id="nextBtn" class="carousel-nav-btn next-btn">&gt;</button>
+                                
+                                <!-- Dots indicator -->
+                                <div class="carousel-dots">
                                     <?php foreach ($productImages as $index => $image): ?>
-                                        <button type="button" data-bs-target="#productImageCarousel" 
-                                                data-bs-slide-to="<?php echo $index; ?>" 
-                                                <?php echo $index === 0 ? 'class="active" aria-current="true"' : ''; ?>
-                                                aria-label="Bild <?php echo $index + 1; ?>"></button>
+                                        <span class="dot <?php echo $index === 0 ? 'active' : ''; ?>" data-index="<?php echo $index; ?>"></span>
                                     <?php endforeach; ?>
                                 </div>
-                                <div class="carousel-inner">
-                                    <?php foreach ($productImages as $index => $image): ?>
-                                        <div class="carousel-item <?php echo $index === 0 ? 'active' : ''; ?>">
-                                            <img src="<?php echo safeEcho($image->image_path); ?>" 
-                                                 class="d-block w-100 rounded shadow" 
-                                                 alt="<?php echo safeEcho($product->title); ?> - Bild <?php echo $index + 1; ?>">
-                                        </div>
-                                    <?php endforeach; ?>
-                                </div>
-                                <button class="carousel-control-prev" type="button" data-bs-target="#productImageCarousel" data-bs-slide="prev">
-                                    <span class="carousel-control-prev-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Föregående</span>
-                                </button>
-                                <button class="carousel-control-next" type="button" data-bs-target="#productImageCarousel" data-bs-slide="next">
-                                    <span class="carousel-control-next-icon" aria-hidden="true"></span>
-                                    <span class="visually-hidden">Nästa</span>
-                                </button>
                             </div>
+                            
+                            <!-- Hidden images data for JavaScript -->
+                            <script>
+                            const productImages = [
+                                <?php foreach ($productImages as $image): ?>
+                                    "<?php echo safeEcho($image->image_path); ?>",
+                                <?php endforeach; ?>
+                            ];
+                            </script>
                         <?php endif; ?>
                     <?php else: ?>
                         <!-- Default image -->
                         <img src="<?php echo asset('images', 'default_antiqe_image.webp'); ?>" 
-                             alt="<?php echo safeEcho($product->title); ?>" 
-                             class="img-fluid rounded shadow" id="item-image">
+     alt="<?php echo safeEcho($product->title); ?>" 
+     class="img-fluid rounded shadow product-image" 
+     id="item-image" style="cursor: pointer;">
                     <?php endif; ?>
                 </div>
             </div>
@@ -470,6 +472,138 @@ include 'templates/header.php';
 </div>
 <?php endif; ?>
     </div>
+
+<!-- Lightbox Modal -->
+<div class="modal fade" id="imageModal" tabindex="-1" aria-labelledby="imageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-fullscreen">
+        <div class="modal-content bg-dark">
+            <div class="modal-header border-0 p-2">
+                <h5 class="modal-title visually-hidden" id="imageModalLabel">Product Image</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body d-flex align-items-center justify-content-center p-0">
+                <img id="modalImage" src="" alt="" class="img-fluid" style="max-height: calc(100vh - 60px); max-width: 100vw; object-fit: contain; cursor: pointer;">
+            </div>
+        </div>
+    </div>
+</div>
+
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const modal = new bootstrap.Modal(document.getElementById('imageModal'));
+    const modalImage = document.getElementById('modalImage');
+    
+    // Lightbox functionality
+    document.querySelectorAll('.product-image').forEach(function(img) {
+        img.addEventListener('click', function(e) {
+            e.stopPropagation();
+            modalImage.src = this.src;
+            modalImage.alt = this.alt;
+            modal.show();
+        });
+    });
+    
+    modalImage.addEventListener('click', function() {
+        modal.hide();
+    });
+    
+    // Elegant carousel functionality with animations
+    if (typeof productImages !== 'undefined' && productImages.length > 1) {
+        let currentIndex = 0;
+        let isTransitioning = false;
+        const carouselImage = document.getElementById('carouselImage');
+        const dots = document.querySelectorAll('.dot');
+        const prevBtn = document.getElementById('prevBtn');
+        const nextBtn = document.getElementById('nextBtn');
+        
+        function showImage(index, direction = 'fade') {
+            if (isTransitioning) return;
+            isTransitioning = true;
+            
+            // Fade out current image
+            carouselImage.style.opacity = '0';
+            
+            setTimeout(() => {
+                // Change image source
+                carouselImage.src = productImages[index];
+                
+                // Update dots
+                dots.forEach(dot => dot.classList.remove('active'));
+                dots[index].classList.add('active');
+                
+                // Fade in new image
+                carouselImage.style.opacity = '1';
+                
+                currentIndex = index;
+                isTransitioning = false;
+            }, 200); // Half of the CSS transition time
+        }
+        
+        // Previous button
+        prevBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (isTransitioning) return;
+            const newIndex = currentIndex > 0 ? currentIndex - 1 : productImages.length - 1;
+            showImage(newIndex, 'prev');
+        });
+        
+        // Next button
+        nextBtn.addEventListener('click', function(e) {
+            e.stopPropagation();
+            if (isTransitioning) return;
+            const newIndex = currentIndex < productImages.length - 1 ? currentIndex + 1 : 0;
+            showImage(newIndex, 'next');
+        });
+        
+        // Dot navigation
+        dots.forEach((dot, index) => {
+            dot.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (isTransitioning || index === currentIndex) return;
+                showImage(index, 'dot');
+            });
+        });
+        
+        // Keyboard navigation
+        document.addEventListener('keydown', function(e) {
+            if (e.key === 'ArrowLeft') {
+                prevBtn.click();
+            } else if (e.key === 'ArrowRight') {
+                nextBtn.click();
+            }
+        });
+        
+        // Touch/swipe support for mobile
+        let touchStartX = 0;
+        let touchEndX = 0;
+        
+        carouselImage.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        });
+        
+        carouselImage.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            handleSwipe();
+        });
+        
+        function handleSwipe() {
+            const swipeThreshold = 50;
+            const diff = touchStartX - touchEndX;
+            
+            if (Math.abs(diff) > swipeThreshold) {
+                if (diff > 0) {
+                    // Swiped left, go to next
+                    nextBtn.click();
+                } else {
+                    // Swiped right, go to previous
+                    prevBtn.click();
+                }
+            }
+        }
+    }
+});
+</script>
 </div>
 
 <?php

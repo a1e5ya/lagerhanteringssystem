@@ -17,14 +17,7 @@
     </div>
 </footer>
 
-<!-- Load JavaScript using the centralized loader -->
-<?php 
-// Include the JS loader if not already included
-require_once __DIR__ . '/../includes/js_loader.php';
 
-// For admin pages, load all admin JS files
-echo loadAdminJavaScript();
-?>
 <script>
 // Fix Bootstrap modal accessibility issues with focus management
 document.addEventListener('DOMContentLoaded', function() {

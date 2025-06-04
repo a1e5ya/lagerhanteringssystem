@@ -29,7 +29,7 @@ if (isset($_SESSION['error'])) {
 ?>
 
 <div id="edit-database">
-    <div id="message-container"></div>
+
     
     <!-- Categories Section -->
     <div class="card mb-3">
@@ -390,7 +390,7 @@ if (isset($_SESSION['error'])) {
                 <th>Tid</th>
                 <th>Storlek</th>
                 <th>Produkt Kvantitet</th>
-                <th width="250px">Åtgärder</th>
+                <th width="180px">Åtgärder</th>
             </tr>
         </thead>
         <tbody id="backup-list">
@@ -497,43 +497,16 @@ if (isset($_SESSION['error'])) {
                 </div>
             </div>
         </div>
-    </div>
+    </div> 
 </div>
 
-<style>
-.toggle-icon {
-    transition: transform 0.3s;
-    font-size: 1.2rem;
-}
-.toggle-icon.rotated {
-    transform: rotate(180deg);
-}
-.backup-hidden {
-    opacity: 0.5;
-    text-decoration: line-through;
-}
-</style>
-
 <script>
+// Declare CSRF token for AJAX requests
+window.CSRF_TOKEN = '<?php echo getCSRFToken(); ?>';
+
 // Wait for document ready
 $(document).ready(function() {
-    // Initialize message container
-    var messageContainer = $('#message-container');
-    
-    // Function to show message
-    function showMessage(message, type) {
-        var alert = $('<div class="alert alert-' + type + ' alert-dismissible fade show" role="alert">' +
-                     message +
-                     '<button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>' +
-                     '</div>');
-        
-        messageContainer.append(alert);
-        
-        // Auto-dismiss after 5 seconds
-        setTimeout(function() {
-            alert.alert('close');
-        }, 5000);
-    }
+   
     
     // Function to fetch table data and update tbody
     function fetchTableData(type, tableElement) {
@@ -553,50 +526,100 @@ $(document).ready(function() {
     }
     
     // Function to load backup list
-function loadBackupList() {
-    $.ajax({
-        url: '<?php echo url('admin/backup_handler.php'); ?>',
-        type: 'GET',
-        data: { action: 'list' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                var backupList = $('#backup-list');
-                backupList.empty();
-                
-                if (response.backups.length === 0) {
-                    backupList.append('<tr><td colspan="5" class="text-center text-muted">Inga backups hittades</td></tr>');
+// Function to load backup list
+    function loadBackupList() {
+        $.ajax({
+            url: '<?php echo url('admin/backup_handler.php'); ?>',
+            type: 'GET',
+            data: { action: 'list' },
+            dataType: 'json',
+            success: function(response) {
+                if (response.success) {
+                    var backupList = $('#backup-list');
+                    backupList.empty();
+                    
+                    if (response.backups.length === 0) {
+                        backupList.append('<tr><td colspan="5" class="text-center text-muted">Inga backups hittades</td></tr>');
+                    } else {
+                        response.backups.forEach(function(backup) {
+                            var row = '<tr>' +
+                                '<td>' + backup.date + '</td>' +
+                                '<td>' + backup.time + '</td>' +
+                                '<td>' + backup.size + '</td>' +
+                                '<td>' + backup.product_count + '</td>' +
+                                '<td>' +
+                                    '<button class="btn btn-sm btn-success download-backup-btn me-1" data-filename="' + backup.filename + '" title="Ladda ner backup">' +
+                                        '<i class="fas fa-download"></i> Ladda ner' +
+                                    '</button>' +
+                                    '<button class="btn btn-sm btn-primary restore-btn" data-filename="' + backup.filename + '" title="Återställ från backup">Återställ</button>' +
+                                '</td>' +
+                            '</tr>';
+                            backupList.append(row);
+                        });
+                    }
                 } else {
-                    response.backups.forEach(function(backup) {
-                        var rowClass = backup.hidden ? 'backup-hidden' : '';
-                        var hideText = backup.hidden ? 'Visa' : 'Dölj';
-                        var hideAction = backup.hidden ? 'show' : 'hide';
-                        
-                        var row = '<tr class="' + rowClass + '">' +
-                            '<td>' + backup.date + '</td>' +
-                            '<td>' + backup.time + '</td>' +
-                            '<td>' + backup.size + '</td>' +
-                            '<td>' + backup.product_count + '</td>' +
-                            '<td>' +
-                                '<button class="btn btn-sm btn-success download-backup-btn me-1" data-filename="' + backup.filename + '" title="Ladda ner backup">' +
-                                    '<i class="fas fa-download"></i> Ladda ner' +
-                                '</button>' +
-                                '<button class="btn btn-sm btn-primary restore-btn me-1" data-filename="' + backup.filename + '" title="Återställ från backup">Återställ</button>' +
-                                '<button class="btn btn-sm btn-secondary hide-btn" data-filename="' + backup.filename + '" data-action="' + hideAction + '" title="Dölj backup">' + hideText + '</button>' +
-                            '</td>' +
-                        '</tr>';
-                        backupList.append(row);
-                    });
+                    showMessage('Kunde inte ladda backup-lista: ' + response.message, 'danger');
                 }
-            } else {
-                showMessage('Kunde inte ladda backup-lista: ' + response.message, 'danger');
+            },
+            error: function() {
+                showMessage('Fel vid laddning av backup-lista.', 'danger');
             }
-        },
-        error: function() {
-            showMessage('Fel vid laddning av backup-lista.', 'danger');
+        });
+    }
+
+    // Handle restore button clicks using event delegation
+    $(document).off('click', '.restore-btn');
+    $(document).on('click', '.restore-btn', function() {
+        var filename = $(this).data('filename');
+        
+        if (confirm('Är du säker på att du vill återställa databasen från denna backup?\n\nDetta kommer att:\n• Skapa en automatisk backup av den nuvarande databasen\n• Återställa databasen till det valda tillståndet\n• Denna åtgärd kan inte ångras\n\nBackup att återställa: ' + filename)) {
+            performRestore(filename);
         }
     });
-}
+    
+    // Function to perform restore
+    function performRestore(filename) {
+        $.ajax({
+            url: '<?php echo url('admin/backup_handler.php'); ?>',
+            type: 'POST',
+            data: { 
+                action: 'restore',
+                filename: filename,
+                csrf_token: window.CSRF_TOKEN
+            },
+            dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
+            success: function(response) {
+                if (response.success) {
+                    showMessage(response.message, 'success');
+                    loadBackupList(); // Reload the backup list
+                    
+                    // Optionally reload the page to reflect database changes
+                    setTimeout(function() {
+                        showMessage('Sidan kommer att laddas om för att reflektera databasändringarna...', 'info');
+                        setTimeout(function() {
+                            location.reload();
+                        }, 2000);
+                    }, 1000);
+                } else {
+                    showMessage('Fel vid återställning: ' + response.message, 'danger');
+                }
+            },
+            error: function(xhr, status, error) {
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid återställning av databasen.', 'danger');
+                }
+            }
+        });
+    }
     
     // Collapse advanced filters by default
     $('#filter-body').hide();
@@ -637,11 +660,19 @@ function loadBackupList() {
         var formData = form.serialize();
         var formType = formData.split('action=')[1].split('&')[0].replace('add_', '');
         
+        // Add CSRF token to form data if not already present
+        if (formData.indexOf('csrf_token') === -1) {
+            formData += '&csrf_token=' + encodeURIComponent(window.CSRF_TOKEN);
+        }
+        
         $.ajax({
             url: form.attr('action'),
             type: 'POST',
             data: formData,
             dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
             success: function(response) {
                 if (response.success) {
                     showMessage(response.message, 'success');
@@ -653,8 +684,16 @@ function loadBackupList() {
                 }
             },
             error: function(xhr, status, error) {
-                showMessage('Ett fel inträffade vid behandling av din begäran.', 'danger');
-                console.error('Ajax error:', error);
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid behandling av din begäran.', 'danger');
+                    console.error('Ajax error:', error);
+                }
             }
         });
     });
@@ -728,9 +767,13 @@ function loadBackupList() {
             data: {
                 action: 'delete',
                 id: id,
-                type: type
+                type: type,
+                csrf_token: window.CSRF_TOKEN
             },
             dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
             success: function(response) {
                 if (response.success) {
                     showMessage(response.message, 'success');
@@ -742,8 +785,16 @@ function loadBackupList() {
                 }
             },
             error: function(xhr, status, error) {
-                showMessage('Ett fel inträffade vid borttagning.', 'danger');
-                console.error('Ajax error:', error);
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid borttagning.', 'danger');
+                    console.error('Ajax error:', error);
+                }
             }
         });
     });
@@ -754,11 +805,19 @@ function loadBackupList() {
         var formData = form.serialize();
         var type = $('#edit-type').val();
         
+        // Add CSRF token to form data if not already present
+        if (formData.indexOf('csrf_token') === -1) {
+            formData += '&csrf_token=' + encodeURIComponent(window.CSRF_TOKEN);
+        }
+        
         $.ajax({
             url: form.attr('action'),
             type: 'POST',
             data: formData,
             dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
             success: function(response) {
                 if (response.success) {
                     $('#editModal').modal('hide');
@@ -806,8 +865,16 @@ function loadBackupList() {
                 }
             },
             error: function(xhr, status, error) {
-                showMessage('Ett fel inträffade vid uppdatering.', 'danger');
-                console.error('Ajax error:', error);
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid uppdatering.', 'danger');
+                    console.error('Ajax error:', error);
+                }
             }
         });
     });
@@ -823,80 +890,93 @@ function loadBackupList() {
         document.body.style.overflow = 'auto';
         document.documentElement.style.overflow = 'auto';
     });
-    
 
-
-// Create backup button click with auto-download
-$('#create-backup-btn').off('click').on('click', function() {
-    var button = $(this);
-    var originalText = button.html();
-    
-    // Disable button and show loading state
-    button.prop('disabled', true);
-    button.html('<i class="fas fa-spinner fa-spin"></i> Skapar backup...');
-    
-    $.ajax({
-        url: '<?php echo url('admin/backup_handler.php'); ?>',
-        type: 'POST',
-        data: { action: 'create' },
-        dataType: 'json',
-        success: function(response) {
-            if (response.success) {
-                showMessage(response.message, 'success');
-                loadBackupList(); // Reload the backup list
-                
-                // Trigger automatic download if download_url is provided
-                if (response.download_url) {
-                    // Create a temporary link and trigger download
-                    var downloadLink = document.createElement('a');
-                    downloadLink.href = response.download_url;
-                    downloadLink.download = response.filename || 'backup.sql';
-                    downloadLink.style.display = 'none';
+    // Create backup button click with auto-download - CSRF FIXED VERSION
+    $('#create-backup-btn').off('click').on('click', function() {
+        var button = $(this);
+        var originalText = button.html();
+        
+        // Disable button and show loading state
+        button.prop('disabled', true);
+        button.html('<i class="fas fa-spinner fa-spin"></i> Skapar backup...');
+        
+        $.ajax({
+            url: '<?php echo url('admin/backup_handler.php'); ?>',
+            type: 'POST',
+            data: { 
+                action: 'create',
+                csrf_token: window.CSRF_TOKEN
+            },
+            dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
+            success: function(response) {
+                if (response.success) {
+                    showMessage(response.message, 'success');
+                    loadBackupList(); // Reload the backup list
                     
-                    // Add to document, click, and remove
-                    document.body.appendChild(downloadLink);
-                    downloadLink.click();
-                    document.body.removeChild(downloadLink);
-                    
-                    // Show additional success message about download
-                    setTimeout(function() {
-                        showMessage('Backup-fil har laddats ner till din dator.', 'info');
-                    }, 1000);
+                    // Trigger automatic download if download_url is provided
+                    if (response.download_url) {
+                        // Create a temporary link and trigger download
+                        var downloadLink = document.createElement('a');
+                        downloadLink.href = response.download_url;
+                        downloadLink.download = response.filename || 'backup.sql';
+                        downloadLink.style.display = 'none';
+                        
+                        // Add to document, click, and remove
+                        document.body.appendChild(downloadLink);
+                        downloadLink.click();
+                        document.body.removeChild(downloadLink);
+                        
+                        // Show additional success message
+                        setTimeout(function() {
+                            showMessage('Backup-fil har laddats ner till din dator.', 'info');
+                        }, 1000);
+                    }
+                } else {
+                    showMessage('Fel vid skapande av backup: ' + response.message, 'danger');
                 }
-            } else {
-                showMessage('Fel vid skapande av backup: ' + response.message, 'danger');
+            },
+            error: function(xhr, status, error) {
+                console.error('Backup creation error:', error);
+                
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid skapande av backup.', 'danger');
+                }
+            },
+            complete: function() {
+                // Re-enable button
+                button.prop('disabled', false);
+                button.html(originalText);
             }
-        },
-        error: function(xhr, status, error) {
-            console.error('Backup creation error:', error);
-            showMessage('Ett fel inträffade vid skapande av backup.', 'danger');
-        },
-        complete: function() {
-            // Re-enable button
-            button.prop('disabled', false);
-            button.html(originalText);
-        }
+        });
     });
-});
 
-// Optional: Add manual download buttons for existing backups
-$(document).off('click', '.download-backup-btn');
-$(document).on('click', '.download-backup-btn', function() {
-    var filename = $(this).data('filename');
-    var downloadUrl = '<?php echo url('admin/backup_handler.php'); ?>?action=download&filename=' + encodeURIComponent(filename);
-    
-    // Create temporary link and trigger download
-    var downloadLink = document.createElement('a');
-    downloadLink.href = downloadUrl;
-    downloadLink.download = filename;
-    downloadLink.style.display = 'none';
-    
-    document.body.appendChild(downloadLink);
-    downloadLink.click();
-    document.body.removeChild(downloadLink);
-    
-    showMessage('Laddar ner: ' + filename, 'info');
-});
+    // Optional: Add manual download buttons for existing backups
+    $(document).off('click', '.download-backup-btn');
+    $(document).on('click', '.download-backup-btn', function() {
+        var filename = $(this).data('filename');
+        var downloadUrl = '<?php echo url('admin/backup_handler.php'); ?>?action=download&filename=' + encodeURIComponent(filename);
+        
+        // Create temporary link and trigger download
+        var downloadLink = document.createElement('a');
+        downloadLink.href = downloadUrl;
+        downloadLink.download = filename;
+        downloadLink.style.display = 'none';
+        
+        document.body.appendChild(downloadLink);
+        downloadLink.click();
+        document.body.removeChild(downloadLink);
+        
+        showMessage('Laddar ner: ' + filename, 'info');
+    });
     
     // Handle restore button clicks using event delegation
     $(document).off('click', '.restore-btn');
@@ -927,9 +1007,13 @@ $(document).on('click', '.download-backup-btn', function() {
             type: 'POST',
             data: { 
                 action: 'restore',
-                filename: filename
+                filename: filename,
+                csrf_token: window.CSRF_TOKEN
             },
             dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
             success: function(response) {
                 $('#restoreModal').modal('hide');
                 
@@ -945,9 +1029,18 @@ $(document).on('click', '.download-backup-btn', function() {
                     showMessage('Fel vid återställning: ' + response.message, 'danger');
                 }
             },
-            error: function() {
+            error: function(xhr, status, error) {
                 $('#restoreModal').modal('hide');
-                showMessage('Ett fel inträffade vid återställning av databasen.', 'danger');
+                
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid återställning av databasen.', 'danger');
+                }
             },
             complete: function() {
                 // Re-enable button
@@ -991,9 +1084,13 @@ $(document).on('click', '.download-backup-btn', function() {
             type: 'POST',
             data: { 
                 action: action,
-                filename: filename
+                filename: filename,
+                csrf_token: window.CSRF_TOKEN
             },
             dataType: 'json',
+            headers: {
+                'X-CSRF-Token': window.CSRF_TOKEN
+            },
             success: function(response) {
                 if (response.success) {
                     showMessage(response.message, 'success');
@@ -1008,8 +1105,16 @@ $(document).on('click', '.download-backup-btn', function() {
                     showMessage('Fel: ' + response.message, 'danger');
                 }
             },
-            error: function() {
-                showMessage('Ett fel inträffade vid uppdatering av backup-status.', 'danger');
+            error: function(xhr, status, error) {
+                // Handle CSRF token errors specifically
+                if (xhr.status === 419) {
+                    showMessage('Säkerhetstoken har gått ut. Laddar om sidan...', 'warning');
+                    setTimeout(function() {
+                        location.reload();
+                    }, 2000);
+                } else {
+                    showMessage('Ett fel inträffade vid uppdatering av backup-status.', 'danger');
+                }
             }
         });
     }

@@ -15,11 +15,8 @@
  * - renderEditUserForm()
  */
 
-
-
 // Set page title
 $pageTitle = "Användarhantering - Karis Antikvariat";
-
 
 // Include initialization file
 require_once '../init.php';
@@ -79,7 +76,7 @@ function renderUser($users) {
                 break;
         }
         
-        echo '<tr class="clickable-row" data-href="usermanagement.php?tab=edit&user_id=' . $user['user_id'] . '">';
+        echo '<tr class="clickable-row" data-href="' . rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=edit&user_id=' . $user['user_id'] . '">';
         echo '<td>' . htmlspecialchars($user['user_username']) . '</td>';
         // Since we don't have first/last name in the schema, just show username
         echo '<td>' . htmlspecialchars($user['user_username']) . '</td>';
@@ -409,19 +406,11 @@ function removeUser($userId) {
     }
 }
 
-
-
-
-/**
- * SIMPLE FIX - Replace your renderEditUserForm function
- * Only protects against deleting yourself or the very last admin
- */
-
 function renderEditUserForm($userId = null) {
     global $pdo;
     
     $userData = null;
-    $formAction = url('admin/usermanagement.php', ['tab' => 'add']);
+    $formAction = rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=add';
     $submitButtonText = "Lägg till användare";
     $formTitle = "Lägg till ny användare";
     $currentUser = getSessionUser();
@@ -435,7 +424,7 @@ function renderEditUserForm($userId = null) {
             $userData = $stmt->fetch(PDO::FETCH_ASSOC);
             
             if ($userData) {
-                $formAction = url('admin/usermanagement.php', ['tab' => 'edit', 'user_id' => $userId]);
+                $formAction = rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=edit&user_id=' . $userId;
                 $submitButtonText = "Spara ändringar";
                 $formTitle = "Redigera användare: " . htmlspecialchars($userData['user_username']);
                 $isCurrentUser = ($currentUser['user_id'] == $userId);
@@ -487,6 +476,7 @@ function renderEditUserForm($userId = null) {
         <?php endif; ?>
         
         <form action="<?php echo $formAction; ?>" method="POST">
+            <?php echo getCSRFTokenField(); ?>
             <?php if ($userId): ?>
                 <input type="hidden" name="edit_user_id" value="<?php echo $userId; ?>">
             <?php endif; ?>
@@ -530,7 +520,7 @@ function renderEditUserForm($userId = null) {
                 <?php if ($userId): ?>
                     <label class="form-label">Status</label>
                     <div class="form-check mt-2">
-                        <input class="form-check-input" type="checkbox" id="active" name="active" 
+                        <input class="form-check-input" type="checkbox" id="active" name="active" value="1"
                             <?php echo (isset($userData['user_is_active']) && $userData['user_is_active'] == 1) ? 'checked' : ''; ?>
                             <?php echo $cannotDeactivate ? 'disabled' : ''; ?>>
                         <label class="form-check-label" for="active">
@@ -607,7 +597,8 @@ function renderEditUserForm($userId = null) {
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Avbryt</button>
-                    <form action="<?php echo url('admin/usermanagement.php', ['tab' => 'edit', 'user_id' => $userId]); ?>" method="POST" style="display: inline;">
+                    <form action="<?php echo rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=edit&user_id=' . $userId; ?>" method="POST" style="display: inline;">
+                        <?php echo getCSRFTokenField(); ?>
                         <input type="hidden" name="delete_user_id" value="<?php echo $userId; ?>">
                         <button type="submit" name="delete_user" class="btn btn-danger">Ta bort användare</button>
                     </form>
@@ -632,12 +623,14 @@ function renderEditUserForm($userId = null) {
     <?php
 }
 
-
-
-
 // Process form submissions
 $error = null;
 $success = null;
+
+// CSRF Protection for all POST requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST') {
+    checkCSRFToken();
+}
 
 // Handle user creation
 if (isset($_POST['create_user'])) {
@@ -647,15 +640,15 @@ if (isset($_POST['create_user'])) {
         'password' => $_POST['upass'] ?? '',
         'password_confirm' => $_POST['upassrpt'] ?? '',
         'role' => filter_input(INPUT_POST, 'role', FILTER_VALIDATE_INT) ?: 3 // Default to role 3 if invalid
-    
     ];
     
     $result = createUser($userData);
     
     if ($result['success']) {
         $success = $result['message'];
-        // Redirect to prevent form resubmission
-        header("Location: " . url('admin/usermanagement.php', ['tab' => 'list', 'success' => urlencode($success)]));
+        // FIXED REDIRECT: Use BASE_PATH directly to avoid routing issues
+        $redirectUrl = rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=list&success=' . urlencode($success);
+        header("Location: " . $redirectUrl);
         exit;
     } else {
         $error = $result['error'];
@@ -695,8 +688,9 @@ if (isset($_POST['delete_user']) && isset($_POST['delete_user_id'])) {
         
         if ($result['success']) {
             $success = $result['message'];
-            // Redirect to user list after deletion
-            header("Location: usermanagement.php?tab=list&success=" . urlencode($success));
+            // FIXED REDIRECT: Use BASE_PATH directly to avoid routing issues
+            $redirectUrl = rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=list&success=' . urlencode($success);
+            header("Location: " . $redirectUrl);
             exit;
         } else {
             $error = $result['error'];
@@ -712,49 +706,30 @@ $userId = filter_input(INPUT_GET, 'user_id', FILTER_VALIDATE_INT);
 if (isset($_GET['success'])) {
     $success = $_GET['success'];
 }
-
-// Include your existing header here
-require_once '../templates/admin_header.php';
 ?>
 
 <!-- Main Content Container -->
 <div class="container my-4">
     <div class="d-flex justify-content-between align-items-center mb-4">
         <h2>Användarhantering</h2>
-
     </div>
     
-    <!-- Messages -->
-    <?php if ($error): ?>
-    <div class="alert alert-danger alert-dismissible fade show" role="alert">
-        <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($error); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <?php endif; ?>
-    
-    <?php if ($success): ?>
-    <div class="alert alert-success alert-dismissible fade show" role="alert">
-        <i class="fas fa-check-circle me-2"></i><?php echo htmlspecialchars($success); ?>
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>
-    <?php endif; ?>
-    
-<!-- Tab Navigation -->
-<ul class="nav nav-tabs" id="userManagementTabs">
-    <li class="nav-item">
-        <a class="user-nav-link <?php echo $tab === 'list' ? 'active' : ''; ?>" 
-   href="<?php echo url('admin/usermanagement.php', ['tab' => 'list']); ?>">Användarlista</a>
-    </li>
-    <li class="nav-item">
-        <a class="user-nav-link <?php echo $tab === 'add' ? 'active' : ''; ?>" 
-   href="<?php echo url('admin/usermanagement.php', ['tab' => 'add']); ?>">Lägg till användare</a>
-    </li>
-    <?php if ($tab === 'edit' && $userId): ?>
-    <li class="nav-item">
-        <a class="user-nav-link active" href="#">Redigera användare</a>
-    </li>
-    <?php endif; ?>
-</ul>
+    <!-- Tab Navigation -->
+    <ul class="nav nav-tabs" id="userManagementTabs">
+        <li class="nav-item">
+            <a class="user-nav-link <?php echo $tab === 'list' ? 'active' : ''; ?>" 
+               href="<?php echo rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=list'; ?>">Användarlista</a>
+        </li>
+        <li class="nav-item">
+            <a class="user-nav-link <?php echo $tab === 'add' ? 'active' : ''; ?>" 
+               href="<?php echo rtrim(BASE_PATH, '/') . '/admin/usermanagement.php?tab=add'; ?>">Lägg till användare</a>
+        </li>
+        <?php if ($tab === 'edit' && $userId): ?>
+        <li class="nav-item">
+            <a class="user-nav-link active" href="#">Redigera användare</a>
+        </li>
+        <?php endif; ?>
+    </ul>
     
     <!-- Tab Content -->
     <div class="tab-content border border-top-0 p-4 bg-white">
@@ -763,7 +738,7 @@ require_once '../templates/admin_header.php';
         <div class="tab-pane fade show active" id="user-list">
             <div class="row mb-3">
                 <div class="col-md-6">
-                    <form method="GET" action="<?php echo url('admin/usermanagement.php'); ?>" class="d-flex">
+                    <form method="GET" action="<?php echo rtrim(BASE_PATH, '/') . '/admin/usermanagement.php'; ?>" class="d-flex">
                         <input type="hidden" name="tab" value="list">
                         <input type="text" class="form-control me-2" name="search" 
                                placeholder="Sök efter användare..." 
@@ -816,23 +791,40 @@ require_once '../templates/admin_header.php';
 </div>
 
 <script>
-    // JavaScript to make table rows clickable
-    document.addEventListener('DOMContentLoaded', function() {
-        const clickableRows = document.querySelectorAll('.clickable-row');
-        clickableRows.forEach(row => {
-            row.addEventListener('click', function() {
-                window.location.href = this.dataset.href;
-            });
+// JavaScript to make table rows clickable and integrate NEW message system ONLY
+document.addEventListener('DOMContentLoaded', function() {
+    const clickableRows = document.querySelectorAll('.clickable-row');
+    clickableRows.forEach(row => {
+        row.addEventListener('click', function() {
+            window.location.href = this.dataset.href;
         });
-        
-        // Function to reset form fields
-        window.resetForm = function(form) {
-            form.reset();
-        };
     });
+    
+    // Function to reset form fields
+    window.resetForm = function(form) {
+        form.reset();
+    };
+    
+    // FIXED: Show success/error messages using NEW message system ONLY
+    <?php if ($success): ?>
+    setTimeout(function() {
+        if (window.messageSystem) {
+            window.messageSystem.success('<?php echo addslashes($success); ?>');
+        }
+    }, 100);
+    <?php endif; ?>
+    
+    <?php if ($error): ?>
+    setTimeout(function() {
+        if (window.messageSystem) {
+            window.messageSystem.error('<?php echo addslashes($error); ?>');
+        }
+    }, 100);
+    <?php endif; ?>
+});
 </script>
 
 <?php
-// Include your existing footer here
+// Include footer
 require_once '../templates/admin_footer.php';
 ?>

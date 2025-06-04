@@ -756,17 +756,21 @@
             return response.json();
         })
         .then(data => {
-            console.log('Server response data:', data);
-            
-            if (data.success) {
-                showMessage(data.message || 'Åtgärden lyckades!', 'success');
-                if (form.id === 'add-item-form') {
-                    resetAllFormFields(form);
-                }
-            } else {
-                showMessage(data.message || 'Ett fel inträffade.', 'danger');
-            }
-        })
+    console.log('Server response data:', data);
+    
+    if (data.success) {
+        showMessage(data.message || 'Åtgärden lyckades!', 'success');
+        if (form.id === 'add-item-form') {
+            resetAllFormFields(form);
+        }
+        // Scroll to top to show the success message
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    } else {
+        showMessage(data.message || 'Ett fel inträffade.', 'danger');
+        // Also scroll to top for error messages
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
+})
         .catch(error => {
             console.error('AJAX submission error:', error);
             showMessage('Ett allvarligt fel inträffade vid kommunikation med servern: ' + error.message, 'danger');
@@ -797,56 +801,6 @@
         }
     }
 
-    /**
-     * Show message to user
-     */
-    function showMessage(message, type = 'info') {
-        console.log(`Message (${type}):`, message);
-        
-        let messageContainer = document.getElementById('message-container');
-        if (!messageContainer) {
-            const formElement = document.getElementById('add-item-form') || document.getElementById('edit-product-form');
-            if (formElement && formElement.parentNode) {
-                messageContainer = document.createElement('div');
-                messageContainer.id = 'dynamic-message-container';
-                messageContainer.style.marginTop = '1rem';
-                formElement.parentNode.insertBefore(messageContainer, formElement);
-            } else {
-                messageContainer = document.createElement('div');
-                Object.assign(messageContainer.style, {
-                    position: 'fixed', top: '20px', right: '20px', zIndex: '1050', maxWidth: '400px'
-                });
-                document.body.appendChild(messageContainer);
-            }
-        }
-        
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.setAttribute('role', 'alert');
-        alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-        `;
-        
-        if (messageContainer.id === 'dynamic-message-container') {
-            messageContainer.innerHTML = '';
-        }
-        messageContainer.appendChild(alert);
-        
-        setTimeout(() => {
-            if (alert && alert.parentNode) {
-                const bsAlert = typeof bootstrap !== 'undefined' ? bootstrap.Alert.getInstance(alert) : null;
-                if (bsAlert) {
-                    bsAlert.close();
-                } else {
-                    alert.remove();
-                }
-            }
-            if (messageContainer.id === 'dynamic-message-container' && !messageContainer.hasChildNodes()) {
-                messageContainer.remove();
-            }
-        }, 7000);
-    }
     
     /**
      * UPDATED: Reset all form fields, selections, and image previews for the given form.

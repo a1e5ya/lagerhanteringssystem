@@ -1067,23 +1067,3 @@ function escapeHtml(text) {
     return text.replace(/[&<>"']/g, function(m) { return map[m]; });
 }
 
-function showMessage(message, type = 'info') {
-    let container = $('#message-container');
-    
-    if (container.length === 0) {
-        container = $('<div id="message-container"></div>');
-        $('#lists').prepend(container);
-    }
-    
-    const alertEl = $(`<div class="alert alert-${type} alert-dismissible fade show">${escapeHtml(message)}
-        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-    </div>`);
-    
-    container.html(alertEl);
-    container.show();
-    
-    // Auto-dismiss after 5 seconds
-    setTimeout(() => {
-        alertEl.alert('close');
-    }, 5000);
-}

@@ -1,7 +1,7 @@
 /**
  * forms.js - Minimal form handling functionality
- * Only handles forms that are NOT product forms (to avoid conflicts)
- * Product forms are handled by addproduct-handlers.js
+ * Only handles forms that are NOT user management forms (to avoid conflicts)
+ * User management forms are handled by usermanagement.php's inline JavaScript
  */
 
 (function() {
@@ -10,7 +10,7 @@
     let formsJsInitialized = false;
 
     /**
-     * Initialize forms functionality (non-product forms only)
+     * Initialize forms functionality (non-user-management forms only)
      */
     function initializeForms() {
         if (formsJsInitialized) {
@@ -20,17 +20,17 @@
 
         console.log('Initializing minimal forms.js functionality...');
         
-        // Only initialize for non-product forms
-        initializeNonProductForms();
+        // Only initialize for non-user-management forms
+        initializeNonUserManagementForms();
         
         console.log('Minimal forms.js initialized successfully');
     }
 
     /**
-     * Initialize non-product form handlers
+     * Initialize non-user-management form handlers
      */
-    function initializeNonProductForms() {
-        // Handle add author form (separate from product forms)
+    function initializeNonUserManagementForms() {
+        // Handle add author form (separate from user management forms)
         const addAuthorForm = document.getElementById('add-author-form');
         if (addAuthorForm) {
             console.log('Setting up add author form handler');
@@ -43,17 +43,13 @@
             form.addEventListener('submit', handleNewsletterSubmission);
         });
 
-        // Handle user management forms
-        const userManagementForms = document.querySelectorAll('.user-management-form');
-        userManagementForms.forEach(form => {
-            form.addEventListener('submit', handleUserManagementSubmission);
-        });
-
-        // Handle any form with class 'ajax-form' (but NOT product forms)
+        // Handle any form with class 'ajax-form' (but NOT user management forms)
         const ajaxForms = document.querySelectorAll('form.ajax-form');
         ajaxForms.forEach(form => {
-            // Skip if it's a product form
-            if (form.id === 'add-item-form' || form.id === 'edit-product-form') {
+            // Skip if it's a user management form
+            if (form.classList.contains('user-management-form') || 
+                form.id === 'add-item-form' || 
+                form.id === 'edit-product-form') {
                 return;
             }
             
@@ -66,19 +62,31 @@
                 submitFormAjax(this, action)
                     .then(data => {
                         if (data.success) {
-                            showMessage(data.message || 'Operation framgångsrik', 'success');
+                            if (window.messageSystem) {
+                                window.messageSystem.success(data.message || 'Operation framgångsrik');
+                            } else {
+                                showMessage(data.message || 'Operation framgångsrik', 'success');
+                            }
                         } else {
-                            showMessage(data.message || 'Ett fel inträffade', 'danger');
+                            if (window.messageSystem) {
+                                window.messageSystem.error(data.message || 'Ett fel inträffade');
+                            } else {
+                                showMessage(data.message || 'Ett fel inträffade', 'danger');
+                            }
                         }
                     })
                     .catch(error => {
                         console.error('Generic form submission error:', error);
-                        showMessage('Ett fel inträffade', 'danger');
+                        if (window.messageSystem) {
+                            window.messageSystem.error('Ett fel inträffade');
+                        } else {
+                            showMessage('Ett fel inträffade', 'danger');
+                        }
                     });
             });
         });
 
-        // Initialize basic autocomplete for non-product forms
+        // Initialize basic autocomplete for non-user-management forms
         initializeBasicAutocomplete();
     }
 
@@ -93,7 +101,11 @@
         const authorName = form.querySelector('[name="author_name"]');
 
         if (!authorName || !authorName.value.trim()) {
-            showMessage('Vänligen fyll i författarens namn.', 'warning');
+            if (window.messageSystem) {
+                window.messageSystem.warning('Vänligen fyll i författarens namn.');
+            } else {
+                showMessage('Vänligen fyll i författarens namn.', 'warning');
+            }
             if (authorName) authorName.focus();
             return;
         }
@@ -103,7 +115,11 @@
         submitFormAjax(form, 'admin/addauthor.php')
             .then(data => {
                 if (data.success) {
-                    showMessage(data.message, 'success');
+                    if (window.messageSystem) {
+                        window.messageSystem.success(data.message);
+                    } else {
+                        showMessage(data.message, 'success');
+                    }
                     form.reset();
                     
                     // Refresh the authors table if function exists
@@ -111,12 +127,20 @@
                         loadAuthors();
                     }
                 } else {
-                    showMessage(data.message, 'danger');
+                    if (window.messageSystem) {
+                        window.messageSystem.error(data.message);
+                    } else {
+                        showMessage(data.message, 'danger');
+                    }
                 }
             })
             .catch(error => {
                 console.error('Author form submission error:', error);
-                showMessage('Ett fel inträffade vid tillägg av författare', 'danger');
+                if (window.messageSystem) {
+                    window.messageSystem.error('Ett fel inträffade vid tillägg av författare');
+                } else {
+                    showMessage('Ett fel inträffade vid tillägg av författare', 'danger');
+                }
             });
     }
 
@@ -130,54 +154,47 @@
         const email = form.querySelector('[name="email"]');
         
         if (!email || !email.value.trim()) {
-            showMessage('Vänligen ange en e-postadress', 'warning');
+            if (window.messageSystem) {
+                window.messageSystem.warning('Vänligen ange en e-postadress');
+            } else {
+                showMessage('Vänligen ange en e-postadress', 'warning');
+            }
             return;
         }
         
         if (!isValidEmail(email.value)) {
-            showMessage('Vänligen ange en giltig e-postadress', 'warning');
+            if (window.messageSystem) {
+                window.messageSystem.warning('Vänligen ange en giltig e-postadress');
+            } else {
+                showMessage('Vänligen ange en giltig e-postadress', 'warning');
+            }
             return;
         }
         
         submitFormAjax(form, form.action)
             .then(data => {
                 if (data.success) {
-                    showMessage(data.message || 'Prenumeration tillagd', 'success');
+                    if (window.messageSystem) {
+                        window.messageSystem.success(data.message || 'Prenumeration tillagd');
+                    } else {
+                        showMessage(data.message || 'Prenumeration tillagd', 'success');
+                    }
                     form.reset();
                 } else {
-                    showMessage(data.message || 'Ett fel inträffade', 'danger');
+                    if (window.messageSystem) {
+                        window.messageSystem.error(data.message || 'Ett fel inträffade');
+                    } else {
+                        showMessage(data.message || 'Ett fel inträffade', 'danger');
+                    }
                 }
             })
             .catch(error => {
                 console.error('Newsletter form error:', error);
-                showMessage('Ett fel inträffade', 'danger');
-            });
-    }
-
-    /**
-     * Handle user management form submission
-     */
-    function handleUserManagementSubmission(e) {
-        e.preventDefault();
-        
-        const form = e.target;
-        
-        submitFormAjax(form, form.action)
-            .then(data => {
-                if (data.success) {
-                    showMessage(data.message || 'Operation framgångsrik', 'success');
-                    
-                    // Refresh user list if function exists
-                    if (typeof loadUsers === 'function') {
-                        loadUsers();
-                    }
+                if (window.messageSystem) {
+                    window.messageSystem.error('Ett fel inträffade');
                 } else {
-                    showMessage(data.message || 'Ett fel inträffade', 'danger');
+                    showMessage('Ett fel inträffade', 'danger');
                 }
-            })
-            .catch(error => {
-                console.error('User management form error:', error);
-                showMessage('Ett fel inträffade', 'danger');
             });
     }
 
@@ -187,36 +204,59 @@
     function submitFormAjax(form, url) {
         const formData = new FormData(form);
         
+        // Ensure CSRF token is included
+        if (window.CSRF_TOKEN && !formData.has('csrf_token')) {
+            formData.append('csrf_token', window.CSRF_TOKEN);
+        }
+        
         return fetch(url, {
             method: 'POST',
             body: formData,
             headers: {
-                'X-Requested-With': 'XMLHttpRequest'
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-Token': window.CSRF_TOKEN || ''
             }
         })
         .then(response => {
+            if (response.status === 419) {
+                // CSRF token expired
+                throw new Error('Säkerhetstoken har gått ut. Sidan kommer att laddas om.');
+            }
+            
             if (!response.ok) {
                 throw new Error(`HTTP error! status: ${response.status}`);
             }
             return response.json();
         })
+        .then(data => {
+            // If there's a redirect in the response, handle it
+            if (data.success && data.redirect) {
+                window.location.href = data.redirect;
+                return data;
+            }
+            return data;
+        })
         .catch(error => {
+            if (error.message.includes('Säkerhetstoken')) {
+                // Reload page for CSRF token issues
+                setTimeout(() => window.location.reload(), 1000);
+            }
             console.error('AJAX submission error:', error);
             throw error;
         });
     }
 
     /**
-     * Initialize basic autocomplete for non-product forms
+     * Initialize basic autocomplete for non-user-management forms
      */
     function initializeBasicAutocomplete() {
-        // Only setup autocomplete for forms that are NOT product forms
-        const nonProductAutocompleteFields = [
+        // Only setup autocomplete for forms that are NOT user management forms
+        const nonUserManagementAutocompleteFields = [
             { inputId: 'search-author', suggestionId: 'suggest-search-author', type: 'author' },
             { inputId: 'filter-publisher', suggestionId: 'suggest-filter-publisher', type: 'publisher' }
         ];
 
-        nonProductAutocompleteFields.forEach(field => {
+        nonUserManagementAutocompleteFields.forEach(field => {
             setupAutocompleteField(field.inputId, field.suggestionId, field.type);
         });
     }
@@ -294,64 +334,6 @@
     }
 
     /**
-     * Show message to user
-     */
-    function showMessage(message, type = 'info') {
-        console.log('Showing message:', { message, type });
-
-        // Try to use existing showMessage function first
-        if (typeof window.showMessage === 'function') {
-            window.showMessage(message, type);
-            return;
-        }
-
-        // Look for message containers
-        let messageContainer = document.getElementById('message-container');
-        
-        if (!messageContainer) {
-            messageContainer = document.getElementById('author-message-container');
-        }
-
-        if (!messageContainer) {
-            // Create a message container
-            messageContainer = document.createElement('div');
-            messageContainer.id = 'forms-message-container';
-            messageContainer.style.position = 'fixed';
-            messageContainer.style.top = '20px';
-            messageContainer.style.right = '20px';
-            messageContainer.style.zIndex = '9999';
-            messageContainer.style.maxWidth = '400px';
-            document.body.appendChild(messageContainer);
-        }
-
-        // Clear previous messages in this container
-        messageContainer.innerHTML = '';
-
-        // Create alert element
-        const alert = document.createElement('div');
-        alert.className = `alert alert-${type} alert-dismissible fade show`;
-        alert.innerHTML = `
-            ${message}
-            <button type="button" class="btn-close" onclick="this.parentElement.remove()" aria-label="Close"></button>
-        `;
-
-        messageContainer.appendChild(alert);
-        messageContainer.style.display = 'block';
-
-        // Auto-dismiss after 5 seconds
-        setTimeout(() => {
-            if (alert.parentNode) {
-                alert.remove();
-                
-                // Hide container if empty
-                if (messageContainer.children.length === 0) {
-                    messageContainer.style.display = 'none';
-                }
-            }
-        }, 5000);
-    }
-
-    /**
      * Refresh authors table (utility function)
      */
     function refreshAuthorsTable() {
@@ -375,7 +357,7 @@
 
     // Expose utility functions globally
     window.formsUtils = {
-        showMessage: showMessage,
+        showMessage: window.showMessage,
         refreshAuthorsTable: refreshAuthorsTable,
         submitFormAjax: submitFormAjax,
         reinitialize: function() {

@@ -1,0 +1,1772 @@
+KARIS ANTIKVARIAT - COMPREHENSIVE FUNCTIONS LIST
+
+=== Root Level Files ===
+
+=== init.php ===
+
+cleanFilePath()
+Parameters: string path, string basePath=null
+Return Type: string|false
+Description: Clean and validate file path to prevent directory traversal
+
+createSafeFilename()
+Parameters: string filename, string extension=null
+Return Type: string
+Description: Create a secure file name from user input
+
+forceHTTPS()
+Parameters: bool permanent=true
+Return Type: void
+Description: Force HTTPS redirect if not already using HTTPS
+
+formatFileSize()
+Parameters: int bytes, int precision=2
+Return Type: string
+Description: Format file size in human readable format
+
+generateRandomString()
+Parameters: int length=32, string chars
+Return Type: string
+Description: Generate secure random string
+
+getClientIP()
+Parameters: void
+Return Type: string
+Description: Get client IP address with proxy support
+
+getCleanParam()
+Parameters: string param, string type='string', mixed default=null, int maxLength=100
+Return Type: mixed
+Description: Validate and clean URL parameter
+
+getCurrentPage()
+Parameters: void
+Return Type: string
+Description: Get current page name without extension
+
+hasPermission()
+Parameters: int requiredLevel
+Return Type: bool
+Description: Check if the current user has a specific permission level
+
+isAdminArea()
+Parameters: void
+Return Type: bool
+Description: Check if user is on admin pages
+
+isAjaxRequest()
+Parameters: void
+Return Type: bool
+Description: Check if current request is AJAX
+
+isHTTPS()
+Parameters: void
+Return Type: bool
+Description: Check if SSL/HTTPS is enabled
+
+isValidEmail()
+Parameters: string email
+Return Type: bool
+Description: Validate email address with additional security checks
+
+safeOutput()
+Parameters: mixed value, string encoding='UTF-8'
+Return Type: string
+Description: Enhanced safe echo function with additional security
+
+setPageTitle()
+Parameters: string title
+Return Type: void
+Description: Set page title before including header.php
+
+validateAndFormatDate()
+Parameters: string date, string format='Y-m-d', string outputFormat=null
+Return Type: string|false
+Description: Validate and format date input
+
+=== index.php ===
+
+getFallbackProducts()
+Parameters: PDO pdo, int limit=4
+Return Type: array
+Description: Get fallback products when no special/recommended products exist
+
+getFeaturedProducts()
+Parameters: PDO pdo, int limit=4, bool onlySpecial=false, bool onlyRecommended=false
+Return Type: array
+Description: Get featured products for the homepage
+
+getProductImageUrl()
+Parameters: int productId, PDO pdo
+Return Type: string
+Description: Get product image URL (first image or default)
+
+getProductImages()
+Parameters: int productId, PDO pdo
+Return Type: array
+Description: Get product images for a specific product
+
+renderProductCard()
+Parameters: object product
+Return Type: void
+Description: Render a product card with single image only
+
+=== newsletter.php ===
+
+subscribeToNewsletter()
+Parameters: string email, string name=null, string language='sv'
+Return Type: array
+Description: Subscribe a user to the newsletter
+
+unsubscribeFromNewsletter()
+Parameters: string email
+Return Type: array
+Description: Unsubscribe a user from the newsletter
+
+=== sale.php ===
+
+getCategories()
+Parameters: void
+Return Type: array
+Description: Get categories for dropdown
+
+getSaleProducts()
+Parameters: PDO pdo, int limit=25
+Return Type: array
+Description: Get products that are on sale (special_price = 1)
+
+renderProductCard()
+Parameters: object product
+Return Type: void
+Description: Render a product card
+
+=== singleproduct.php ===
+
+getProductById()
+Parameters: int productId
+Return Type: object|null
+Description: Get product by ID with all related data including authors and genres
+
+getProductImages()
+Parameters: int productId, PDO pdo
+Return Type: array
+Description: Get all product images
+
+getRelatedProducts()
+Parameters: int productId, int categoryId, array genreIds, int limit=4
+Return Type: array
+Description: Gets related products based on category and genre
+
+=== admin/ ===
+
+=== admin/addauthor.php ===
+
+createAuthor()
+Parameters: string authorName
+Return Type: array
+Description: Create new author
+
+deleteAuthor()
+Parameters: int authorId
+Return Type: array
+Description: Delete author
+
+getAuthors()
+Parameters: string searchTerm='', string sortBy='name', string sortOrder='asc', int page=1, int limit=20
+Return Type: array
+Description: Get authors with filtering and pagination
+
+updateAuthor()
+Parameters: int authorId, string authorName
+Return Type: array
+Description: Update author
+
+=== admin/addproduct.php ===
+
+createProduct()
+Parameters: array data, PDO pdo
+Return Type: array
+Description: Creates a new product with related data
+
+getAvailableStatusId()
+Parameters: PDO pdo
+Return Type: int
+Description: Get available status ID from database
+
+renderInputAlternatives()
+Parameters: PDO pdo, string table, string id_field, string name_field, string selected_value='', string locale='sv'
+Return Type: void
+Description: Renders input alternatives for select fields
+
+=== admin/adminsingleproduct.php ===
+
+renderSelectOptions()
+Parameters: PDO pdo, string table, string idField, string nameField, string selectedValue='', string locale='sv'
+Return Type: void
+Description: Simplified render function for select options
+
+=== admin/autocomplete.php ===
+
+No functions - Direct execution script for autocomplete suggestions
+
+=== admin/backup_handler.php ===
+
+deleteOldBackups()
+Parameters: string backupDir
+Return Type: void
+Description: Delete old backup files keeping only recent ones
+
+getProductCountFromBackup()
+Parameters: string filepath
+Return Type: string|int
+Description: Get product count from backup file content
+
+restoreDatabase()
+Parameters: string filename
+Return Type: array
+Description: Restore database from backup file
+
+=== admin/database_handler.php ===
+
+checkDependencies()
+Parameters: string type, int id, PDO pdo
+Return Type: array
+Description: Check for dependencies before deletion
+
+=== admin/delete_image.php ===
+
+No functions - Direct execution script for image deletion
+
+=== admin/export.php ===
+
+exportCSV()
+Parameters: array filters, string filename
+Return Type: void
+Description: Export data as CSV
+
+getProductsForExport()
+Parameters: array filters
+Return Type: array
+Description: Get products for export based on filters
+
+=== admin/get_products.php ===
+
+No functions - Direct execution API script for product retrieval
+
+=== admin/get_table_data.php ===
+
+No functions - Direct execution script for table data retrieval
+
+=== admin/list_ajax_handler.php ===
+
+batchOperations()
+Parameters: array productIds, string operation, array params=[]
+Return Type: array
+Description: Performs batch operations on multiple products with enhanced security
+
+getProductIdsWithFilters()
+Parameters: array filters
+Return Type: array
+Description: Get product IDs that match the current filters
+
+handleBatchAction()
+Parameters: void
+Return Type: void
+Description: Handle batch actions with enhanced security and validation
+
+handleDelete()
+Parameters: array productIds
+Return Type: string
+Description: Handle delete operation with enhanced file cleanup
+
+handleMoveShelf()
+Parameters: array productIds, array params
+Return Type: string
+Description: Handle shelf move operation
+
+handleSetRare()
+Parameters: array productIds, array params
+Return Type: string
+Description: Handle rare setting
+
+handleSetRecommended()
+Parameters: array productIds, array params
+Return Type: string
+Description: Handle recommended setting
+
+handleSetSpecialPrice()
+Parameters: array productIds, array params
+Return Type: string
+Description: Handle special price setting
+
+handleUpdatePrice()
+Parameters: array productIds, array params
+Return Type: string
+Description: Handle price update operation
+
+handleUpdateStatus()
+Parameters: array productIds, array params
+Return Type: string
+Description: Handle status update operation
+
+=== admin/lists.php ===
+
+getDropdownOptions()
+Parameters: void
+Return Type: array
+Description: Get dropdown options for filters
+
+=== admin/productlog.php ===
+
+getProductOperationsLog()
+Parameters: string searchTerm='', string eventType='all', int page=1, int limit=20
+Return Type: array
+Description: Get product operations log with filtering
+
+=== admin/search.php ===
+
+getCategories()
+Parameters: void
+Return Type: array
+Description: Get all categories from the database
+
+handleStatusChange()
+Parameters: void
+Return Type: void
+Description: Handle product status change via AJAX
+
+=== admin/subscribers.php ===
+
+deleteSubscriber()
+Parameters: int subscriberId
+Return Type: array
+Description: Delete subscriber
+
+getNewsletterSubscribers()
+Parameters: string searchTerm='', string status='all', string language='all', int page=1, int limit=20
+Return Type: array
+Description: Get newsletter subscribers with filtering
+
+updateSubscriberStatus()
+Parameters: int subscriberId, int status
+Return Type: array
+Description: Update subscriber status
+
+=== admin/tabledatamanagement.php ===
+
+No functions - Administrative interface with inline JavaScript
+
+=== admin/usermanagement.php ===
+
+changeUserStatus()
+Parameters: int userId, int status
+Return Type: array
+Description: Change user active/inactive status
+
+createUser()
+Parameters: array userData
+Return Type: array
+Description: Create new user account
+
+editUser()
+Parameters: int userId, array userData
+Return Type: array
+Description: Edit existing user account
+
+removeUser()
+Parameters: int userId
+Return Type: array
+Description: Remove user from system
+
+renderEditUserForm()
+Parameters: int userId=null
+Return Type: void
+Description: Render user creation/editing form
+
+renderUser()
+Parameters: array users
+Return Type: void
+Description: Render users in table format
+
+searchUser()
+Parameters: string searchTerm=null
+Return Type: array
+Description: Search users with optional filtering
+
+=== api/ ===
+
+=== api/get_paginated_data.php ===
+
+getAllowedSortColumns()
+Parameters: string entity
+Return Type: array
+Description: Get allowed sort columns for an entity
+
+handleAuthorsRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Authors data requests
+
+handleCategoriesRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Categories data requests
+
+handleConditionsRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Conditions data requests
+
+handleEventLogRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Event Log data requests
+
+handleGenresRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Genres data requests
+
+handleShelvesRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Shelves data requests
+
+handleUsersRequest()
+Parameters: array params, Paginator paginator, Formatter formatter
+Return Type: void
+Description: Handle Users data requests
+
+sendErrorResponse()
+Parameters: string message, int statusCode=400
+Return Type: void
+Description: Send error response
+
+sendJsonResponse()
+Parameters: array data, int statusCode=200
+Return Type: void
+Description: Send JSON response
+
+=== api/get_public_products.php ===
+
+formatProductsData()
+Parameters: array products, Formatter formatter
+Return Type: array
+Description: Format products data for consistent output
+
+getRandomSampleProducts()
+Parameters: PDO pdo, int samplesPerCategory=2, string language='sv'
+Return Type: array
+Description: Get random sample products from each category
+
+hasFiltersApplied()
+Parameters: string search, string category, bool isSalePageRequest
+Return Type: bool
+Description: Check if any filters are applied
+
+renderProductsHTML()
+Parameters: array products, bool isSalePage=false
+Return Type: string
+Description: Render HTML for the products table
+
+renderPublicProductRow()
+Parameters: array product, bool isSalePage=false
+Return Type: void
+Description: Render a product row for the public view
+
+=== assets/js/ ===
+
+=== assets/js/addproduct-handlers.js ===
+
+addAuthorFromInput()
+Parameters: void
+Return Type: void
+Description: Add author from input field
+
+addGenreFromSelect()
+Parameters: void
+Return Type: void
+Description: Add genre from select dropdown
+
+handleAutocomplete()
+Parameters: string query, string type, HTMLElement suggestionDiv, HTMLElement inputElement
+Return Type: void
+Description: Handle autocomplete requests
+
+handleAuthorActions()
+Parameters: Event e
+Return Type: void
+Description: Handle author-related click events
+
+handleAuthorKeypress()
+Parameters: Event e
+Return Type: void
+Description: Handle Enter key in author input
+
+handleGenreActions()
+Parameters: Event e
+Return Type: void
+Description: Handle genre-related click events
+
+initializeAuthorsManagement()
+Parameters: void
+Return Type: void
+Description: Initialize authors management
+
+initializeAutocomplete()
+Parameters: void
+Return Type: void
+Description: Initialize autocomplete functionality
+
+initializeFormSubmission()
+Parameters: void
+Return Type: void
+Description: Initialize form submission with AJAX
+
+initializeGenresManagement()
+Parameters: void
+Return Type: void
+Description: Initialize genres management
+
+initializeImagePreview()
+Parameters: void
+Return Type: void
+Description: Initialize image preview functionality
+
+initializeProductHandlers()
+Parameters: void
+Return Type: void
+Description: Main initialization function
+
+initializeResetHandlers()
+Parameters: void
+Return Type: void
+Description: Initialize reset button handlers
+
+removeAuthor()
+Parameters: string authorName
+Return Type: void
+Description: Remove author
+
+removeGenre()
+Parameters: int genreId
+Return Type: void
+Description: Remove genre
+
+renderSelectedAuthors()
+Parameters: void
+Return Type: void
+Description: Render selected authors
+
+renderSelectedGenres()
+Parameters: void
+Return Type: void
+Description: Render selected genres
+
+resetAllFormFields()
+Parameters: HTMLFormElement form
+Return Type: void
+Description: Reset all form fields, selections, and image previews for the given form
+
+resetImagePreview()
+Parameters: HTMLFormElement form
+Return Type: void
+Description: Reset image preview to default state
+
+submitFormAjax()
+Parameters: HTMLFormElement form
+Return Type: void
+Description: Submit form via AJAX
+
+toggleSubmitButton()
+Parameters: HTMLFormElement form, bool loading
+Return Type: void
+Description: Toggle submit button loading state
+
+updateAuthorsJson()
+Parameters: void
+Return Type: void
+Description: Update authors JSON hidden field
+
+updateGenresJson()
+Parameters: void
+Return Type: void
+Description: Update genres JSON hidden field
+
+=== assets/js/admin.js ===
+
+loadTabContent()
+Parameters: string tab
+Return Type: void
+Description: Load the content via AJAX for specified tab
+
+makeRowsClickable()
+Parameters: void
+Return Type: void
+Description: Helper function to make table rows clickable
+
+=== assets/js/ajax.js ===
+
+batchOperation()
+Parameters: string action, Array|NodeList selectedItems, string endpoint, Function successCallback, Function errorCallback
+Return Type: Promise
+Description: Perform batch operations on selected items
+
+get()
+Parameters: string url, object data, Function successCallback, Function errorCallback
+Return Type: Promise
+Description: Convenience method for GET requests
+
+hideFormLoader()
+Parameters: HTMLFormElement form
+Return Type: void
+Description: Hide form-specific loading indicator
+
+hideLoader()
+Parameters: void
+Return Type: void
+Description: Hide global loading indicator
+
+hideTableLoader()
+Parameters: HTMLElement tableContainer
+Return Type: void
+Description: Hide table-specific loading indicator
+
+initDynamicContent()
+Parameters: HTMLElement container
+Return Type: void
+Description: Initialize dynamic content elements
+
+loadTable()
+Parameters: string tableId, string url, object params={}
+Return Type: Promise
+Description: Load table data via AJAX
+
+post()
+Parameters: string url, object|FormData data, Function successCallback, Function errorCallback
+Return Type: Promise
+Description: Convenience method for POST requests
+
+renderTableItems()
+Parameters: HTMLElement tableBody, Array items, HTMLElement tableContainer
+Return Type: void
+Description: Render table items without server-side HTML
+
+request()
+Parameters: string url, string method, object|FormData data, Function successCallback, Function errorCallback
+Return Type: Promise
+Description: Base request function for standardizing all AJAX calls
+
+showFormLoader()
+Parameters: HTMLFormElement form
+Return Type: void
+Description: Show form-specific loading indicator
+
+showLoader()
+Parameters: void
+Return Type: void
+Description: Show global loading indicator
+
+showTableLoader()
+Parameters: HTMLElement tableContainer
+Return Type: void
+Description: Show table-specific loading indicator
+
+submitForm()
+Parameters: string|HTMLFormElement form, Function successCallback, Function errorCallback
+Return Type: Promise
+Description: Submit form via AJAX
+
+updatePagination()
+Parameters: HTMLElement container, object paginationData
+Return Type: void
+Description: Update pagination controls
+
+updateUrlParams()
+Parameters: object params
+Return Type: void
+Description: Update URL parameters without reloading the page
+
+validateEmail()
+Parameters: string email
+Return Type: bool
+Description: Validate email format
+
+validateForm()
+Parameters: HTMLFormElement form
+Return Type: bool
+Description: Basic form validation
+
+=== assets/js/data-operations.js ===
+
+addAuthor()
+Parameters: string firstName, string lastName, Function callback
+Return Type: void
+Description: Add a new author via AJAX
+
+addDatabaseItem()
+Parameters: string type, object data, Function callback
+Return Type: void
+Description: Add a new database item (category, shelf, genre, language, condition)
+
+addProduct()
+Parameters: FormData formData, Function callback
+Return Type: void
+Description: Add new product via AJAX
+
+changeProductSaleStatus()
+Parameters: int productId, int newStatus, Function callback
+Return Type: void
+Description: Update product sale status via AJAX
+
+deleteDatabaseItem()
+Parameters: int id, string type, Function callback
+Return Type: void
+Description: Delete a database item (category, shelf, genre, language, condition)
+
+deleteProduct()
+Parameters: int productId, Function callback
+Return Type: void
+Description: Delete product via AJAX
+
+editDatabaseItem()
+Parameters: int id, string type, object data, Function callback
+Return Type: void
+Description: Edit a database item (category, shelf, genre, language, condition)
+
+editProduct()
+Parameters: int productId, FormData formData, Function callback
+Return Type: void
+Description: Edit product by ID via AJAX
+
+getDatabaseItem()
+Parameters: int id, string type, Function callback
+Return Type: void
+Description: Get a database item by ID (category, shelf, genre, language, condition)
+
+getProductById()
+Parameters: int productId, Function callback
+Return Type: void
+Description: Get product by ID via AJAX
+
+=== assets/js/forms.js ===
+
+handleAddAuthorSubmission()
+Parameters: Event e
+Return Type: void
+Description: Handle add author form submission
+
+handleNewsletterSubmission()
+Parameters: Event e
+Return Type: void
+Description: Handle newsletter form submission
+
+initializeBasicAutocomplete()
+Parameters: void
+Return Type: void
+Description: Initialize basic autocomplete for non-user-management forms
+
+initializeForms()
+Parameters: void
+Return Type: void
+Description: Initialize forms functionality (non-user-management forms only)
+
+initializeNonUserManagementForms()
+Parameters: void
+Return Type: void
+Description: Initialize non-user-management form handlers
+
+isValidEmail()
+Parameters: string email
+Return Type: bool
+Description: Validate email format
+
+refreshAuthorsTable()
+Parameters: void
+Return Type: void
+Description: Refresh authors table (utility function)
+
+setupAutocompleteField()
+Parameters: string inputId, string suggestionId, string type
+Return Type: void
+Description: Setup autocomplete for a specific field
+
+submitFormAjax()
+Parameters: HTMLFormElement form, string url
+Return Type: Promise
+Description: Submit form via AJAX
+
+=== assets/js/lists.js ===
+
+attachBatchOperationHandlers()
+Parameters: void
+Return Type: void
+Description: Consolidated batch operations
+
+attachCheckboxHandlers()
+Parameters: void
+Return Type: void
+Description: Consolidated checkbox handling
+
+attachListsActionListeners()
+Parameters: void
+Return Type: void
+Description: Attach action listeners for lists tab
+
+attachListsEventHandlers()
+Parameters: void
+Return Type: void
+Description: Remove existing handlers to prevent duplicates
+
+clearFormFilters()
+Parameters: void
+Return Type: void
+Description: Clear form filters
+
+createPrintWindow()
+Parameters: Array products
+Return Type: void
+Description: Create print window with formatted content
+
+escapeHtml()
+Parameters: string text
+Return Type: string
+Description: Escape HTML to prevent XSS
+
+exportData()
+Parameters: string format
+Return Type: void
+Description: Export data in specified format
+
+getSelectionCount()
+Parameters: void
+Return Type: int
+Description: Get number of selected items
+
+hasValidSelection()
+Parameters: void
+Return Type: bool
+Description: Check if valid selection exists
+
+initializeListsPage()
+Parameters: void
+Return Type: void
+Description: Initialize the lists page functionality
+
+loadListsProducts()
+Parameters: string searchTerm='', string category='', int page=1, int limit=20
+Return Type: void
+Description: Load products for lists with filtering
+
+loadListsProductsWithSpecialFilter()
+Parameters: string filterType, mixed value=null
+Return Type: void
+Description: Load products with special filters
+
+performBatchAction()
+Parameters: string action, object params={}
+Return Type: void
+Description: Security-enhanced batch operations
+
+printList()
+Parameters: void
+Return Type: void
+Description: Print the current list
+
+printTableContent()
+Parameters: string tableHTML
+Return Type: void
+Description: Print table content with proper formatting
+
+renderListsProducts()
+Parameters: Array products
+Return Type: void
+Description: Render products in lists view
+
+updateBatchButtons()
+Parameters: void
+Return Type: void
+Description: Update batch button states
+
+updateListsPagination()
+Parameters: object pagination, string searchTerm, string category, int limit
+Return Type: void
+Description: Update pagination for lists
+
+updateSelectAllCheckbox()
+Parameters: void
+Return Type: void
+Description: Update select all checkbox state
+
+updateSelectedCount()
+Parameters: void
+Return Type: void
+Description: Update selected count display
+
+=== assets/js/main.js ===
+
+ajaxPublicSearch()
+Parameters: string searchTerm, string category, int page, int limit, HTMLElement targetElem, Function successCallback, bool randomSamples=false
+Return Type: void
+Description: AJAX search function for public products
+
+ajaxSearch()
+Parameters: string url, string type, object params, HTMLElement targetElem, Function successCallback
+Return Type: void
+Description: Generic AJAX search function
+
+changeProductStatus()
+Parameters: int productId, int newStatus
+Return Type: void
+Description: Change product status (sell/return)
+
+initializePublicSearch()
+Parameters: void
+Return Type: void
+Description: Initialize public search on index.php
+
+initializeSearch()
+Parameters: void
+Return Type: void
+Description: Initialize search functionality based on current page
+
+makeRowsClickable()
+Parameters: void
+Return Type: void
+Description: Make table rows clickable
+
+performPublicSearch()
+Parameters: int page=1, bool randomSamples=false
+Return Type: void
+Description: Legacy function to perform public search
+
+rowClickHandler()
+Parameters: Event event
+Return Type: void
+Description: Row click handler
+
+updateUrlParams()
+Parameters: object params
+Return Type: void
+Description: Update URL parameters without reloading the page
+
+=== assets/js/message-system.js ===
+
+MessageSystem.addStyles()
+Parameters: void
+Return Type: void
+Description: Add required CSS styles
+
+MessageSystem.createContainer()
+Parameters: void
+Return Type: void
+Description: Create the message container overlay
+
+MessageSystem.createMessageElement()
+Parameters: string message, string type, object config
+Return Type: HTMLElement
+Description: Create message element
+
+MessageSystem.dismiss()
+Parameters: HTMLElement messageEl
+Return Type: void
+Description: Dismiss a message
+
+MessageSystem.dismissAll()
+Parameters: void
+Return Type: void
+Description: Dismiss all messages
+
+MessageSystem.enforceMessageLimit()
+Parameters: void
+Return Type: void
+Description: Enforce maximum message limit
+
+MessageSystem.error()
+Parameters: string message, object options={}
+Return Type: HTMLElement
+Description: Show error message
+
+MessageSystem.escapeHtml()
+Parameters: string text
+Return Type: string
+Description: Escape HTML to prevent XSS
+
+MessageSystem.getIcon()
+Parameters: string type
+Return Type: string
+Description: Get icon for message type
+
+MessageSystem.info()
+Parameters: string message, object options={}
+Return Type: HTMLElement
+Description: Show info message
+
+MessageSystem.init()
+Parameters: void
+Return Type: void
+Description: Initialize the message system
+
+MessageSystem.normalizeType()
+Parameters: string type
+Return Type: string
+Description: Normalize message type
+
+MessageSystem.playNotificationSound()
+Parameters: string type
+Return Type: void
+Description: Play notification sound (optional)
+
+MessageSystem.show()
+Parameters: string message, string type='info', object options={}
+Return Type: HTMLElement
+Description: Show a message
+
+MessageSystem.success()
+Parameters: string message, object options={}
+Return Type: HTMLElement
+Description: Show success message
+
+MessageSystem.warning()
+Parameters: string message, object options={}
+Return Type: HTMLElement
+Description: Show warning message
+
+=== assets/js/newsletter.js ===
+
+checkUrlStatus()
+Parameters: void
+Return Type: void
+Description: Check URL for newsletter status and show message
+
+detectCurrentLanguage()
+Parameters: void
+Return Type: string
+Description: Detect current page language
+
+getCurrentLanguage()
+Parameters: void
+Return Type: string
+Description: Get current language for UI messages
+
+handleNewsletterSubmission()
+Parameters: HTMLFormElement form, bool isModal=true
+Return Type: void
+Description: Handle newsletter form submission
+
+handleSuccessResponse()
+Parameters: object data, bool isModal
+Return Type: void
+Description: Handle successful subscription
+
+initFooterNewsletterForm()
+Parameters: void
+Return Type: void
+Description: Initialize footer newsletter form (if still used)
+
+initNewsletterModal()
+Parameters: void
+Return Type: void
+Description: Initialize newsletter modal form
+
+isValidEmail()
+Parameters: string email
+Return Type: bool
+Description: Validate email format
+
+setLoadingState()
+Parameters: bool isModal, bool loading
+Return Type: void
+Description: Set loading state for form
+
+showRecaptchaError()
+Parameters: void
+Return Type: void
+Description: Show reCAPTCHA error
+
+showSuccessModal()
+Parameters: string message
+Return Type: void
+Description: Show success modal
+
+showValidationError()
+Parameters: string message, bool isModal
+Return Type: void
+Description: Show validation error
+
+submitNewsletterData()
+Parameters: FormData formData, bool isModal
+Return Type: void
+Description: Submit newsletter data via AJAX
+
+=== assets/js/pagination.js ===
+
+TablePagination.changeProductStatus()
+Parameters: int productId, int newStatus
+Return Type: void
+Description: Change product status and refresh
+
+TablePagination.generatePaginationLinks()
+Parameters: object pagination
+Return Type: string
+Description: Generate HTML for pagination links
+
+TablePagination.getColumnCount()
+Parameters: void
+Return Type: int
+Description: Get column count from table headers
+
+TablePagination.getState()
+Parameters: void
+Return Type: object
+Description: Get current state
+
+TablePagination.handlePaginationClick()
+Parameters: Event e
+Return Type: void
+Description: Handle pagination link clicks
+
+TablePagination.handleSortClick()
+Parameters: Event e
+Return Type: void
+Description: Handle sort header clicks
+
+TablePagination.hideLoading()
+Parameters: void
+Return Type: void
+Description: Hide loading indicator
+
+TablePagination.init()
+Parameters: string|Element container, object options={}
+Return Type: TablePagination
+Description: Initialize pagination on a container
+
+TablePagination.initDynamicElements()
+Parameters: void
+Return Type: void
+Description: Initialize dynamic elements (clickable rows, etc.)
+
+TablePagination.initElements()
+Parameters: void
+Return Type: void
+Description: Initialize DOM elements
+
+TablePagination.loadPage()
+Parameters: int page=1, string sort=null, string direction=null
+Return Type: void
+Description: Load page data via AJAX
+
+TablePagination.renderActionButtons()
+Parameters: object item
+Return Type: string
+Description: Render action buttons for a row
+
+TablePagination.renderItems()
+Parameters: Array items
+Return Type: void
+Description: Render items in the table
+
+TablePagination.setupEventHandlers()
+Parameters: void
+Return Type: void
+Description: Set up event handlers
+
+TablePagination.showError()
+Parameters: string message
+Return Type: void
+Description: Show error message
+
+TablePagination.showLoading()
+Parameters: void
+Return Type: void
+Description: Show loading indicator
+
+TablePagination.updatePaginationInfo()
+Parameters: object pagination
+Return Type: void
+Description: Update pagination information
+
+TablePagination.updateSortIndicators()
+Parameters: void
+Return Type: void
+Description: Update sort indicators in the table headers
+
+TablePagination.updateUI()
+Parameters: object data
+Return Type: void
+Description: Update UI elements with new data
+
+TablePagination.updateUrlParams()
+Parameters: void
+Return Type: void
+Description: Update URL parameters to reflect current state
+
+=== assets/js/ui-components.js ===
+
+attachActionListeners()
+Parameters: void
+Return Type: void
+Description: Attach action listeners to buttons in admin search results
+
+attachListsActionListeners()
+Parameters: void
+Return Type: void
+Description: Attach action listeners for lists tab
+
+setupAutocomplete()
+Parameters: string inputId, string suggestBoxId, string type
+Return Type: void
+Description: Setup autocomplete functionality
+
+setupImagePreview()
+Parameters: void
+Return Type: void
+Description: Function to set up image preview
+
+=== config/ ===
+
+=== config/config.php ===
+
+No functions - Configuration file with database and application settings
+
+=== includes/ ===
+
+=== includes/auth.php ===
+
+checkAuth()
+Parameters: int|null requiredRole=null
+Return Type: bool
+Description: Check if user is authenticated and has required role
+
+checkBruteForce()
+Parameters: string|null username=null
+Return Type: array
+Description: Check if IP has too many recent failed attempts
+
+generateSessionToken()
+Parameters: void
+Return Type: string
+Description: Generate a unique session token
+
+getAuthBasePath()
+Parameters: void
+Return Type: string
+Description: Get the base path for redirects
+
+getSessionUser()
+Parameters: void
+Return Type: array|null
+Description: Get the current session user data
+
+login()
+Parameters: string username, string password, bool remember=false
+Return Type: array
+Description: Enhanced login function with simple brute force protection
+
+logout()
+Parameters: void
+Return Type: array
+Description: Log out the current user
+
+recordLoginAttempt()
+Parameters: string username, bool success
+Return Type: void
+Description: Record login attempt
+
+validateSession()
+Parameters: void
+Return Type: bool
+Description: Validate if the session is still active
+
+=== includes/Database.php ===
+
+backupDatabase()
+Parameters: string backupPath=null
+Return Type: array
+Description: Backup database to specified path
+
+deleteData()
+Parameters: string table, int id, string idField=null
+Return Type: bool
+Description: Delete data from specified table
+
+executeQuery()
+Parameters: string query, array params=[]
+Return Type: PDOStatement
+Description: Execute a custom query with parameters
+
+insertData()
+Parameters: string table, array data
+Return Type: int
+Description: Insert data into specified table
+
+logBackup()
+Parameters: string filename
+Return Type: void
+Description: Log the backup operation
+
+selectData()
+Parameters: string table, string where=null, array params=[], string order=null, string limit=null
+Return Type: array
+Description: Select data from specified table
+
+updateData()
+Parameters: string table, int id, array data, string idField=null
+Return Type: bool
+Description: Update data in specified table
+
+=== includes/db_functions.php ===
+
+getSpecialPriceProducts()
+Parameters: PDO pdo, int limit=3
+Return Type: array
+Description: Gets products with special prices (on sale)
+
+=== includes/ErrorHandler.php ===
+
+ErrorHandler.formatBytes()
+Parameters: int bytes
+Return Type: string
+Description: Format bytes to human readable format
+
+ErrorHandler.getDebugErrorPage()
+Parameters: array errorData
+Return Type: string
+Description: Get debug error page HTML
+
+ErrorHandler.getErrorTypeName()
+Parameters: int errno
+Return Type: string
+Description: Get human-readable error type name
+
+ErrorHandler.getProductionErrorPage()
+Parameters: void
+Return Type: string
+Description: Get production error page HTML
+
+ErrorHandler.handleDatabaseError()
+Parameters: PDOException exception, string query=null, array params=[]
+Return Type: void
+Description: Handle database errors specifically
+
+ErrorHandler.handleError()
+Parameters: int errno, string errstr, string errfile, int errline
+Return Type: bool
+Description: Handle PHP errors
+
+ErrorHandler.handleException()
+Parameters: Throwable exception
+Return Type: void
+Description: Handle uncaught exceptions
+
+ErrorHandler.handleFatalError()
+Parameters: void
+Return Type: void
+Description: Handle fatal errors
+
+ErrorHandler.initialize()
+Parameters: bool debugMode=false, string logPath=null
+Return Type: void
+Description: Initialize the error handler
+
+ErrorHandler.isAjaxRequest()
+Parameters: void
+Return Type: bool
+Description: Check if the current request is an AJAX request
+
+ErrorHandler.isSecurityRelatedError()
+Parameters: string message
+Return Type: bool
+Description: Check if error message contains security-related patterns
+
+ErrorHandler.logError()
+Parameters: array errorData
+Return Type: void
+Description: Log error data to file
+
+ErrorHandler.logEvent()
+Parameters: string level, string message, array context=[]
+Return Type: void
+Description: Log application events (non-error)
+
+ErrorHandler.logSecurityEvent()
+Parameters: string eventType, array data
+Return Type: void
+Description: Log security events
+
+ErrorHandler.rotateLog()
+Parameters: string logFile
+Return Type: void
+Description: Rotate log file when it gets too large
+
+ErrorHandler.sendAjaxErrorResponse()
+Parameters: Throwable exception
+Return Type: void
+Description: Send AJAX error response
+
+ErrorHandler.sendHttpErrorResponse()
+Parameters: Throwable exception
+Return Type: void
+Description: Send HTTP error response
+
+=== includes/Formatter.php ===
+
+formatCurrency()
+Parameters: float|null amount, string currency='€'
+Return Type: string
+Description: Format currency values
+
+formatDate()
+Parameters: string|DateTime date, string format='Y-m-d'
+Return Type: string
+Description: Format dates
+
+formatNumber()
+Parameters: float|null number, int decimals=2
+Return Type: string
+Description: Format numbers
+
+formatPhoneNumber()
+Parameters: string phone
+Return Type: string
+Description: Format phone numbers
+
+formatPrice()
+Parameters: float|null price
+Return Type: string
+Description: Format price - A convenience method that's an alias of formatCurrency
+
+formatText()
+Parameters: string text, int|null maxLength=null
+Return Type: string
+Description: Format and truncate text
+
+=== includes/functions.php ===
+
+safeEcho()
+Parameters: mixed value
+Return Type: string
+Description: Safely applies htmlspecialchars to a potentially null value
+
+=== includes/get_csrf_token.php ===
+
+No functions - CSRF token refresh endpoint script
+
+=== includes/ImageProcessor.php ===
+
+deleteProductImage()
+Parameters: int imageId
+Return Type: array
+Description: Delete product image
+
+formatBytes()
+Parameters: int bytes
+Return Type: string
+Description: Format bytes to human readable format
+
+getDefaultImagePath()
+Parameters: int categoryId=null
+Return Type: string
+Description: Get default image path
+
+getPrimaryProductImage()
+Parameters: int productId
+Return Type: object|null
+Description: Get primary product image (first uploaded image)
+
+getProductImageCount()
+Parameters: int productId
+Return Type: int
+Description: Get product image count
+
+getProductImages()
+Parameters: int productId
+Return Type: array
+Description: Get product images
+
+optimizeImage()
+Parameters: string filepath, string extension
+Return Type: void
+Description: Optimize uploaded image
+
+uploadProductImages()
+Parameters: array files, int productId
+Return Type: array
+Description: Upload multiple product images
+
+uploadSingleImage()
+Parameters: array file, int productId
+Return Type: array
+Description: Upload a single image
+
+validateImage()
+Parameters: array file
+Return Type: array
+Description: Validate uploaded image
+
+=== includes/js_loader.php ===
+
+loadAdminJavaScript()
+Parameters: void
+Return Type: string
+Description: Load all admin JavaScript files
+
+loadCustomJavaScript()
+Parameters: array files
+Return Type: string
+Description: Load custom JavaScript files
+
+loadJavaScript()
+Parameters: array types=['cdn', 'core'], array specific=[]
+Return Type: string
+Description: Load JavaScript files
+
+loadMinimalJavaScript()
+Parameters: void
+Return Type: string
+Description: Load minimal JavaScript files (jQuery + Bootstrap + message system)
+
+loadPublicJavaScript()
+Parameters: void
+Return Type: string
+Description: Load all public JavaScript files
+
+=== includes/login_process.php ===
+
+No functions - Login form submission handler script
+
+=== includes/Paginator.php ===
+
+calculateTotalPages()
+Parameters: void
+Return Type: void
+Description: Calculate the total number of pages
+
+generateLinks()
+Parameters: string baseUrl, string linkClass='pagination-link', bool includeSize=true
+Return Type: string
+Description: Generate HTML for pagination links
+
+getCurrentPage()
+Parameters: void
+Return Type: int
+Description: Get the current page number
+
+getFirstRecordNumber()
+Parameters: void
+Return Type: int
+Description: Get the first record number on the current page
+
+getItemsPerPage()
+Parameters: void
+Return Type: int
+Description: Get the number of items per page
+
+getLastRecordNumber()
+Parameters: void
+Return Type: int
+Description: Get the last record number on the current page
+
+getLimitSql()
+Parameters: void
+Return Type: string
+Description: Get the SQL LIMIT clause
+
+getOffset()
+Parameters: void
+Return Type: int
+Description: Get the SQL OFFSET value for the query
+
+getOrderBySql()
+Parameters: void
+Return Type: string
+Description: Get the SQL ORDER BY clause
+
+getPageSizeOptions()
+Parameters: void
+Return Type: array
+Description: Get available page size options
+
+getSortColumn()
+Parameters: void
+Return Type: string
+Description: Get the column to sort by
+
+getSortDirection()
+Parameters: void
+Return Type: string
+Description: Get the sort direction
+
+getSortLink()
+Parameters: string column, string label
+Return Type: string
+Description: Get a sorting link for a table column
+
+getTotalItems()
+Parameters: void
+Return Type: int
+Description: Get the total number of items
+
+getTotalPages()
+Parameters: void
+Return Type: int
+Description: Get the total number of pages
+
+setAllowedSortColumns()
+Parameters: array columns
+Return Type: Paginator
+Description: Set the allowed sort columns
+
+setTotalItems()
+Parameters: int totalItems
+Return Type: Paginator
+Description: Set the total number of items
+
+toArray()
+Parameters: void
+Return Type: array
+Description: Convert pagination data to array for AJAX responses
+
+validatePageSize()
+Parameters: int size
+Return Type: int
+Description: Validate and normalize the page size
+
+validateSortColumn()
+Parameters: string column
+Return Type: string
+Description: Validate and sanitize sort column
+
+=== includes/password_reset.php ===
+
+No functions - Password reset handler script
+
+=== includes/routes.php ===
+
+Routes.asset()
+Parameters: string type, string file
+Return Type: string
+Description: Get an asset URL
+
+Routes.getBasePath()
+Parameters: void
+Return Type: string
+Description: Get the base path
+
+Routes.init()
+Parameters: string basePath
+Return Type: void
+Description: Initialize the routing configuration
+
+Routes.url()
+Parameters: string path='', array params=[]
+Return Type: string
+Description: Get the URL for a path
+
+asset()
+Parameters: string type, string file
+Return Type: string
+Description: Get an asset URL (helper function)
+
+getBasePath()
+Parameters: void
+Return Type: string
+Description: Get the base path (helper function)
+
+url()
+Parameters: string path='', array params=[]
+Return Type: string
+Description: Get the URL for a path (helper function)
+
+=== includes/security.php ===
+
+checkCSRFToken()
+Parameters: bool exitOnFailure=true
+Return Type: bool
+Description: Enhanced CSRF token validation middleware
+
+checkRateLimit()
+Parameters: string action='general', int maxAttempts=10, int timeWindow=300, string|null identifier=null, bool increment=true
+Return Type: array
+Description: Enhanced rate limiting function with sliding window algorithm
+
+configureSecureSession()
+Parameters: void
+Return Type: void
+Description: Configure secure session settings
+
+formatBytes()
+Parameters: int bytes
+Return Type: string
+Description: Format bytes to human readable format
+
+generateCSRFToken()
+Parameters: void
+Return Type: string
+Description: Generate a cryptographically secure CSRF token
+
+getCSRFToken()
+Parameters: void
+Return Type: string
+Description: Get CSRF token for JavaScript/AJAX requests
+
+getCSRFTokenField()
+Parameters: void
+Return Type: string
+Description: Get CSRF token HTML input field for forms
+
+handleFatalError()
+Parameters: void
+Return Type: void
+Description: Handle fatal errors securely
+
+initializeSecurity()
+Parameters: void
+Return Type: void
+Description: Initialize security settings
+
+refreshCSRFToken()
+Parameters: void
+Return Type: array
+Description: Refresh CSRF token (for AJAX endpoint)
+
+sanitizeInput()
+Parameters: mixed input, string type='string', int maxLength=1000, array options=[]
+Return Type: mixed
+Description: Enhanced input sanitization with type-specific validation
+
+setSecurityHeaders()
+Parameters: void
+Return Type: void
+Description: Set comprehensive security headers
+
+validateCSRFToken()
+Parameters: string token
+Return Type: bool
+Description: Validate CSRF token with timing attack prevention
+
+validateDate()
+Parameters: string date, string format='Y-m-d'
+Return Type: bool
+Description: Validate date format with additional security checks
+
+validateFileUpload()
+Parameters: array file, array options=[]
+Return Type: array
+Description: Validate and sanitize file upload
+
+=== includes/session_check.php ===
+
+No functions - Session validation endpoint script
+
+=== includes/ui.php ===
+
+changeLanguage()
+Parameters: string language
+Return Type: void
+Description: Changes the user interface language (deprecated)
+
+loadLanguageStrings()
+Parameters: string language
+Return Type: array
+Description: Loads the appropriate language strings
