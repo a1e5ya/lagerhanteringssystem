@@ -14,7 +14,7 @@
 // Include the routing system
 require_once __DIR__ . '/../includes/routes.php';
 
-// Initialize routes - CHANGE THIS VALUE when migrating to a new server
+// Initialize routes - CHANGE THIS VALUE to empty when migrating to a new server
 Routes::init('/prog23/lagerhanteringssystem');
 
 // Error reporting settings
@@ -33,7 +33,7 @@ $db_config = [
     'username' => 'root',
     'password' => '',
 //'username' => 'ka_dbuser',
-//'password' => '#Vj559i@mvDnEmw',
+//'password' => '1Kv16k$r4',
     'charset'  => 'utf8mb4',
     'options'  => [
         PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
@@ -91,9 +91,3 @@ try {
 }
 
 
-// reCAPTCHA Settings
-define('RECAPTCHA_SITE_KEY', '6LfCiVUrAAAAAJSANRCmylGZsLt0SZ0C8xWTqYC7');  // Your site key
-define('RECAPTCHA_SECRET_KEY', '6LfCiVUrAAAAABpR-2-l2o4xKtgw-3dQh41FPURI'); // Your secret key
-
-// Optional: reCAPTCHA version and settings
-define('RECAPTCHA_MIN_SCORE', 0.5); // For v3 only
