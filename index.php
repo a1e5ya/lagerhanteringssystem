@@ -1042,3 +1042,67 @@ function loadProductsInitial() {
         });
 }
 </script>
+
+<script src="<?php echo url('js/message-system.js'); ?>"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Handle session messages from password reset and other operations
+    <?php
+    // Check for messages in session (from password reset redirects)
+    if (isset($_SESSION['message'])) {
+        $sessionMessage = $_SESSION['message'];
+        unset($_SESSION['message']); // Clear message after displaying
+        
+        $messageType = $sessionMessage['success'] ? 'success' : 'error';
+        ?>
+        setTimeout(function() {
+            if (window.messageSystem) {
+                window.messageSystem.<?php echo $messageType; ?>('<?php echo addslashes($sessionMessage['message']); ?>');
+            }
+        }, 100);
+        <?php
+    }
+    
+    // Also handle legacy URL parameters for backward compatibility
+    if (isset($_GET['success'])) {
+        ?>
+        setTimeout(function() {
+            if (window.messageSystem) {
+                window.messageSystem.success('<?php echo addslashes($_GET['success']); ?>');
+            }
+        }, 100);
+        <?php
+    }
+    
+    if (isset($_GET['error'])) {
+        ?>
+        setTimeout(function() {
+            if (window.messageSystem) {
+                window.messageSystem.error('<?php echo addslashes($_GET['error']); ?>');
+            }
+        }, 100);
+        <?php
+    }
+    
+    if (isset($_GET['warning'])) {
+        ?>
+        setTimeout(function() {
+            if (window.messageSystem) {
+                window.messageSystem.warning('<?php echo addslashes($_GET['warning']); ?>');
+            }
+        }, 100);
+        <?php
+    }
+    
+    if (isset($_GET['info'])) {
+        ?>
+        setTimeout(function() {
+            if (window.messageSystem) {
+                window.messageSystem.info('<?php echo addslashes($_GET['info']); ?>');
+            }
+        }, 100);
+        <?php
+    }
+    ?>
+});
+</script>
