@@ -1,5 +1,6 @@
 /**
- * Newsletter subscription handling with modal support and reCAPTCHA
+ * Newsletter subscription handling - Restored Working Version
+ * Based on your original working code with minimal reCAPTCHA addition
  */
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -7,6 +8,13 @@ document.addEventListener('DOMContentLoaded', function() {
     initNewsletterModal();
     initFooterNewsletterForm();
     checkUrlStatus();
+    
+    // Initialize reCAPTCHA v3 if available
+    if (typeof grecaptcha !== 'undefined') {
+        grecaptcha.ready(function() {
+            console.log('reCAPTCHA v3 loaded successfully');
+        });
+    }
 });
 
 /**
@@ -14,13 +22,34 @@ document.addEventListener('DOMContentLoaded', function() {
  */
 function initNewsletterModal() {
     const modalForm = document.getElementById('newsletter-form-modal');
+    const emailInput = document.getElementById('newsletter-email-modal');
     
     if (modalForm) {
+        // Update button state on email input
+        if (emailInput) {
+            emailInput.addEventListener('input', updateSubmitButton);
+            emailInput.addEventListener('blur', updateSubmitButton);
+            updateSubmitButton(); // Initial check
+        }
+        
         modalForm.addEventListener('submit', function(e) {
             e.preventDefault();
             handleNewsletterSubmission(modalForm, true);
         });
     }
+}
+
+/**
+ * Update submit button state
+ */
+function updateSubmitButton() {
+    const submitBtn = document.getElementById('newsletter-submit-btn');
+    const emailInput = document.getElementById('newsletter-email-modal');
+    
+    if (!submitBtn || !emailInput) return;
+    
+    const emailValid = emailInput.value.trim() !== '' && emailInput.checkValidity();
+    submitBtn.disabled = !emailValid;
 }
 
 /**
@@ -42,7 +71,7 @@ function initFooterNewsletterForm() {
  * @param {HTMLFormElement} form - The form element
  * @param {boolean} isModal - Whether this is from modal or footer
  */
-function handleNewsletterSubmission(form, isModal = true) {
+async function handleNewsletterSubmission(form, isModal = true) {
     // Get form data
     const formData = new FormData(form);
     const email = formData.get('email')?.trim();
@@ -55,18 +84,28 @@ function handleNewsletterSubmission(form, isModal = true) {
         return;
     }
     
-    // reCAPTCHA validation (only for modal and if reCAPTCHA is loaded)
-    if (isModal && typeof grecaptcha !== 'undefined') {
-        const recaptchaResponse = grecaptcha.getResponse();
-        if (!recaptchaResponse) {
-            showRecaptchaError();
-            return;
-        }
-        formData.append('recaptcha_response', recaptchaResponse);
-    }
-    
     // Add detected language
     formData.set('language', language);
+    
+    // Try to get reCAPTCHA token if available
+    if (typeof grecaptcha !== 'undefined') {
+        try {
+            const siteKey = document.querySelector('script[src*="render="]')?.src.match(/render=([^&]+)/)?.[1];
+            if (siteKey) {
+                const token = await new Promise((resolve, reject) => {
+                    grecaptcha.ready(() => {
+                        grecaptcha.execute(siteKey, { action: 'newsletter_subscribe' })
+                            .then(resolve)
+                            .catch(reject);
+                    });
+                });
+                formData.set('g-recaptcha-response', token);
+                console.log('reCAPTCHA token obtained');
+            }
+        } catch (error) {
+            console.warn('reCAPTCHA token failed, continuing without it:', error);
+        }
+    }
     
     // Show loading state
     setLoadingState(isModal, true);
@@ -139,15 +178,7 @@ function handleSuccessResponse(data, isModal) {
         const modalForm = document.getElementById('newsletter-form-modal');
         if (modalForm) {
             modalForm.reset();
-        }
-        
-        // Reset reCAPTCHA if available
-        if (typeof grecaptcha !== 'undefined') {
-            try {
-                grecaptcha.reset();
-            } catch (e) {
-                console.log('reCAPTCHA reset failed:', e);
-            }
+            updateSubmitButton();
         }
         
         // Hide newsletter modal with a slight delay
@@ -223,30 +254,16 @@ function setLoadingState(isModal, loading) {
  */
 function showValidationError(message, isModal) {
     if (isModal) {
-        const emailInput = document.getElementById('newsletter-email-modal');
-        if (emailInput) {
-            emailInput.classList.add('is-invalid');
+        const alertContainer = document.getElementById('newsletter-alert');
+        if (alertContainer) {
+            alertContainer.className = 'alert alert-danger';
+            alertContainer.textContent = message;
+            alertContainer.classList.remove('d-none');
             
-            // Remove existing feedback
-            const existingFeedback = emailInput.parentNode.querySelector('.invalid-feedback');
-            if (existingFeedback) {
-                existingFeedback.remove();
-            }
-            
-            // Add new feedback
-            const feedback = document.createElement('div');
-            feedback.className = 'invalid-feedback';
-            feedback.textContent = message;
-            emailInput.parentNode.appendChild(feedback);
-            
-            // Remove error after user starts typing
-            emailInput.addEventListener('input', function() {
-                emailInput.classList.remove('is-invalid');
-                const feedback = emailInput.parentNode.querySelector('.invalid-feedback');
-                if (feedback) {
-                    feedback.remove();
-                }
-            }, { once: true });
+            // Hide alert after 5 seconds
+            setTimeout(() => {
+                alertContainer.classList.add('d-none');
+            }, 5000);
         }
     } else {
         showMessage(message, 'error', false);
@@ -254,25 +271,28 @@ function showValidationError(message, isModal) {
 }
 
 /**
- * Show reCAPTCHA error
+ * Show message (placeholder - implement based on your message system)
+ * @param {string} message - Message to show
+ * @param {string} type - Message type (success, error, info)
+ * @param {boolean} isModal - Whether in modal context
  */
-function showRecaptchaError() {
-    const recaptchaError = document.getElementById('recaptcha-error');
-    if (recaptchaError) {
-        recaptchaError.style.display = 'block';
-        
-        // Hide error when reCAPTCHA is completed
-        const originalCallback = window.recaptchaCallback;
-        window.recaptchaCallback = function() {
-            recaptchaError.style.display = 'none';
-            if (originalCallback) {
-                originalCallback();
-            }
-        };
+function showMessage(message, type, isModal) {
+    // Implement based on your existing message system
+    console.log(`Message (${type}):`, message);
+    
+    if (isModal) {
+        const alertContainer = document.getElementById('newsletter-alert');
+        if (alertContainer) {
+            alertContainer.className = `alert alert-${type === 'error' ? 'danger' : type === 'info' ? 'info' : 'success'}`;
+            alertContainer.textContent = message;
+            alertContainer.classList.remove('d-none');
+            
+            setTimeout(() => {
+                alertContainer.classList.add('d-none');
+            }, 5000);
+        }
     }
 }
-
-
 
 /**
  * Detect current page language
@@ -296,11 +316,6 @@ function detectCurrentLanguage() {
     // Check body class
     if (bodyClass.includes('lang-fi')) return 'fi';
     if (bodyClass.includes('lang-sv')) return 'sv';
-    
-    // Check session or other indicators
-    // If the page contains Finnish text elements, it's probably Finnish
-    const finnishElements = document.querySelector('[data-lang="fi"], .lang-fi');
-    if (finnishElements) return 'fi';
     
     // Default to Swedish
     return 'sv';
@@ -360,13 +375,3 @@ function checkUrlStatus() {
         window.history.replaceState({}, document.title, newUrl);
     }
 }
-
-/**
- * reCAPTCHA callback (global function for reCAPTCHA)
- */
-window.recaptchaCallback = function() {
-    const recaptchaError = document.getElementById('recaptcha-error');
-    if (recaptchaError) {
-        recaptchaError.style.display = 'none';
-    }
-};

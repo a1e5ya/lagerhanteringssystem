@@ -1,10 +1,6 @@
 /**
- * Centralized Message System for Karis Antikvariat
+ * Centralized Message System 
  * 
- * This replaces all 7+ duplicate showMessage() implementations
- * with a single, standardized, secure message system.
- * 
- * Features:
  * - Overlay positioning (doesn't change page layout)
  * - Auto-dismiss after 5 seconds
  * - Security: HTML escaping by default
@@ -12,7 +8,7 @@
  * - Accessibility compliant
  * - Mobile responsive
  * - Stack multiple messages
- * - Sound notifications (optional)
+
  * 
  * @version 1.0
  * @author Axxell

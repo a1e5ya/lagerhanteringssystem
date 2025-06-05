@@ -204,4 +204,7 @@ $lang_strings = array(
     'authority_phone' => 'Puhelinvaihde',
     'authority_registry' => 'Kirjaamo',
     'last_updated' => 'Viimeksi päivitetty',
+
+    'recaptcha_error' => 'reCAPTCHA-vahvistus epäonnistui. Yritä uudelleen.',
+    'security_error' => 'Turvallisuustoken on virheellinen. Yritä uudelleen.',
 );

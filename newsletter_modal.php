@@ -1,6 +1,6 @@
 <?php
 /**
- * Newsletter Subscription Modal
+ * Newsletter Subscription Modal - Restored Working Version
  * 
  * This file contains the modal dialogs for newsletter subscription
  * Including main subscription modal and success modal
@@ -27,6 +27,9 @@ if (!isset($strings)) {
             <div class="modal-body">
                 <p id="newsletter-modal-desc"><?php echo $strings['newsletter_desc'] ?? 'Prenumerera på vårt nyhetsbrev för att få information om nya objekt och erbjudanden.'; ?></p>
                 
+                <!-- Alert container for messages -->
+                <div id="newsletter-alert" class="alert d-none" role="alert"></div>
+                
                 <!-- Newsletter Form -->
                 <form id="newsletter-form-modal" method="post">
                     <div class="mb-3">
@@ -45,23 +48,17 @@ if (!isset($strings)) {
                         </label>
                         <input type="email" class="form-control" name="email" id="newsletter-email-modal" 
                                placeholder="<?php echo $strings['your_email'] ?? 'Din e-postadress'; ?>" required>
+                        <div class="invalid-feedback" id="email-error"></div>
                     </div>
-                    
-                    <!-- reCAPTCHA (commented out by default - uncomment when you have keys) -->
-                    <!--
-                    <div class="mb-3">
-                        <div class="g-recaptcha" data-sitekey="YOUR_RECAPTCHA_SITE_KEY"></div>
-                        <div class="invalid-feedback" id="recaptcha-error" style="display: none;">
-                            <span id="recaptcha-error-text"><?php echo $strings['recaptcha_required'] ?? 'Vänligen verifiera att du inte är en robot'; ?></span>
-                        </div>
-                    </div>
-                    -->
                     
                     <!-- Hidden language field -->
                     <input type="hidden" name="language" id="newsletter-language" value="">
                     
+                    <!-- Hidden field for reCAPTCHA token -->
+                    <input type="hidden" name="g-recaptcha-response" id="g-recaptcha-response">
+                    
                     <div class="d-grid">
-                        <button class="btn btn-primary" type="submit" id="newsletter-submit-btn">
+                        <button class="btn btn-primary" type="submit" id="newsletter-submit-btn" disabled>
                             <span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true" style="display: none;" id="newsletter-spinner"></span>
                             <span id="newsletter-submit-text"><?php echo $strings['subscribe'] ?? 'Prenumerera'; ?></span>
                         </button>
@@ -100,5 +97,7 @@ if (!isset($strings)) {
     </div>
 </div>
 
-<!-- Load reCAPTCHA script (uncomment when you have keys) -->
-<!-- <script src="https://www.google.com/recaptcha/api.js" async defer></script> -->
+<!-- Load reCAPTCHA v3 script -->
+<?php if (defined('RECAPTCHA_SITE_KEY') && !empty(RECAPTCHA_SITE_KEY)): ?>
+<script src="https://www.google.com/recaptcha/api.js?render=<?php echo RECAPTCHA_SITE_KEY; ?>" async defer></script>
+<?php endif; ?>

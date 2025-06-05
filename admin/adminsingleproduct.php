@@ -6,7 +6,7 @@
 
 require_once dirname(__DIR__) . '/init.php';
 
-// Step 1: IMMEDIATE AJAX handling 
+// IMMEDIATE AJAX handling 
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
     !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
     strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
@@ -21,8 +21,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
     header('Cache-Control: no-cache, must-revalidate');
     ini_set('display_errors', 0);
 
-    // NOTE: init.php is now already included above, so we don't need this line anymore:
-    // require_once dirname(__DIR__) . '/init.php';
 
     // Check CSRF token for AJAX requests
     try {
@@ -33,12 +31,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' &&
         exit;
     }
     
-    // Step 2: Add minimal required includes for database access
+    // Add minimal required includes for database access
     try {
         
         checkAuth(2);
         
-        // Step 3: Get product ID from POST data or URL
+        // Get product ID from POST data or URL
         $productId = 0;
         
         // First try to get from POST data (hidden field)

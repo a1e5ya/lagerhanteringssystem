@@ -201,4 +201,8 @@ $lang_strings = array(
     'authority_phone' => 'Telefonväxel',
     'authority_registry' => 'Registratorskontor',
     'last_updated' => 'Senast uppdaterad',
+
+
+    'recaptcha_error' => 'reCAPTCHA-verifiering misslyckades. Försök igen.',
+    'security_error' => 'Säkerhetstoken är ogiltig. Vänligen försök igen.',
 );

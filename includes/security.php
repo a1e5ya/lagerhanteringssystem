@@ -1,27 +1,9 @@
 <?php
 /**
  * Enhanced CSRF Protection and Security Headers Implementation
- * 
- * This file provides comprehensive security features including:
- * - Enhanced CSRF protection with token refresh capability
- * - Security headers for both AJAX and regular requests
- * - Rate limiting with customizable parameters
- * - Input sanitization and validation functions
- * - Secure session configuration
- * 
- * @package    KarisAntikvariat
- * @subpackage Security
- * @author     Security Team
- * @version    2.0
- * @since      1.0
+ * Updated with reCAPTCHA support
  */
 
-/**
- * Set comprehensive security headers
- * Detects AJAX requests and applies appropriate headers for each context
- * 
- * @return void
- */
 function setSecurityHeaders() {
     // Common security headers for all responses
     header('X-Frame-Options: DENY');
@@ -52,7 +34,7 @@ function setSecurityHeaders() {
         // Stricter CSP for AJAX/JSON responses
         header("Content-Security-Policy: default-src 'none'; script-src 'none'; style-src 'none';");
     } else {
-        // HTML page headers - Content Security Policy for regular pages
+        // HTML page headers - Content Security Policy for regular pages with reCAPTCHA support
         $csp = "default-src 'self'; " .
                "script-src 'self' 'unsafe-inline' 'unsafe-eval' " .
                "https://cdn.jsdelivr.net " .
@@ -60,7 +42,9 @@ function setSecurityHeaders() {
                "https://code.jquery.com " .
                "https://ajax.googleapis.com " .
                "https://unpkg.com " .
-               "https://stackpath.bootstrapcdn.com; " .
+               "https://stackpath.bootstrapcdn.com " .
+               "https://www.google.com " .
+               "https://www.gstatic.com; " .
                "style-src 'self' 'unsafe-inline' " .
                "https://cdn.jsdelivr.net " .
                "https://cdnjs.cloudflare.com " .
@@ -72,7 +56,8 @@ function setSecurityHeaders() {
                "https://cdnjs.cloudflare.com " .
                "https://fonts.gstatic.com " .
                "https://stackpath.bootstrapcdn.com; " .
-               "connect-src 'self'; " .
+               "connect-src 'self' https://www.google.com; " .
+               "frame-src https://www.google.com; " .
                "frame-ancestors 'none';";
         header("Content-Security-Policy: $csp");
         

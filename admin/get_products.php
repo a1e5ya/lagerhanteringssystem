@@ -140,7 +140,6 @@ try {
         $params[] = $category;
     }
     
-    // FIXED: Additional filters for lists view (THESE WERE MISSING!)
     if (!empty($genre)) {
         $whereConditions[] = "g.genre_sv_name = ?";
         $params[] = $genre;
@@ -156,7 +155,6 @@ try {
         $params[] = $shelf;
     }
     
-    // FIXED: Price range filters (THESE WERE MISSING!)
     if ($priceMin > 0) {
         $whereConditions[] = "p.price >= ?";
         $params[] = $priceMin;
@@ -167,7 +165,6 @@ try {
         $params[] = $priceMax;
     }
     
-    // FIXED: Date range filters (THESE WERE MISSING!)
     if (!empty($dateMin)) {
         $whereConditions[] = "DATE(p.date_added) >= ?";
         $params[] = $dateMin;
@@ -203,7 +200,7 @@ try {
         }
     }
     
-    // FIXED: Special filters for lists view (THESE WERE MISSING CONDITIONS!)
+    // Special filters for lists view (THESE WERE MISSING CONDITIONS!)
     if ($isListsView) {
         if ($noPrice) {
             $whereConditions[] = "(p.price IS NULL OR p.price = 0 OR p.price = '')";

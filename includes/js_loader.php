@@ -17,7 +17,7 @@ $js_files = [
     
     // Core files needed on all pages (LOAD FIRST)
     'core' => [
-        'message-system', // NEW: Load message system first
+        'message-system', 
         'main',
     ],
     

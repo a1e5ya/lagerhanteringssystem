@@ -55,7 +55,6 @@ switch ($format) {
         exportCSV($filters, $filename);
         break;
     
-    // Add more formats here if needed
     
     default:
         // Default to CSV if format not recognized

@@ -46,7 +46,7 @@ $db_config = [
 $app_config = [
     'name'        => 'Karis Antikvariat',
     'version'     => '3.0',
-    'admin_email' => 'admin@example.com',
+    'admin_email' => 'lesya.maurin@gmail.com',
     'pagination'  => [
         'default_limit' => 10,
         'max_limit'     => 200,
@@ -89,3 +89,11 @@ try {
     error_log("Database connection error: " . $e->getMessage());
     die("Database connection failed. Please contact the administrator.");
 }
+
+
+// reCAPTCHA Settings
+define('RECAPTCHA_SITE_KEY', '6LfCiVUrAAAAAJSANRCmylGZsLt0SZ0C8xWTqYC7');  // Your site key
+define('RECAPTCHA_SECRET_KEY', '6LfCiVUrAAAAABpR-2-l2o4xKtgw-3dQh41FPURI'); // Your secret key
+
+// Optional: reCAPTCHA version and settings
+define('RECAPTCHA_MIN_SCORE', 0.5); // For v3 only
