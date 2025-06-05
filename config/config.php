@@ -90,4 +90,3 @@ try {
     die("Database connection failed. Please contact the administrator.");
 }
 
-
