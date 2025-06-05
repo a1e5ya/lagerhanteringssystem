@@ -8,6 +8,74 @@
 // Set security headers for ALL pages
 setSecurityHeaders();
 
+/**
+ * Add this code to the TOP of your header.php (after session start but before HTML output)
+ * This handles CSRF token refresh requests
+ */
+
+// Handle CSRF token refresh requests
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && 
+    isset($_POST['refresh_csrf']) && 
+    !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+    strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+    
+    try {
+        // Validate current token first
+        checkCSRFToken();
+        
+        // Generate new token
+        unset($_SESSION['csrf_token'], $_SESSION['csrf_token_time']);
+        $newToken = generateCSRFToken();
+        
+        // Return JSON response
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'token' => $newToken,
+            'expires_at' => time() + 3600,
+            'message' => 'CSRF token refreshed'
+        ]);
+        exit;
+        
+    } catch (Exception $e) {
+        // Even if current token is invalid, generate a new one
+        unset($_SESSION['csrf_token'], $_SESSION['csrf_token_time']);
+        $newToken = generateCSRFToken();
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'token' => $newToken,
+            'expires_at' => time() + 3600,
+            'message' => 'CSRF token regenerated due to expiry'
+        ]);
+        exit;
+    }
+}
+
+/**
+ * Alternative: Simple token refresh without validation
+ * Use this if the above doesn't work
+ */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['refresh_csrf'])) {
+    // Force generate new token
+    unset($_SESSION['csrf_token'], $_SESSION['csrf_token_time']);
+    $newToken = generateCSRFToken();
+    
+    if (!empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
+        strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest') {
+        
+        header('Content-Type: application/json');
+        echo json_encode([
+            'success' => true,
+            'token' => $newToken,
+            'message' => 'Token refreshed'
+        ]);
+        exit;
+    }
+}
+
+
 // Handle language switching for ALL pages with CSRF protection
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['lang'])) {
     checkCSRFToken();
@@ -319,6 +387,102 @@ $csrfToken = generateCSRFToken();
                 });
             }, 8000);
         });
+
+        /**
+ * Add this JavaScript to your header.php to auto-refresh CSRF tokens
+ * Place it after the Bootstrap/jQuery includes
+ */
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Auto-refresh CSRF tokens every 50 minutes (before 1-hour expiry)
+    const CSRF_REFRESH_INTERVAL = 50 * 60 * 1000; // 50 minutes in milliseconds
+    
+    function refreshCSRFToken() {
+        // Create a hidden form to get a fresh CSRF token
+        const tempForm = document.createElement('form');
+        tempForm.style.display = 'none';
+        tempForm.method = 'POST';
+        tempForm.action = window.location.href;
+        
+        const csrfInput = document.createElement('input');
+        csrfInput.type = 'hidden';
+        csrfInput.name = 'refresh_csrf';
+        csrfInput.value = '1';
+        
+        const currentTokenInput = document.createElement('input');
+        currentTokenInput.type = 'hidden';
+        currentTokenInput.name = 'csrf_token';
+        currentTokenInput.value = window.CSRF_TOKEN;
+        
+        tempForm.appendChild(csrfInput);
+        tempForm.appendChild(currentTokenInput);
+        document.body.appendChild(tempForm);
+        
+        // Make AJAX request to refresh token
+        fetch(window.location.href, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'Content-Type': 'application/x-www-form-urlencoded'
+            },
+            body: 'refresh_csrf=1&csrf_token=' + encodeURIComponent(window.CSRF_TOKEN)
+        })
+        .then(response => response.json())
+        .then(data => {
+            if (data.success && data.token) {
+                // Update global CSRF token
+                window.CSRF_TOKEN = data.token;
+                
+                // Update all CSRF token fields on the page
+                const csrfFields = document.querySelectorAll('input[name="csrf_token"]');
+                csrfFields.forEach(field => {
+                    field.value = data.token;
+                });
+                
+                console.log('CSRF token refreshed successfully');
+            }
+        })
+        .catch(error => {
+            console.warn('Failed to refresh CSRF token:', error);
+        })
+        .finally(() => {
+            document.body.removeChild(tempForm);
+        });
+    }
+    
+    // Set up auto-refresh
+    setInterval(refreshCSRFToken, CSRF_REFRESH_INTERVAL);
+    
+    // Also refresh when page becomes visible again (user returns to tab)
+    document.addEventListener('visibilitychange', function() {
+        if (!document.hidden) {
+            // Check if token might be expired (been away for more than 45 minutes)
+            const now = Date.now();
+            const lastRefresh = localStorage.getItem('csrf_last_refresh');
+            
+            if (!lastRefresh || (now - parseInt(lastRefresh)) > (45 * 60 * 1000)) {
+                refreshCSRFToken();
+                localStorage.setItem('csrf_last_refresh', now.toString());
+            }
+        }
+    });
+    
+    // Store initial timestamp
+    localStorage.setItem('csrf_last_refresh', Date.now().toString());
+    
+    // Add warning message for long-idle users
+    let idleWarningShown = false;
+    
+    // Show warning after 55 minutes of page load
+    setTimeout(function() {
+        if (!idleWarningShown && window.messageSystem) {
+            window.messageSystem.warning('Din session upphör snart. Spara eventuellt arbete.', {
+                duration: 10000
+            });
+            idleWarningShown = true;
+        }
+    }, 55 * 60 * 1000);
+});
     </script>
     
     <?php endif; ?>

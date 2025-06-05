@@ -331,30 +331,37 @@ include 'templates/header.php';
                     <h4 class="text-muted mb-3" id="item-author"><?php echo safeEcho($product->author_names); ?></h4>
                 </div>
                 
-                <ul class="list-unstyled">
-                    <li><strong><?php echo $strings['category']; ?>:</strong> <span id="item-category"><?php echo safeEcho($product->category_name); ?></span></li>
-                    
-                    <?php if (!empty($product->genre_names_array)): ?>
-                    <li><strong><?php echo $strings['genre']; ?>:</strong> <span id="item-genre"><?php echo safeEcho(implode(', ', $product->genre_names_array)); ?></span></li>
-                    <?php endif; ?>
-                    
-                    <li><strong><?php echo $strings['condition']; ?>:</strong> <span id="item-condition"><?php echo safeEcho($product->condition_name); ?></span></li>
-                    <li><strong><?php echo $strings['shelf']; ?>:</strong> <span id="item-shelf"><?php echo safeEcho($product->shelf_name); ?></span></li>
-                    
-                    <?php if (!empty($product->language_name)): ?>
-                    <li><strong><?php echo $strings['language']; ?>:</strong> <span id="item-language"><?php echo safeEcho($product->language_name); ?></span></li>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($product->year)): ?>
-                    <li><strong><?php echo $strings['year']; ?>:</strong> <span id="item-year"><?php echo safeEcho($product->year); ?></span></li>
-                    <?php endif; ?>
-                    
-                    <?php if (!empty($product->publisher)): ?>
-                    <li><strong><?php echo $strings['publisher']; ?>:</strong> <span id="item-publisher"><?php echo safeEcho($product->publisher); ?></span></li>
-                    <?php endif; ?>
-                    
-                    <li><strong><?php echo $strings['date_added']; ?>:</strong> <span id="item-date"><?php echo $formattedDate; ?></span></li>
-                </ul>
+<ul class="list-unstyled">
+    <?php if (!empty($product->category_name)): ?>
+    <li><strong><?php echo $strings['category']; ?>:</strong> <span id="item-category"><?php echo safeEcho($product->category_name); ?></span></li>
+    <?php endif; ?>
+    
+    <?php if (!empty($product->genre_names_array)): ?>
+    <li><strong><?php echo $strings['genre']; ?>:</strong> <span id="item-genre"><?php echo safeEcho(implode(', ', $product->genre_names_array)); ?></span></li>
+    <?php endif; ?>
+    
+    <?php if (!empty($product->condition_name)): ?>
+    <li><strong><?php echo $strings['condition']; ?>:</strong> <span id="item-condition"><?php echo safeEcho($product->condition_name); ?></span></li>
+    <?php endif; ?>
+    
+    <?php if (!empty($product->shelf_name)): ?>
+    <li><strong><?php echo $strings['shelf']; ?>:</strong> <span id="item-shelf"><?php echo safeEcho($product->shelf_name); ?></span></li>
+    <?php endif; ?>
+    
+    <?php if (!empty($product->language_name)): ?>
+    <li><strong><?php echo $strings['language']; ?>:</strong> <span id="item-language"><?php echo safeEcho($product->language_name); ?></span></li>
+    <?php endif; ?>
+    
+    <?php if (!empty($product->year)): ?>
+    <li><strong><?php echo $strings['year']; ?>:</strong> <span id="item-year"><?php echo safeEcho($product->year); ?></span></li>
+    <?php endif; ?>
+    
+    <?php if (!empty($product->publisher)): ?>
+    <li><strong><?php echo $strings['publisher']; ?>:</strong> <span id="item-publisher"><?php echo safeEcho($product->publisher); ?></span></li>
+    <?php endif; ?>
+    
+
+</ul>
                 
                 <?php if (!empty($product->notes)): ?>
                 <div class="item-description">

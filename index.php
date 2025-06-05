@@ -1043,7 +1043,6 @@ function loadProductsInitial() {
 }
 </script>
 
-<script src="<?php echo url('js/message-system.js'); ?>"></script>
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle session messages from password reset and other operations
@@ -1065,40 +1064,44 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // Also handle legacy URL parameters for backward compatibility
     if (isset($_GET['success'])) {
+        $message = urldecode($_GET['success']);
         ?>
         setTimeout(function() {
             if (window.messageSystem) {
-                window.messageSystem.success('<?php echo addslashes($_GET['success']); ?>');
+                window.messageSystem.success('<?php echo addslashes($message); ?>');
             }
         }, 100);
         <?php
     }
     
     if (isset($_GET['error'])) {
+        $message = urldecode($_GET['error']);
         ?>
         setTimeout(function() {
             if (window.messageSystem) {
-                window.messageSystem.error('<?php echo addslashes($_GET['error']); ?>');
+                window.messageSystem.error('<?php echo addslashes($message); ?>');
             }
         }, 100);
         <?php
     }
     
     if (isset($_GET['warning'])) {
+        $message = urldecode($_GET['warning']);
         ?>
         setTimeout(function() {
             if (window.messageSystem) {
-                window.messageSystem.warning('<?php echo addslashes($_GET['warning']); ?>');
+                window.messageSystem.warning('<?php echo addslashes($message); ?>');
             }
         }, 100);
         <?php
     }
     
     if (isset($_GET['info'])) {
+        $message = urldecode($_GET['info']);
         ?>
         setTimeout(function() {
             if (window.messageSystem) {
-                window.messageSystem.info('<?php echo addslashes($_GET['info']); ?>');
+                window.messageSystem.info('<?php echo addslashes($message); ?>');
             }
         }, 100);
         <?php

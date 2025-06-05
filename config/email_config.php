@@ -10,8 +10,8 @@ return [
     'smtp_port' => 465,                    // Changed to SSL port
     'smtp_secure' => 'ssl',                // Changed to SSL
     'smtp_auth' => true,
-    'smtp_username' => 'lesya.maurin@gmail.com',        // Replace with your Gmail
-    'smtp_password' => 'rrdu porc sobg efcb',   // Replace with App Password
+    'smtp_username' => '...',        // Replace with your Gmail
+    'smtp_password' => '...',   // Replace with App Password
     'from_email' => 'noreply@karisantikvariat.fi',
     'from_name' => 'Karis Antikvariat',
     'charset' => 'UTF-8',

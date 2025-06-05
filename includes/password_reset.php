@@ -1,7 +1,7 @@
 <?php
 /**
- * Simple Password Reset Handler - Updated with Message System Integration
- * Handles password reset requests and updates
+ * Fixed Password Reset Handler
+ * Addresses multiple issues in the current implementation
  */
 
 require_once '../init.php';
@@ -37,7 +37,7 @@ function createPasswordResetRequest($email) {
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Always show same message (security feature)
+        // Always show same message for security
         $standardMessage = 'Om e-postadressen finns i vårt system har en återställningslänk skickats.';
         
         if (!$user) {
@@ -88,11 +88,10 @@ function createPasswordResetRequest($email) {
             $userAgent
         ]);
         
-        // Create reset link
-        $reset_link = url('includes/password_reset.php', [
-            'action' => 'reset',
-            'token' => $token
-        ]);
+        // Create reset link - FIXED: Use proper domain/base path
+        $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . 
+                   '://' . $_SERVER['HTTP_HOST'] . rtrim(BASE_PATH, '/');
+        $reset_link = $baseUrl . '/includes/password_reset.php?action=reset&token=' . $token;
         
         // Send email
         $mailer = new Mailer($email_config);
@@ -119,7 +118,7 @@ function createPasswordResetRequest($email) {
                 'message' => $standardMessage
             ];
         } else {
-            // Email failed
+            // Email failed - remove token
             $stmt = $pdo->prepare("DELETE FROM password_reset WHERE token = ?");
             $stmt->execute([$token]);
             
@@ -165,16 +164,19 @@ function validateResetToken($token) {
 }
 
 /**
- * Update password with token
+ * Update password with token - FIXED VERSION
  */
 function updatePasswordWithToken($token, $new_password) {
     global $pdo;
     
     try {
+        $pdo->beginTransaction();
+        
         // Validate token
         $reset_data = validateResetToken($token);
         
         if (!$reset_data) {
+            $pdo->rollBack();
             return [
                 'success' => false,
                 'message' => 'Ogiltigt eller utgånget återställningstoken.'
@@ -183,29 +185,31 @@ function updatePasswordWithToken($token, $new_password) {
         
         // Validate password
         if (strlen($new_password) < 8) {
+            $pdo->rollBack();
             return [
                 'success' => false,
                 'message' => 'Lösenordet måste vara minst 8 tecken långt.'
             ];
         }
         
-        // Hash new password
-        $password_hash = password_hash($new_password, PASSWORD_DEFAULT);
+        // Hash password
+        $passwordHash = password_hash($new_password, PASSWORD_DEFAULT);
         
-        // Update user password
-        $stmt = $pdo->prepare("
-            UPDATE user 
-            SET user_password_hash = ?, user_last_password_change = NOW() 
-            WHERE user_id = ?
-        ");
-        $stmt->execute([$password_hash, $reset_data['user_id']]);
+        // Update password
+        $stmt = $pdo->prepare("UPDATE user SET user_password_hash = ? WHERE user_id = ?");
+        $result = $stmt->execute([$passwordHash, $reset_data['user_id']]);
+        
+        if (!$result || $stmt->rowCount() == 0) {
+            $pdo->rollBack();
+            error_log("Password reset: Failed to update password for user_id " . $reset_data['user_id']);
+            return [
+                'success' => false,
+                'message' => 'Fel vid uppdatering av lösenordet.'
+            ];
+        }
         
         // Mark token as used
-        $stmt = $pdo->prepare("
-            UPDATE password_reset 
-            SET used_at = NOW() 
-            WHERE token = ?
-        ");
+        $stmt = $pdo->prepare("UPDATE password_reset SET used_at = NOW() WHERE token = ?");
         $stmt->execute([$token]);
         
         // Log the change
@@ -218,12 +222,15 @@ function updatePasswordWithToken($token, $new_password) {
             'Password changed via reset token for: ' . $reset_data['user_email']
         ]);
         
+        $pdo->commit();
+        
         return [
             'success' => true,
             'message' => 'Ditt lösenord har uppdaterats framgångsrikt. Du kan nu logga in med ditt nya lösenord.'
         ];
         
     } catch (Exception $e) {
+        $pdo->rollBack();
         error_log("Password update error: " . $e->getMessage());
         return [
             'success' => false,
@@ -237,9 +244,19 @@ $result = null;
 $action = $_GET['action'] ?? $_POST['action'] ?? '';
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
 
-// CSRF Protection for POST requests
+// CSRF validation for POST requests
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    checkCSRFToken();
+    try {
+        checkCSRFToken();
+    } catch (Exception $e) {
+        error_log("CSRF validation failed in password reset: " . $e->getMessage());
+        $_SESSION['message'] = [
+            'success' => false,
+            'message' => 'Säkerhetsvalidering misslyckades. Försök igen.'
+        ];
+        header('Location: ' . url('index.php'));
+        exit;
+    }
 }
 
 // Handle password reset request
@@ -330,6 +347,12 @@ if ($action === 'reset' && !empty($token)) {
                             Ange ditt nya lösenord för: <strong><?php echo htmlspecialchars($reset_data['user_email']); ?></strong>
                         </p>
                         
+                        <?php if ($result && !$result['success']): ?>
+                        <div class="alert alert-danger">
+                            <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($result['message']); ?>
+                        </div>
+                        <?php endif; ?>
+                        
                         <form method="POST" action="" id="password-reset-form">
                             <?php echo getCSRFTokenField(); ?>
                             <input type="hidden" name="action" value="update">
@@ -365,11 +388,9 @@ if ($action === 'reset' && !empty($token)) {
         </div>
     </div>
 
-    <!-- Include message system -->
-    <script src="<?php echo url('js/message-system.js'); ?>"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Client-side password validation with message system
+        // Client-side password validation
         document.getElementById('password-reset-form').addEventListener('submit', function(e) {
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
@@ -377,35 +398,17 @@ if ($action === 'reset' && !empty($token)) {
             // Check if passwords match
             if (newPassword !== confirmPassword) {
                 e.preventDefault();
-                if (window.messageSystem) {
-                    window.messageSystem.error('Lösenorden matchar inte.');
-                }
+                alert('Lösenorden matchar inte.');
                 return false;
             }
             
             // Check password length
             if (newPassword.length < 8) {
                 e.preventDefault();
-                if (window.messageSystem) {
-                    window.messageSystem.warning('Lösenordet måste vara minst 8 tecken långt.');
-                }
+                alert('Lösenordet måste vara minst 8 tecken långt.');
                 return false;
             }
-            
-            // Show loading message
-            if (window.messageSystem) {
-                window.messageSystem.info('Uppdaterar lösenord...', { duration: 2000 });
-            }
         });
-        
-        // Show any server-side error messages
-        <?php if ($result && !$result['success']): ?>
-        setTimeout(function() {
-            if (window.messageSystem) {
-                window.messageSystem.error('<?php echo addslashes($result['message']); ?>');
-            }
-        }, 100);
-        <?php endif; ?>
     });
     </script>
     
