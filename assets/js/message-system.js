@@ -14,6 +14,8 @@
  * @author Axxell
  */
 
+
+
 class MessageSystem {
     constructor() {
         this.container = null;

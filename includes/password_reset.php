@@ -366,7 +366,7 @@ if ($action === 'reset' && !empty($token)) {
     </div>
 
     <!-- Include message system -->
-    <script src="<?php echo url('js/message-system.js'); ?>"></script>
+    <script src="<?php echo url('assets/js/message-system.js'); ?>"></script>
     <script>
     document.addEventListener('DOMContentLoaded', function() {
         // Client-side password validation with message system

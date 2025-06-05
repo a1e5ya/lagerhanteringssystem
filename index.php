@@ -1043,7 +1043,7 @@ function loadProductsInitial() {
 }
 </script>
 
-<script src="<?php echo url('js/message-system.js'); ?>"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     // Handle session messages from password reset and other operations

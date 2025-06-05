@@ -1,9 +1,0 @@
-[04-Jun-2025 12:10:32 Europe/Helsinki] CSRF token validation failed: {"ip":"127.0.0.1","user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/136.0.0.0 Safari\/537.36","uri":"\/prog23\/lagerhanteringssystem\/includes\/session_check.php","method":"POST","referer":"http:\/\/127.0.0.1\/prog23\/lagerhanteringssystem\/admin.php?tab=search&search=&category=all&page=1&limit=20","time":"2025-06-04 12:10:32","session_id":"k8n5da0e6a6nedv7abcpc2i31b","user_id":3}
-[04-Jun-2025 14:20:37 Europe/Helsinki] CSRF token validation failed: {"ip":"127.0.0.1","user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/136.0.0.0 Safari\/537.36","uri":"\/prog23\/lagerhanteringssystem\/index.php","method":"POST","referer":"http:\/\/127.0.0.1\/prog23\/lagerhanteringssystem\/index.php?auth_error=2","time":"2025-06-04 14:20:37","session_id":"km4q7bjqs491j73tcg52je6db7","user_id":"anonymous"}
-[05-Jun-2025 11:40:30 Europe/Helsinki] Password reset email failed: SMTP Error: Could not connect to SMTP host. STARTTLS command failed Bad sequence of commands
-
-[05-Jun-2025 11:41:32 Europe/Helsinki] Password reset email failed: SMTP Error: Could not connect to SMTP host. STARTTLS command failed Bad sequence of commands
-
-[05-Jun-2025 12:33:38 Europe/Helsinki] Password reset email failed: SMTP Error: Could not connect to SMTP host. STARTTLS command failed Bad sequence of commands
-
-[05-Jun-2025 12:41:28 Europe/Helsinki] CSRF token validation failed: {"ip":"127.0.0.1","user_agent":"Mozilla\/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit\/537.36 (KHTML, like Gecko) Chrome\/136.0.0.0 Safari\/537.36","uri":"\/prog23\/lagerhanteringssystem\/includes\/session_check.php","method":"POST","referer":"http:\/\/127.0.0.1\/prog23\/lagerhanteringssystem\/admin\/email_test.php?tab=search","time":"2025-06-05 12:41:28","session_id":"bdaubageu40t58luredga2uvf1","user_id":1}
