@@ -660,7 +660,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     <label for="edit-author-name" class="form-label">Författarens namn <span class="text-danger">*</span></label>
                     <input type="text" class="form-control" id="edit-author-name" 
                            maxlength="255" required>
-                    <div class="form-text">Maximalt 255 tecken</div>
                 </div>
             </div>
             <div class="modal-footer">
