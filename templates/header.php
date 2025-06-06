@@ -439,7 +439,6 @@ document.addEventListener('DOMContentLoaded', function() {
                     field.value = data.token;
                 });
                 
-                console.log('CSRF token refreshed successfully');
             }
         })
         .catch(error => {

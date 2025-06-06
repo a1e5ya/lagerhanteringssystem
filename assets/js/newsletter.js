@@ -12,7 +12,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // Initialize reCAPTCHA v3 if available
     if (typeof grecaptcha !== 'undefined') {
         grecaptcha.ready(function() {
-            console.log('reCAPTCHA v3 loaded successfully');
+
         });
     }
 });
@@ -100,7 +100,6 @@ async function handleNewsletterSubmission(form, isModal = true) {
                     });
                 });
                 formData.set('g-recaptcha-response', token);
-                console.log('reCAPTCHA token obtained');
             }
         } catch (error) {
             console.warn('reCAPTCHA token failed, continuing without it:', error);
@@ -120,7 +119,6 @@ async function handleNewsletterSubmission(form, isModal = true) {
  * @param {boolean} isModal - Whether this is from modal
  */
 function submitNewsletterData(formData, isModal) {
-    console.log('Submitting newsletter data...'); // Debug log
     
     // Use fetch API for better error handling
     fetch('newsletter.php', {
@@ -131,25 +129,20 @@ function submitNewsletterData(formData, isModal) {
         body: formData
     })
     .then(response => {
-        console.log('Response status:', response.status); // Debug log
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
         return response.json();
     })
     .then(data => {
-        console.log('Response data:', data); // Debug log
         setLoadingState(isModal, false);
         
         if (data.status === 'success') {
-            console.log('Handling success response'); // Debug log
             handleSuccessResponse(data, isModal);
         } else if (data.status === 'info') {
-            console.log('Handling info response - showing as success modal'); // Debug log
             // Show info messages the same way as success messages
             handleSuccessResponse(data, isModal);
         } else {
-            console.log('Handling error response:', data.status, data.message); // Debug log
             showMessage(data.message, data.status, isModal);
         }
     })
@@ -171,7 +164,6 @@ function submitNewsletterData(formData, isModal) {
  * @param {boolean} isModal - Whether this is from modal
  */
 function handleSuccessResponse(data, isModal) {
-    console.log('Success response:', data); // Debug log
     
     if (isModal) {
         // Reset form first
@@ -278,7 +270,6 @@ function showValidationError(message, isModal) {
  */
 function showMessage(message, type, isModal) {
     // Implement based on your existing message system
-    console.log(`Message (${type}):`, message);
     
     if (isModal) {
         const alertContainer = document.getElementById('newsletter-alert');

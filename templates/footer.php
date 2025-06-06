@@ -123,7 +123,6 @@ echo loadPublicJavaScript();
                     }
                 }
                 
-                console.log('Detected language:', currentLanguage); // Debug log
                 
                 const languageInput = document.getElementById('newsletter-language');
                 if (languageInput) {

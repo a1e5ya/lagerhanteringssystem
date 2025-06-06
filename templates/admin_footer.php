@@ -21,7 +21,6 @@
 <script>
 // Fix Bootstrap modal accessibility issues with focus management
 document.addEventListener('DOMContentLoaded', function() {
-    console.log('Setting up modal accessibility fixes...');
     
     // Handle all existing and future modals
     document.addEventListener('show.bs.modal', function(event) {
@@ -57,7 +56,6 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.removeAttribute('aria-hidden');
     });
     
-    console.log('Modal accessibility fixes initialized');
 });
 
 // Additional fix for specific modal operations

@@ -24,16 +24,13 @@
      */
     function initializeProductHandlers() {
         if (isInitialized) {
-            console.log('Product handlers already initialized, skipping...');
             return;
         }
         
-        console.log('Initializing product handlers...');
         
         // Check if we're on a product form page
         const productForm = document.getElementById('add-item-form') || document.getElementById('edit-product-form');
         if (!productForm) {
-            console.log('No product form found, skipping initialization');
             return;
         }
         
@@ -46,14 +43,12 @@
         initializeResetHandlers(); // NEW: Initialize reset handlers
         
         isInitialized = true;
-        console.log('Product handlers initialized successfully');
     }
 
     /**
      * NEW: Initialize reset button handlers
      */
     function initializeResetHandlers() {
-        console.log('Setting up reset handlers...');
         
         // Handle reset buttons
         document.addEventListener('click', function(e) {
@@ -64,7 +59,6 @@
                     // Prevent default reset to handle it manually
                     e.preventDefault();
                     
-                    console.log('Reset button clicked, performing custom reset');
                     resetAllFormFields(form);
                 }
             }
@@ -74,7 +68,6 @@
         document.addEventListener('reset', function(e) {
             const form = e.target;
             if (form && (form.id === 'add-item-form' || form.id === 'edit-product-form')) {
-                console.log('Form reset event triggered, performing custom reset');
                 
                 // Use setTimeout to let the native reset complete first
                 setTimeout(() => {
@@ -90,7 +83,6 @@
      * Initialize authors management
      */
     function initializeAuthorsManagement() {
-        console.log('Setting up authors management...');
         
         // Set up event delegation for author buttons
         document.addEventListener('click', handleAuthorActions);
@@ -168,7 +160,6 @@
             renderSelectedAuthors();
             updateAuthorsJson();
             
-            console.log('Added author:', authorName);
             
             // Hide autocomplete suggestions
             const suggestDiv = document.getElementById('suggest-author');
@@ -187,7 +178,6 @@
             window.productAuthors.splice(index, 1);
             renderSelectedAuthors();
             updateAuthorsJson();
-            console.log('Removed author:', authorName);
         }
     }
 
@@ -225,7 +215,6 @@
         if (authorsJsonInput) {
             const authorNames = window.productAuthors.map(a => a.name);
             authorsJsonInput.value = JSON.stringify(authorNames);
-            console.log('Updated authors JSON:', authorNames);
         }
     }
 
@@ -233,7 +222,6 @@
      * Initialize genres management
      */
     function initializeGenresManagement() {
-        console.log('Setting up genres management...');
         
         // Set up event delegation for genre buttons
         document.addEventListener('click', handleGenreActions);
@@ -302,7 +290,6 @@
             renderSelectedGenres();
             updateGenresJson();
             
-            console.log('Added genre:', genreName);
         } else if (window.productGenres.find(g => g.id === genreId)) {
             showMessage('Genren är redan tillagd', 'warning');
         }
@@ -318,7 +305,6 @@
             window.productGenres.splice(index, 1);
             renderSelectedGenres();
             updateGenresJson();
-            console.log('Removed genre:', removedGenre.name);
         }
     }
 
@@ -356,7 +342,6 @@
         if (genresJsonInput) {
             const genreIds = window.productGenres.map(g => g.id);
             genresJsonInput.value = JSON.stringify(genreIds);
-            console.log('Updated genres JSON:', genreIds);
         }
     }
 
@@ -365,11 +350,9 @@
      */
     function initializeImagePreview() {
         if (imageHandlerInitialized) {
-            console.log('Image handler already initialized, skipping...');
             return;
         }
         
-        console.log('Setting up image preview...');
         
         // These are defined in the outer scope of initializeImagePreview,
         // making them accessible to nested functions like renderImagePreviews and removeImage.
@@ -385,11 +368,9 @@
             return;
         }
 
-        console.log('Image preview elements found, setting up event listeners...');
 
         fileInput.addEventListener('change', function(event) {
             const newFiles = Array.from(event.target.files);
-            console.log('Files selected:', newFiles.length);
 
             newFiles.forEach(file => {
                 const isDuplicate = productImageFiles.some(existingFile =>
@@ -410,7 +391,6 @@
         });
 
         imageHandlerInitialized = true;
-        console.log('Image preview setup completed');
 
         /**
          * Render image previews
@@ -470,7 +450,6 @@
                     };
 
                     reader.onerror = function() {
-                        console.error('Error reading file:', file.name);
                         showMessage('Fel vid läsning av bild: ' + file.name, 'danger');
                     };
 
@@ -495,7 +474,6 @@
                 updateFileInputFiles();
                 renderImagePreviews(); // This will re-render based on the current state
                 
-                console.log('Removed image:', removedFile.name);
             }
         }
 
@@ -513,7 +491,6 @@
                 });
                 fileInput.files = dataTransfer.files;
                 
-                console.log('Updated file input with', productImageFiles.length, 'files');
             } catch (error) {
                 console.error('Error updating file input:', error);
             }
@@ -524,7 +501,6 @@
      * NEW: Reset image preview to default state
      */
     function resetImagePreview(form) {
-        console.log('Resetting image preview...');
         
         // Clear the global image files array
         productImageFiles = [];
@@ -557,14 +533,12 @@
             }
         }
         
-        console.log('Image preview reset completed');
     }
 
     /**
      * Initialize autocomplete functionality
      */
     function initializeAutocomplete() {
-        console.log('Setting up autocomplete...');
         
         // Author autocomplete
         const authorInput = document.getElementById('author-name');
@@ -636,7 +610,6 @@
                 }
             })
             .catch(error => {
-                console.error('Autocomplete error:', error);
                 suggestionDiv.innerHTML = '';
             });
     }
@@ -645,7 +618,6 @@
      * Initialize form submission with AJAX
      */
     function initializeFormSubmission() {
-        console.log('Setting up form submission...');
         
         const forms = [
             document.getElementById('add-item-form'),
@@ -655,7 +627,6 @@
         forms.forEach(form => {
             form.addEventListener('submit', function(e) {
                 e.preventDefault(); // Prevent default form submission
-                console.log('Form submission intercepted');
                 
                 // Update JSON fields before submission
                 updateAuthorsJson();
@@ -677,11 +648,7 @@
                     return false;
                 }
                 
-                console.log('Form validation passed', {
-                    authors: window.productAuthors,
-                    genres: window.productGenres,
-                    images: productImageFiles.length
-                });
+                ;
                 
                 // Show loading state
                 toggleSubmitButton(form, true); // Pass form context
@@ -697,7 +664,6 @@
     function submitFormAjax(form) {
         const formData = new FormData(form);
         
-        console.log('Submitting form data:');
         for (let [key, value] of formData.entries()) {
             // For File objects, log the name, not the object itself, for brevity.
             if (value instanceof File) {
@@ -723,7 +689,6 @@
                 actionUrl = BASE_URL + '/admin/addproduct.php';
             }
         }
-        console.log('Submitting to URL:', actionUrl);
         
         fetch(actionUrl, {
             method: 'POST',
@@ -733,9 +698,7 @@
             }
         })
         .then(response => {
-            console.log('Response status:', response.status);
             const contentType = response.headers.get('content-type');
-            console.log('Response content-type:', contentType);
             
             if (!response.ok) {
                  return response.text().then(text => {
@@ -756,7 +719,6 @@
             return response.json();
         })
         .then(data => {
-    console.log('Server response data:', data);
     
     if (data.success) {
         showMessage(data.message || 'Åtgärden lyckades!', 'success');
@@ -772,7 +734,6 @@
     }
 })
         .catch(error => {
-            console.error('AJAX submission error:', error);
             showMessage('Ett allvarligt fel inträffade vid kommunikation med servern: ' + error.message, 'danger');
         })
         .finally(() => {
@@ -808,7 +769,6 @@
     function resetAllFormFields(form) {
         if (!form) return;
         
-        console.log('Performing complete form reset for:', form.id);
         
         // Reset native form fields first
         form.reset();
@@ -824,7 +784,6 @@
         // Reset image preview
         resetImagePreview(form);
         
-        console.log('Complete form reset finished for:', form.id);
     }
 
     // Initialize when DOM is ready
@@ -836,7 +795,6 @@
 
     // Also initialize when content is loaded via AJAX (if you use a custom 'contentLoaded' event)
     document.addEventListener('contentLoaded', function() {
-        console.log('Content loaded via AJAX, reinitializing product handlers...');
         isInitialized = false;
         imageHandlerInitialized = false;
         initializeProductHandlers();
@@ -862,6 +820,5 @@
         }
     };
 
-    console.log('Product handlers script loaded with image preview reset functionality');
 
 })();

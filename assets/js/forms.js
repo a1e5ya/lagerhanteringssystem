@@ -18,12 +18,7 @@
         }
         formsJsInitialized = true;
 
-        console.log('Initializing minimal forms.js functionality...');
         
-        // Only initialize for non-user-management forms
-        initializeNonUserManagementForms();
-        
-        console.log('Minimal forms.js initialized successfully');
     }
 
     /**
@@ -33,7 +28,6 @@
         // Handle add author form (separate from user management forms)
         const addAuthorForm = document.getElementById('add-author-form');
         if (addAuthorForm) {
-            console.log('Setting up add author form handler');
             addAuthorForm.addEventListener('submit', handleAddAuthorSubmission);
         }
 
@@ -57,7 +51,6 @@
                 e.preventDefault();
                 
                 const action = this.getAttribute('action') || window.location.href;
-                console.log('Submitting generic AJAX form to:', action);
                 
                 submitFormAjax(this, action)
                     .then(data => {
@@ -110,7 +103,6 @@
             return;
         }
 
-        console.log('Submitting add author form');
 
         submitFormAjax(form, 'admin/addauthor.php')
             .then(data => {
@@ -272,7 +264,6 @@
             return;
         }
 
-        console.log(`Setting up autocomplete for ${inputId}`);
 
         input.addEventListener('input', function() {
             const query = this.value.trim();
@@ -344,13 +335,11 @@
 
     // Initialize when DOM is ready
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, initializing minimal forms.js');
         initializeForms();
     });
 
     // Also initialize when content is loaded via AJAX
     document.addEventListener('contentLoaded', function() {
-        console.log('Content loaded, reinitializing minimal forms.js');
         formsJsInitialized = false; // Reset flag to allow reinitialization
         initializeForms();
     });
@@ -366,6 +355,5 @@
         }
     };
 
-    console.log('Minimal forms.js script loaded');
 
 })();

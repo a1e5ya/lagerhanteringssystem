@@ -263,7 +263,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['ajax']) && $_GET['ajax'
 
 <script>
 $(document).ready(function() {
-    console.log('Product log tab initialized');
     
     // Load initial log data
     loadProductLog();
@@ -293,7 +292,6 @@ function loadProductLog(page = 1) {
     const eventType = $('#event-type-filter').val();
     const limit = $('#log-page-size').val();
     
-    console.log('Loading product log:', { searchTerm, eventType, page, limit });
     
     // Show loading
     $('#log-table-body').html(`
@@ -319,7 +317,6 @@ function loadProductLog(page = 1) {
         },
         dataType: 'json',
         success: function(data) {
-            console.log('Log data received:', data);
             
             if (data.success) {
                 renderLogEntries(data.entries);

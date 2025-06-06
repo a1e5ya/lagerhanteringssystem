@@ -308,7 +308,6 @@ if (!empty($token)) {
                 return false;
             }
             
-            console.log('Submitting password update...');
         });
     });
     </script>
