@@ -40,7 +40,6 @@ class MessageSystem {
             this.show(message, type, options);
         };
         
-        console.log('MessageSystem initialized');
     }
 
     /**
@@ -254,7 +253,6 @@ class MessageSystem {
 
         // Validate and sanitize input
         if (!message || typeof message !== 'string') {
-            console.warn('MessageSystem: Invalid message provided');
             return;
         }
 

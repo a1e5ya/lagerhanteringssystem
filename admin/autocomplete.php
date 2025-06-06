@@ -5,76 +5,44 @@
  * Provides JSON responses for autocomplete functionality in forms.
  * Supports author names and publisher names with search suggestions.
  * 
- * @package BookManagement
- * @author  Web Development Team
- * @version 1.2.0
- * @since   1.0.0
+ * @package KarisInventory
+ * @author  Karis Inventory Team
+ * @version 1.0
+ * @since   2024-01-01
  */
 
 require_once '../init.php';
 
-/**
- * Sanitize string input with proper validation
- * 
- * @param string $input Input string to sanitize
- * @param int $maxLength Maximum allowed length
- * @return string Sanitized string
- */
-function sanitizeString($input, $maxLength = 255) {
-    if (!is_string($input)) return '';
-    // Remove null bytes and control characters
-    $input = str_replace(chr(0), '', $input);
-    $input = preg_replace('/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/', '', $input);
-    return substr(trim($input), 0, $maxLength);
-}
-
-/**
- * Send JSON error response
- * 
- * @param int $code HTTP status code
- * @param string $message Error message
- * @return void
- */
-function sendJsonError($code, $message) {
-    http_response_code($code);
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['error' => $message, 'success' => false]);
-    exit;
-}
-
-/**
- * Send JSON success response
- * 
- * @param array $data Response data
- * @return void
- */
-function sendJsonSuccess($data) {
-    header('Content-Type: application/json; charset=utf-8');
-    echo json_encode(['data' => $data, 'success' => true]);
-    exit;
-}
-
-// Input validation and sanitization
-$type = sanitizeString($_GET['type'] ?? '', 20);
-$query = sanitizeString($_GET['query'] ?? '', 100);
-
-// Validate required parameters
-if (empty($query) || empty($type)) {
-    sendJsonError(400, 'Missing required parameters');
-}
-
-// Validate minimum query length for performance
-if (strlen($query) < 2) {
-    sendJsonError(400, 'Query must be at least 2 characters long');
-}
-
-// Define allowed autocomplete types for security
-$allowedTypes = ['author', 'publisher'];
-if (!in_array($type, $allowedTypes)) {
-    sendJsonError(400, 'Invalid autocomplete type');
-}
+// Set JSON response header
+header('Content-Type: application/json; charset=utf-8');
 
 try {
+    // Input validation and sanitization using existing security functions
+    $type = sanitizeInput($_GET['type'] ?? '', 'string', 20);
+    $query = sanitizeInput($_GET['query'] ?? '', 'string', 100);
+    
+    // Validate required parameters
+    if (empty($query) || empty($type)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Missing required parameters']);
+        exit;
+    }
+    
+    // Validate minimum query length for performance
+    if (strlen($query) < 2) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Query must be at least 2 characters long']);
+        exit;
+    }
+    
+    // Define allowed autocomplete types for security
+    $allowedTypes = ['author', 'publisher'];
+    if (!in_array($type, $allowedTypes)) {
+        http_response_code(400);
+        echo json_encode(['error' => 'Invalid autocomplete type']);
+        exit;
+    }
+    
     $results = [];
     
     switch ($type) {
@@ -92,38 +60,44 @@ try {
              * Search for publisher names matching the query
              * Uses LIKE with wildcard for prefix matching
              */
-            $stmt = $pdo->prepare("SELECT DISTINCT publisher FROM product WHERE publisher LIKE :query ORDER BY publisher LIMIT 10");
+            $stmt = $pdo->prepare("SELECT DISTINCT publisher FROM product WHERE publisher LIKE :query AND publisher IS NOT NULL AND publisher != '' ORDER BY publisher LIMIT 10");
             $stmt->bindValue(':query', $query . '%', PDO::PARAM_STR);
             break;
     }
     
     // Execute query and fetch results
     $stmt->execute();
-    $results = $stmt->fetchAll(PDO::FETCH_COLUMN);
+    $rawResults = $stmt->fetchAll(PDO::FETCH_COLUMN);
     
-    // Sanitize output data
-    $sanitizedResults = [];
-    foreach ($results as $result) {
-        if (!empty($result)) {
-            $sanitizedResults[] = htmlspecialchars($result, ENT_QUOTES, 'UTF-8');
+    // Sanitize output data and filter empty values
+    foreach ($rawResults as $result) {
+        if (!empty(trim($result))) {
+            $results[] = htmlspecialchars(trim($result), ENT_QUOTES, 'UTF-8');
         }
     }
     
-    // Send successful response
-    sendJsonSuccess($sanitizedResults);
+    // Return results as a simple array (not wrapped in an object)
+    echo json_encode($results);
     
 } catch (PDOException $e) {
-    // Log error for debugging (in production, log to file)
+    // Log error for debugging
     error_log("Autocomplete database error: " . $e->getMessage());
     
-    // Send generic error to user
-    sendJsonError(500, 'Database error occurred');
+    // Send error response
+    http_response_code(500);
+    echo json_encode(['error' => 'Database error occurred']);
+    
+} catch (InvalidArgumentException $e) {
+    // Handle validation errors
+    http_response_code(400);
+    echo json_encode(['error' => htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8')]);
     
 } catch (Exception $e) {
     // Log unexpected errors
     error_log("Autocomplete unexpected error: " . $e->getMessage());
     
-    // Send generic error to user
-    sendJsonError(500, 'An unexpected error occurred');
+    // Send generic error response
+    http_response_code(500);
+    echo json_encode(['error' => 'An unexpected error occurred']);
 }
 ?>

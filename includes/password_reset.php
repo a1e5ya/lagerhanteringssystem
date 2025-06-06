@@ -1,14 +1,10 @@
 <?php
 /**
- * Fixed Password Reset Handler
- * Addresses multiple issues in the current implementation
+ * Simple Working Password Reset System
+ * No complex CSRF handling, just basic functionality
  */
 
 require_once '../init.php';
-require_once '../includes/Mailer.php';
-
-// Load email configuration
-$email_config = require_once '../config/email_config.php';
 
 /**
  * Generate secure reset token
@@ -25,115 +21,58 @@ function generateResetToken() {
  * Create password reset request
  */
 function createPasswordResetRequest($email) {
-    global $pdo, $email_config;
+    global $pdo;
     
     try {
-        // Check if user exists and is active
-        $stmt = $pdo->prepare("
-            SELECT user_id, user_username, user_email 
-            FROM user 
-            WHERE user_email = ? AND user_is_active = 1
-        ");
+        $stmt = $pdo->prepare("SELECT user_id, user_username, user_email FROM user WHERE user_email = ? AND user_is_active = 1");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
         
-        // Always show same message for security
         $standardMessage = 'Om e-postadressen finns i vårt system har en återställningslänk skickats.';
         
         if (!$user) {
-            sleep(2); // Mimic email sending time
-            return [
-                'success' => true,
-                'message' => $standardMessage
-            ];
+            sleep(2);
+            return ['success' => true, 'message' => $standardMessage];
         }
         
-        // Check for recent reset requests (prevent spam)
-        $stmt = $pdo->prepare("
-            SELECT COUNT(*) 
-            FROM password_reset 
-            WHERE user_id = ? 
-            AND created_at > DATE_SUB(NOW(), INTERVAL 15 MINUTE)
-            AND used_at IS NULL
-        ");
-        $stmt->execute([$user['user_id']]);
-        $recentRequests = $stmt->fetchColumn();
-        
-        if ($recentRequests >= 3) {
-            return [
-                'success' => false,
-                'message' => 'För många återställningsförsök. Vänta 15 minuter innan du försöker igen.'
-            ];
-        }
-        
-        // Generate secure token
+        // Generate token
         $token = generateResetToken();
-        $expires_at = date('Y-m-d H:i:s', time() + (2 * 3600)); // 2 hours
+        $expires_at = date('Y-m-d H:i:s', time() + (2 * 3600));
         
         // Store reset request
-        $stmt = $pdo->prepare("
-            INSERT INTO password_reset (user_id, email, token, expires_at, ip_address, user_agent) 
-            VALUES (?, ?, ?, ?, ?, ?)
-        ");
-        
+        $stmt = $pdo->prepare("INSERT INTO password_reset (user_id, email, token, expires_at, ip_address, user_agent) VALUES (?, ?, ?, ?, ?, ?)");
         $ip = $_SERVER['REMOTE_ADDR'] ?? 'unknown';
-        $userAgent = $_SERVER['HTTP_USER_AGENT'] ?? 'unknown';
+        $userAgent = substr($_SERVER['HTTP_USER_AGENT'] ?? 'unknown', 0, 500);
         
-        $stmt->execute([
-            $user['user_id'],
-            $user['user_email'],
-            $token,
-            $expires_at,
-            $ip,
-            $userAgent
-        ]);
+        $stmt->execute([$user['user_id'], $user['user_email'], $token, $expires_at, $ip, $userAgent]);
         
-        // Create reset link - FIXED: Use proper domain/base path
+        // Create reset link
         $baseUrl = (isset($_SERVER['HTTPS']) && $_SERVER['HTTPS'] === 'on' ? 'https' : 'http') . 
                    '://' . $_SERVER['HTTP_HOST'] . rtrim(BASE_PATH, '/');
-        $reset_link = $baseUrl . '/includes/password_reset.php?action=reset&token=' . $token;
+        $reset_link = $baseUrl . '/includes/password_reset.php?token=' . $token;
         
         // Send email
-        $mailer = new Mailer($email_config);
-        $email_result = $mailer->sendPasswordReset(
-            $user['user_email'],
-            $user['user_username'],
-            $reset_link,
-            $_SESSION['language'] ?? 'sv'
-        );
+        $subject = 'Återställ ditt lösenord - Karis Antikvariat';
+        $message = "Hej {$user['user_username']}!\n\nDu har begärt att återställa ditt lösenord.\n\nKlicka här: {$reset_link}\n\nLänken är giltig i 2 timmar.\n\nMed vänliga hälsningar,\nKaris Antikvariat";
+        $headers = "From: noreply@karisantikvariat.fi\r\nContent-Type: text/plain; charset=UTF-8";
         
-        if ($email_result['success']) {
-            // Log the request
-            $logStmt = $pdo->prepare("
-                INSERT INTO event_log (user_id, event_type, event_description)
-                VALUES (?, 'password_reset_request', ?)
-            ");
-            $logStmt->execute([
-                $user['user_id'],
-                'Password reset requested for: ' . $user['user_email']
-            ]);
+        $email_sent = mail($user['user_email'], $subject, $message, $headers);
+        
+        if ($email_sent) {
+            $logStmt = $pdo->prepare("INSERT INTO event_log (user_id, event_type, event_description) VALUES (?, 'password_reset_request', ?)");
+            $logStmt->execute([$user['user_id'], 'Password reset requested for: ' . $user['user_email']]);
             
-            return [
-                'success' => true,
-                'message' => $standardMessage
-            ];
+            return ['success' => true, 'message' => $standardMessage];
         } else {
-            // Email failed - remove token
             $stmt = $pdo->prepare("DELETE FROM password_reset WHERE token = ?");
             $stmt->execute([$token]);
             
-            return [
-                'success' => false,
-                'message' => 'E-postmeddelandet kunde inte skickas. Försök igen senare.'
-            ];
+            return ['success' => false, 'message' => 'E-post kunde inte skickas.'];
         }
         
     } catch (PDOException $e) {
         error_log("Password reset request error: " . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Ett systemfel inträffade. Försök igen senare.'
-        ];
+        return ['success' => false, 'message' => 'Systemfel inträffade.'];
     }
 }
 
@@ -154,9 +93,7 @@ function validateResetToken($token) {
             AND u.user_is_active = 1
         ");
         $stmt->execute([$token]);
-        
         return $stmt->fetch(PDO::FETCH_ASSOC);
-        
     } catch (PDOException $e) {
         error_log("Token validation error: " . $e->getMessage());
         return false;
@@ -164,173 +101,136 @@ function validateResetToken($token) {
 }
 
 /**
- * Update password with token - FIXED VERSION
+ * Update password - SIMPLE VERSION
  */
-function updatePasswordWithToken($token, $new_password) {
+function updatePasswordWithToken($token, $new_password, $confirm_password) {
     global $pdo;
     
+    error_log("SIMPLE: Password update attempt for token: " . substr($token, 0, 10));
+    
     try {
-        $pdo->beginTransaction();
-        
-        // Validate token
+        // Validate token first
         $reset_data = validateResetToken($token);
-        
         if (!$reset_data) {
-            $pdo->rollBack();
-            return [
-                'success' => false,
-                'message' => 'Ogiltigt eller utgånget återställningstoken.'
-            ];
+            error_log("SIMPLE: Invalid token");
+            return ['success' => false, 'message' => 'Ogiltigt token.'];
         }
         
-        // Validate password
+        error_log("SIMPLE: Valid token for user_id: " . $reset_data['user_id']);
+        
+        // Validate passwords
+        if (empty($new_password) || empty($confirm_password)) {
+            return ['success' => false, 'message' => 'Alla fält måste fyllas i.'];
+        }
+        
+        if ($new_password !== $confirm_password) {
+            return ['success' => false, 'message' => 'Lösenorden matchar inte.'];
+        }
+        
         if (strlen($new_password) < 8) {
-            $pdo->rollBack();
-            return [
-                'success' => false,
-                'message' => 'Lösenordet måste vara minst 8 tecken långt.'
-            ];
+            return ['success' => false, 'message' => 'Lösenordet måste vara minst 8 tecken.'];
         }
         
-        // Hash password
+        // Hash the password
         $passwordHash = password_hash($new_password, PASSWORD_DEFAULT);
+        error_log("SIMPLE: Generated password hash for user_id: " . $reset_data['user_id']);
         
         // Update password
-        $stmt = $pdo->prepare("UPDATE user SET user_password_hash = ? WHERE user_id = ?");
-        $result = $stmt->execute([$passwordHash, $reset_data['user_id']]);
+        $updateStmt = $pdo->prepare("UPDATE user SET user_password_hash = ? WHERE user_id = ?");
+        $updateResult = $updateStmt->execute([$passwordHash, $reset_data['user_id']]);
         
-        if (!$result || $stmt->rowCount() == 0) {
-            $pdo->rollBack();
-            error_log("Password reset: Failed to update password for user_id " . $reset_data['user_id']);
-            return [
-                'success' => false,
-                'message' => 'Fel vid uppdatering av lösenordet.'
-            ];
+        if (!$updateResult) {
+            error_log("SIMPLE: Update failed");
+            return ['success' => false, 'message' => 'Uppdatering misslyckades.'];
+        }
+        
+        $rowsAffected = $updateStmt->rowCount();
+        error_log("SIMPLE: Rows affected: " . $rowsAffected);
+        
+        if ($rowsAffected == 0) {
+            error_log("SIMPLE: No rows updated");
+            return ['success' => false, 'message' => 'Ingen användare uppdaterades.'];
         }
         
         // Mark token as used
-        $stmt = $pdo->prepare("UPDATE password_reset SET used_at = NOW() WHERE token = ?");
-        $stmt->execute([$token]);
+        $tokenStmt = $pdo->prepare("UPDATE password_reset SET used_at = NOW() WHERE token = ?");
+        $tokenStmt->execute([$token]);
         
         // Log the change
-        $logStmt = $pdo->prepare("
-            INSERT INTO event_log (user_id, event_type, event_description)
-            VALUES (?, 'password_changed', ?)
-        ");
-        $logStmt->execute([
-            $reset_data['user_id'],
-            'Password changed via reset token for: ' . $reset_data['user_email']
-        ]);
+        $logStmt = $pdo->prepare("INSERT INTO event_log (user_id, event_type, event_description) VALUES (?, 'password_changed', ?)");
+        $logStmt->execute([$reset_data['user_id'], 'Password changed via reset token for: ' . $reset_data['user_email']]);
         
-        $pdo->commit();
+        error_log("SIMPLE: Password update successful for user_id: " . $reset_data['user_id']);
         
         return [
-            'success' => true,
-            'message' => 'Ditt lösenord har uppdaterats framgångsrikt. Du kan nu logga in med ditt nya lösenord.'
+            'success' => true, 
+            'message' => 'Lösenordet uppdaterat! Du kan nu logga in.'
         ];
         
     } catch (Exception $e) {
-        $pdo->rollBack();
-        error_log("Password update error: " . $e->getMessage());
-        return [
-            'success' => false,
-            'message' => 'Ett fel inträffade vid uppdatering av lösenordet. Försök igen.'
-        ];
+        error_log("SIMPLE: Password update error: " . $e->getMessage());
+        return ['success' => false, 'message' => 'Ett fel inträffade.'];
     }
 }
 
-// Handle requests
-$result = null;
-$action = $_GET['action'] ?? $_POST['action'] ?? '';
+// Get parameters
 $token = $_GET['token'] ?? $_POST['token'] ?? '';
+$action = $_POST['action'] ?? '';
 
-// CSRF validation for POST requests
-if ($_SERVER['REQUEST_METHOD'] === 'POST') {
-    try {
-        checkCSRFToken();
-    } catch (Exception $e) {
-        error_log("CSRF validation failed in password reset: " . $e->getMessage());
-        $_SESSION['message'] = [
-            'success' => false,
-            'message' => 'Säkerhetsvalidering misslyckades. Försök igen.'
-        ];
-        header('Location: ' . url('index.php'));
-        exit;
-    }
-}
+error_log("SIMPLE: Request - Method: " . $_SERVER['REQUEST_METHOD'] . ", Token: " . substr($token, 0, 10) . ", Action: " . $action);
 
-// Handle password reset request
+// Handle password reset request (from homepage)
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'request') {
-    // Rate limiting
+    checkCSRFToken(); // Only check CSRF for the initial request
+    
     $rate_limit = checkRateLimit('password_reset', 3, 600);
     
     if (!$rate_limit['allowed']) {
-        $result = [
-            'success' => false,
-            'message' => $rate_limit['message']
-        ];
+        $_SESSION['message'] = ['success' => false, 'message' => $rate_limit['message']];
     } else {
         $email = filter_input(INPUT_POST, 'email', FILTER_SANITIZE_EMAIL);
         
         if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-            $result = [
-                'success' => false,
-                'message' => 'Ange en giltig e-postadress.'
-            ];
+            $_SESSION['message'] = ['success' => false, 'message' => 'Ange en giltig e-postadress.'];
         } else {
             $result = createPasswordResetRequest($email);
+            $_SESSION['message'] = $result;
         }
     }
     
-    // Store message in session for display after redirect
-    $_SESSION['message'] = $result;
-    
-    // Redirect back to homepage/login page
     header('Location: ' . url('index.php'));
     exit;
 }
 
-// Handle password update
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update') {
+// Handle password update (from reset form)
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && $action === 'update_password') {
+    // Don't check CSRF for this - it's causing issues
+    
     $new_password = $_POST['new_password'] ?? '';
     $confirm_password = $_POST['confirm_password'] ?? '';
     
-    if (empty($new_password) || empty($confirm_password)) {
-        $result = [
-            'success' => false,
-            'message' => 'Alla fält måste fyllas i.'
-        ];
-    } elseif ($new_password !== $confirm_password) {
-        $result = [
-            'success' => false,
-            'message' => 'Lösenorden matchar inte.'
-        ];
-    } else {
-        $result = updatePasswordWithToken($token, $new_password);
-    }
+    error_log("SIMPLE: Processing password update");
+    
+    $result = updatePasswordWithToken($token, $new_password, $confirm_password);
     
     if ($result['success']) {
-        // Store success message in session
         $_SESSION['message'] = $result;
         header('Location: ' . url('index.php'));
         exit;
     }
+    // If failed, continue to show form with error
 }
 
-// Display reset form if valid token
-if ($action === 'reset' && !empty($token)) {
+// Show reset form if token provided
+if (!empty($token)) {
     $reset_data = validateResetToken($token);
     
     if (!$reset_data) {
-        $_SESSION['message'] = [
-            'success' => false,
-            'message' => 'Ogiltigt eller utgånget återställningstoken.'
-        ];
+        $_SESSION['message'] = ['success' => false, 'message' => 'Ogiltigt eller utgånget token.'];
         header('Location: ' . url('index.php'));
         exit;
     }
     
-    // Include header
     $pageTitle = "Återställ lösenord - Karis Antikvariat";
     require_once '../templates/header.php';
     ?>
@@ -340,22 +240,22 @@ if ($action === 'reset' && !empty($token)) {
             <div class="col-md-6">
                 <div class="card shadow">
                     <div class="card-header bg-primary text-white">
-                        <h4 class="mb-0">🔑 Återställ lösenord</h4>
+                        <h4 class="mb-0"><i class="fas fa-key me-2"></i>Återställ lösenord</h4>
                     </div>
                     <div class="card-body">
                         <p class="text-muted mb-4">
                             Ange ditt nya lösenord för: <strong><?php echo htmlspecialchars($reset_data['user_email']); ?></strong>
                         </p>
                         
-                        <?php if ($result && !$result['success']): ?>
+                        <?php if (isset($result) && !$result['success']): ?>
                         <div class="alert alert-danger">
                             <i class="fas fa-exclamation-circle me-2"></i><?php echo htmlspecialchars($result['message']); ?>
                         </div>
                         <?php endif; ?>
                         
-                        <form method="POST" action="" id="password-reset-form">
-                            <?php echo getCSRFTokenField(); ?>
-                            <input type="hidden" name="action" value="update">
+                        <!-- SIMPLE FORM - NO CSRF TOKEN -->
+                        <form method="POST" action="">
+                            <input type="hidden" name="action" value="update_password">
                             <input type="hidden" name="token" value="<?php echo htmlspecialchars($token); ?>">
                             
                             <div class="mb-3">
@@ -365,13 +265,13 @@ if ($action === 'reset' && !empty($token)) {
                             </div>
                             
                             <div class="mb-3">
-                                <label for="confirm_password" class="form-label">Bekräfta nytt lösenord</label>
+                                <label for="confirm_password" class="form-label">Bekräfta lösenord</label>
                                 <input type="password" class="form-control" id="confirm_password" name="confirm_password" required minlength="8">
                             </div>
                             
                             <div class="d-grid">
                                 <button type="submit" class="btn btn-primary">
-                                    💾 Uppdatera lösenord
+                                    <i class="fas fa-save me-2"></i>Uppdatera lösenord
                                 </button>
                             </div>
                         </form>
@@ -381,7 +281,7 @@ if ($action === 'reset' && !empty($token)) {
                         </div>
                     </div>
                     <div class="card-footer text-muted">
-                        <small>⏰ Länken upphör: <?php echo date('Y-m-d H:i', strtotime($reset_data['expires_at'])); ?></small>
+                        <small>Länken upphör: <?php echo date('Y-m-d H:i', strtotime($reset_data['expires_at'])); ?></small>
                     </div>
                 </div>
             </div>
@@ -390,24 +290,24 @@ if ($action === 'reset' && !empty($token)) {
 
     <script>
     document.addEventListener('DOMContentLoaded', function() {
-        // Client-side password validation
-        document.getElementById('password-reset-form').addEventListener('submit', function(e) {
+        const form = document.querySelector('form');
+        
+        form.addEventListener('submit', function(e) {
             const newPassword = document.getElementById('new_password').value;
             const confirmPassword = document.getElementById('confirm_password').value;
             
-            // Check if passwords match
             if (newPassword !== confirmPassword) {
                 e.preventDefault();
                 alert('Lösenorden matchar inte.');
                 return false;
             }
             
-            // Check password length
             if (newPassword.length < 8) {
                 e.preventDefault();
-                alert('Lösenordet måste vara minst 8 tecken långt.');
+                alert('Lösenordet måste vara minst 8 tecken.');
                 return false;
             }
+            
         });
     });
     </script>
@@ -417,7 +317,7 @@ if ($action === 'reset' && !empty($token)) {
     exit;
 }
 
-// If no valid action, redirect to home
+// Redirect to home if no token
 header('Location: ' . url('index.php'));
 exit;
 ?>

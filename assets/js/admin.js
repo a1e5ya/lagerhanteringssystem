@@ -51,7 +51,6 @@ $(document).ready(function() {
       BASE_URL + "/admin/" + url,
       function(response, status, xhr) {
           if (status == "error") {
-              console.log("Error loading content: " + xhr.status + " " + xhr.statusText);
               
               // Handle specific error cases
               if (xhr.status === 403) {
@@ -76,7 +75,6 @@ $(document).ready(function() {
                   setupImagePreview();
               } else if (tab === "productlog") {
                   // Initialize product log functionality
-                  console.log('Product log tab loaded and initialized');
                   
                   // The productlog.php contains its own initialization script,
                   // but we can add any additional setup here if needed
@@ -97,7 +95,6 @@ $(document).ready(function() {
                   
               } else if (tab === "newsletter") {
                   // Initialize newsletter subscribers functionality
-                  console.log('Newsletter subscribers tab loaded and initialized');
                   
                   // The newsletter.php contains its own initialization script
                   
@@ -176,7 +173,6 @@ $(document).ready(function() {
     // Check if we're on the addproduct tab
     const addProductForm = document.getElementById('add-item-form');
     if (addProductForm) {
-      console.log('Add product form detected, setting up autocomplete');
       setupAutocomplete("author-name", "suggest-author", "author");
       setupAutocomplete("item-publisher", "suggest-publisher", "publisher");
       
@@ -198,7 +194,6 @@ $(document).ready(function() {
     // Check if we're on the product log tab
     const productLogForm = document.getElementById('log-filter-form');
     if (productLogForm) {
-      console.log('Product log form detected, ensuring initialization');
       
       // Make sure the product log functionality is properly initialized
       if (typeof loadProductLog === 'function') {
@@ -211,7 +206,6 @@ $(document).ready(function() {
     // Check if we're on the newsletter subscribers tab
     const newsletterForm = document.getElementById('subscriber-filter-form');
     if (newsletterForm) {
-      console.log('Newsletter subscribers form detected, ensuring initialization');
       
       // Make sure the newsletter functionality is properly initialized
       if (typeof loadSubscribers === 'function') {

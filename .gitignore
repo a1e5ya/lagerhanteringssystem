@@ -1,0 +1,15 @@
+# Ignore logs folder and all its contents
+logs/
+
+# Alternative: ignore all log files anywhere in the project
+*.log
+
+# Ignore common log file extensions
+*.log
+*.out
+*.err
+*.tmp
+
+# Keep the logs directory structure but ignore contents (optional)
+# logs/*
+# !logs/.gitkeep

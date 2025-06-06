@@ -194,7 +194,6 @@ include 'templates/footer.php';
 
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    console.log("Initializing sale product search...");
     
     // Make table rows clickable
     makeRowsClickable();
@@ -298,7 +297,6 @@ document.addEventListener('DOMContentLoaded', function() {
  * @param {string} order - Sort direction
  */
 function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 25, sort = '', order = 'asc') { // category parameter is now effectively ignored and hardcoded to 'all' for internal logic
-    console.log('Loading sale products with parameters:', { searchTerm, category, page, limit, sort, order });
     
     // Get the value of the hidden input `sale_only`
     const saleOnlyInput = document.querySelector('input[name="sale_only"]');
@@ -359,7 +357,6 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 25, s
     }
     
     // Make AJAX request to the api endpoint
-    console.log('Sending requestParams:', requestParams); 
     fetch('api/get_public_products.php?' + new URLSearchParams(requestParams))
     .then(response => {
         if (!response.ok) {
@@ -368,7 +365,6 @@ function loadProducts(searchTerm = '', category = 'all', page = 1, limit = 25, s
         return response.json();
     })
     .then(data => {
-        console.log('API response data:', data); 
         
         if (data.success) {
             // Update table with products
@@ -537,7 +533,6 @@ document.addEventListener('click', function(event) {
     if (row && row.dataset.href) {
         // Don't navigate if clicking on a control element
         if (!event.target.closest('a, button, input, select, .no-click')) {
-            console.log('Global handler navigating to:', row.dataset.href);
             window.location.href = row.dataset.href;
         }
     }

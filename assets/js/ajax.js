@@ -79,7 +79,6 @@ request: function(url, method, data, successCallback, errorCallback) {
         .then(response => {
             // Handle CSRF token expiry
             if (response.status === 419) {
-                console.log('CSRF token expired, refreshing page...');
                 window.location.reload();
                 return Promise.reject(new Error('CSRF token expired'));
             }
