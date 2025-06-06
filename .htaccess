@@ -1,46 +1,329 @@
-# Test basic .htaccess
+# =============================================================================
+# KARIS ANTIKVARIAT - SECURE .HTACCESS CONFIGURATION
+# Enhanced security headers and protection rules
+# =============================================================================
+
+# Disable directory browsing
 Options -Indexes
 
-# Test HTTPS redirect
+# Disable server signature
+ServerSignature Off
+
+# =============================================================================
+# HTTPS ENFORCEMENT
+# =============================================================================
+
+# Force HTTPS redirect (except for localhost development)
 RewriteEngine On
 RewriteCond %{HTTPS} off
+RewriteCond %{HTTP_HOST} !^localhost
+RewriteCond %{HTTP_HOST} !^127\.0\.0\.1
+RewriteCond %{HTTP_HOST} !^192\.168\.
 RewriteRule ^(.*)$ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
 
-# Protect config files using FilesMatch instead
-<FilesMatch "^(config|includes|backups|logs)/">
-    Order deny,allow
-    Deny from all
+# =============================================================================
+# SECURITY HEADERS
+# =============================================================================
+
+<IfModule mod_headers.c>
+    # Remove server information
+    Header unset Server
+    Header unset X-Powered-By
+    Header unset X-CF-Powered-By
+    
+    # Strict Transport Security (HSTS) - 1 year
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+    
+    # Prevent clickjacking
+    Header always set X-Frame-Options "DENY"
+    
+    # XSS Protection
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Prevent MIME type sniffing
+    Header always set X-Content-Type-Options "nosniff"
+    
+    # Referrer Policy
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    
+    # Permissions Policy (formerly Feature Policy) - Only widely supported features
+    Header always set Permissions-Policy "camera=(), microphone=(), geolocation=(), payment=(), usb=(), gyroscope=(), accelerometer=(), autoplay=(), encrypted-media=(), picture-in-picture=()"
+    
+    # Content Security Policy (CSP) - Balanced security and functionality
+    Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://code.jquery.com https://ajax.googleapis.com https://unpkg.com https://stackpath.bootstrapcdn.com; style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://cdnjs.cloudflare.com https://fonts.googleapis.com https://stackpath.bootstrapcdn.com; img-src 'self' data: https:; font-src 'self' https://cdnjs.cloudflare.com https://fonts.gstatic.com https://stackpath.bootstrapcdn.com; connect-src 'self'; frame-src 'none'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+    
+    # Additional security headers
+    Header always set Cross-Origin-Embedder-Policy "require-corp"
+    Header always set Cross-Origin-Opener-Policy "same-origin"
+    Header always set Cross-Origin-Resource-Policy "same-origin"
+    
+    # Prevent information disclosure
+    Header always unset X-Runtime
+    Header always unset X-Version
+    Header always unset X-Pingback
+    
+    # Cache control for sensitive pages
+    <FilesMatch "\.(php|phtml)$">
+        Header always set Cache-Control "no-cache, no-store, must-revalidate, max-age=0"
+        Header always set Pragma "no-cache"
+        Header always set Expires "0"
+    </FilesMatch>
+</IfModule>
+
+# =============================================================================
+# DIRECTORY AND FILE PROTECTION (No Directory blocks for shared hosting)
+# =============================================================================
+
+# Protect configuration files in any directory
+<FilesMatch "config\.php$">
+    Require all denied
 </FilesMatch>
 
-# Protect sensitive file types
-<FilesMatch "\.(sql|log|bak|backup)$">
-    Order deny,allow
-    Deny from all
+# Protect database files
+<FilesMatch "database\.php$">
+    Require all denied
 </FilesMatch>
 
-# Protect specific files
-<Files "config.php">
-    Order deny,allow
-    Deny from all
+# Protect all files in config directory (path-based)
+<FilesMatch "config/.*">
+    Require all denied
+</FilesMatch>
+
+# Protect all files in backups directory
+<FilesMatch "backups/.*">
+    Require all denied
+</FilesMatch>
+
+# Protect all files in logs directory  
+<FilesMatch "logs/.*">
+    Require all denied
+</FilesMatch>
+
+# Protect vendor directory files
+<FilesMatch "vendor/.*">
+    Require all denied
+</FilesMatch>
+
+# Protect specific includes files (deny all except allowed ones)
+<FilesMatch "includes/(?!login_process|session_check|get_csrf_token|password_reset).*\.php$">
+    Require all denied
+</FilesMatch>
+
+# Protect sensitive files by name
+<Files ~ "^(config|database|\.env|\.htpasswd|wp-config|web\.config)\.">
+    Require all denied
 </Files>
 
-# Hide PHP version headers
-Header unset X-Powered-By
-Header unset Server
-
-# Prevent PHP execution in uploads
-<FilesMatch "assets/uploads/.*\.(php|php3|php4|php5|phtml)$">
-    Order deny,allow
-    Deny from all
+# Protect sensitive file extensions
+<FilesMatch "\.(sql|log|bak|backup|old|orig|save|swo|swp|tmp|temp|conf|ini|yaml|yml|json)$">
+    Require all denied
 </FilesMatch>
 
-# Cache images for one month
+# Protect hidden files (starting with dot)
+<FilesMatch "^\.">
+    Require all denied
+</FilesMatch>
+
+# =============================================================================
+# UPLOAD SECURITY (No Directory blocks)
+# =============================================================================
+
+# Prevent PHP execution in uploads - using FilesMatch instead of Directory
+<FilesMatch "assets/uploads/.*\.php[0-9]?$">
+    Require all denied
+</FilesMatch>
+
+<FilesMatch "assets/uploads/.*\.(phtml|php3|php4|php5|php7|phar|inc|jsp|asp|aspx|cgi|pl|py|rb|sh|bat|cmd|exe|com|scr|vbs|jar|class)$">
+    Require all denied
+</FilesMatch>
+
+# Only allow specific image extensions in uploads
+<FilesMatch "assets/uploads/.*\.(?!(jpe?g|png|gif|webp|svg|ico)$)">
+    Require all denied
+</FilesMatch>
+
+# =============================================================================
+# REQUEST FILTERING
+# =============================================================================
+
+# Block suspicious request methods
+<LimitExcept GET POST HEAD>
+    Require all denied
+</LimitExcept>
+
+# Block requests with suspicious user agents
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    
+    # Block empty user agents
+    RewriteCond %{HTTP_USER_AGENT} ^-?$
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block common attack patterns in URLs
+    RewriteCond %{QUERY_STRING} (\<|%3C).*script.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} GLOBALS(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} _REQUEST(=|\[|\%[0-9A-Z]{0,2}) [OR]
+    RewriteCond %{QUERY_STRING} proc/self/environ [OR]
+    RewriteCond %{QUERY_STRING} mosConfig_[a-zA-Z_]{1,21}(=|\%3D) [OR]
+    RewriteCond %{QUERY_STRING} base64_(en|de)code\(.*\) [OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*iframe.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*object.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (\<|%3C).*embed.*(\>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*(\[|\]|\(|\)|<|>|ê|"|;|\?|\*|=$).* [NC,OR]
+    RewriteCond %{QUERY_STRING} ^.*(union|select|insert|cast|set|declare|drop|update|md5|benchmark).* [NC]
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block directory traversal attempts
+    RewriteCond %{QUERY_STRING} \.\./\.\./\.\./
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block null byte injections
+    RewriteCond %{QUERY_STRING} \0
+    RewriteRule ^(.*)$ - [F,L]
+    
+    # Block file injection attempts
+    RewriteCond %{QUERY_STRING} (<|%3C)([^s]*s)+cript.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|%3C)([^e]*e)+mbed.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|%3C)([^o]*o)+bject.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} (<|%3C)([^i]*i)+frame.*(>|%3E) [NC,OR]
+    RewriteCond %{QUERY_STRING} base64_encode.*\(.*\) [NC,OR]
+    RewriteCond %{QUERY_STRING} base64_decode.*\(.*\) [NC,OR]
+    RewriteCond %{QUERY_STRING} javascript:.*\(.*\) [NC,OR]
+    RewriteCond %{QUERY_STRING} vbscript:.*\(.*\) [NC]
+    RewriteRule ^(.*)$ - [F,L]
+</IfModule>
+
+# =============================================================================
+# RATE LIMITING (Basic)
+# =============================================================================
+
+<IfModule mod_evasive24.c>
+    DOSHashTableSize    2048
+    DOSPageCount        10
+    DOSPageInterval     1
+    DOSSiteCount        50
+    DOSSiteInterval     1
+    DOSBlockingPeriod   3600
+</IfModule>
+
+# =============================================================================
+# PERFORMANCE AND CACHING
+# =============================================================================
+
+# Compression
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/plain
+    AddOutputFilterByType DEFLATE text/html
+    AddOutputFilterByType DEFLATE text/xml
+    AddOutputFilterByType DEFLATE text/css
+    AddOutputFilterByType DEFLATE application/xml
+    AddOutputFilterByType DEFLATE application/xhtml+xml
+    AddOutputFilterByType DEFLATE application/rss+xml
+    AddOutputFilterByType DEFLATE application/javascript
+    AddOutputFilterByType DEFLATE application/x-javascript
+    AddOutputFilterByType DEFLATE application/json
+</IfModule>
+
+# Browser caching
 <IfModule mod_expires.c>
     ExpiresActive On
+    
+    # Images - 1 month
     ExpiresByType image/jpg "access plus 1 month"
     ExpiresByType image/jpeg "access plus 1 month"
     ExpiresByType image/png "access plus 1 month"
     ExpiresByType image/gif "access plus 1 month"
     ExpiresByType image/webp "access plus 1 month"
+    ExpiresByType image/svg+xml "access plus 1 month"
+    
+    # Icons - 1 year
     ExpiresByType image/x-icon "access plus 1 year"
+    ExpiresByType image/vnd.microsoft.icon "access plus 1 year"
+    
+    # CSS and JavaScript - 1 week
+    ExpiresByType text/css "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType application/x-javascript "access plus 1 week"
+    
+    # Fonts - 1 month
+    ExpiresByType font/woff "access plus 1 month"
+    ExpiresByType font/woff2 "access plus 1 month"
+    ExpiresByType application/font-woff "access plus 1 month"
+    ExpiresByType application/font-woff2 "access plus 1 month"
+    
+    # HTML, PHP - No caching
+    ExpiresByType text/html "access plus 0 seconds"
+    ExpiresByType application/php "access plus 0 seconds"
 </IfModule>
+
+# Cache control headers
+<IfModule mod_headers.c>
+    # Images
+    <FilesMatch "\.(jpg|jpeg|png|gif|webp|svg|ico)$">
+        Header set Cache-Control "public, max-age=2628000"
+    </FilesMatch>
+    
+    # CSS and JavaScript
+    <FilesMatch "\.(css|js)$">
+        Header set Cache-Control "public, max-age=604800"
+    </FilesMatch>
+    
+    # Fonts
+    <FilesMatch "\.(woff|woff2|ttf|eot)$">
+        Header set Cache-Control "public, max-age=2628000"
+        Header set Access-Control-Allow-Origin "*"
+    </FilesMatch>
+    
+    # HTML and PHP - no cache
+    <FilesMatch "\.(html|php|phtml)$">
+        Header set Cache-Control "no-cache, no-store, must-revalidate"
+        Header set Pragma "no-cache"
+        Header set Expires "0"
+    </FilesMatch>
+</IfModule>
+
+# =============================================================================
+# ERROR PAGES (Optional)
+# =============================================================================
+
+# Custom error pages (uncomment and create these pages if needed)
+# ErrorDocument 400 /error/400.html
+# ErrorDocument 401 /error/401.html
+# ErrorDocument 403 /error/403.html
+# ErrorDocument 404 /error/404.html
+# ErrorDocument 500 /error/500.html
+
+# =============================================================================
+# ADDITIONAL SECURITY MEASURES
+# =============================================================================
+
+# Prevent access to version control files
+<FilesMatch "\.(git|svn|hg|bzr)">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to backup files
+<FilesMatch "\.(bak|backup|old|orig|save|tmp|temp)$">
+    Require all denied
+</FilesMatch>
+
+# Prevent access to log files
+<FilesMatch "\.log$">
+    Require all denied
+</FilesMatch>
+
+# Block xmlrpc.php if it exists (WordPress leftover)
+<Files "xmlrpc.php">
+    Require all denied
+</Files>
+
+# Disable trace and track methods
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{REQUEST_METHOD} ^(TRACE|TRACK)
+    RewriteRule .* - [F]
+</IfModule>
+
+# =============================================================================
+# END OF CONFIGURATION
+# =============================================================================

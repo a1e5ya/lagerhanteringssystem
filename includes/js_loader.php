@@ -46,8 +46,7 @@ $js_files = [
     
     // Public-specific files
     'public' => [
-        'newsletter',
-        'formatter'
+        'newsletter'
     ]
 ];
 
