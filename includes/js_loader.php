@@ -6,13 +6,25 @@
  * Include this file once in your templates to load all necessary JS files.
  */
 
-// Define JS files groups
-$js_files = [
+
     // CDN resources with full URLs
+$js_files = [
     'cdn' => [
-        'jquery' => 'https://code.jquery.com/jquery-3.6.0.min.js',
-        'bootstrap' => 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js',
-        'fontawesome' => 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js'
+        'jquery' => [
+            'src' => 'https://code.jquery.com/jquery-3.6.0.min.js',
+            'integrity' => 'sha256-/xUj+3OJU5yExlq6GSYGSHk7tPXikynS7ogEvDej/m4=',
+            'crossorigin' => 'anonymous'
+        ],
+'bootstrap' => [
+    'src' => 'https://cdn.jsdelivr.net/npm/bootstrap@5.3.6/dist/js/bootstrap.bundle.min.js',
+    'integrity' => 'sha384-j1CDi7MgGQ12Z7Qab0qlWQ/Qqz24Gc6BM0thvEMVjHnfYGF0rmFCozFSxQBxwHKO',
+    'crossorigin' => 'anonymous'
+],
+        'fontawesome' => [
+            'src' => 'https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/js/all.min.js',
+            'integrity' => 'sha512-yFjZbTYRCJodnuyGlsKamNE/LlEaEAxSUDe5+u61mV8zzqJVFOH7TnULE2/PP/l5vKWpUNnF4VGVkXh3MjgLsg==',
+            'crossorigin' => 'anonymous'
+        ]
     ],
     
     // Core files needed on all pages (LOAD FIRST)
@@ -60,17 +72,22 @@ function loadJavaScript($types = ['cdn', 'core'], $specific = []) {
     if (in_array('admin', $types)) $orderedTypes[] = 'admin';
     if (in_array('public', $types)) $orderedTypes[] = 'public';
     
-    foreach ($orderedTypes as $type) {
-        if (isset($js_files[$type])) {
-            foreach ($js_files[$type] as $key => $file) {
-                if ($type === 'cdn') {
-                    $output .= "<script src=\"{$file}\"></script>\n";
-                } else {
-                    $output .= "<script src=\"" . asset('js', $file . '.js') . "\"></script>\n";
-                }
+foreach ($orderedTypes as $type) {
+    if (isset($js_files[$type])) {
+        foreach ($js_files[$type] as $key => $file) {
+            if ($type === 'cdn') {
+                // Handle CDN files with integrity and crossorigin attributes
+                $src = is_array($file) ? $file['src'] : $file;
+                $integrity = is_array($file) && isset($file['integrity']) ? ' integrity="' . $file['integrity'] . '"' : '';
+                $crossorigin = is_array($file) && isset($file['crossorigin']) ? ' crossorigin="' . $file['crossorigin'] . '"' : '';
+                
+                $output .= "<script src=\"{$src}\"{$integrity}{$crossorigin}></script>\n";
+            } else {
+                $output .= "<script src=\"" . asset('js', $file . '.js') . "\"></script>\n";
             }
         }
     }
+}
     
     // Load specific files if any
     if (!empty($specific)) {

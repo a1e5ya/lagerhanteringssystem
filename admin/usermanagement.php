@@ -344,11 +344,14 @@ function removeUser($userId) {
     global $pdo;
     
     try {
+        $pdo->beginTransaction();
+        
         // Get current logged-in user
         $currentUser = getSessionUser();
         
         // Prevent user from deleting themselves
         if ($currentUser['user_id'] == $userId) {
+            $pdo->rollBack();
             return [
                 'success' => false, 
                 'error' => 'Du kan inte ta bort ditt eget konto.'
@@ -361,6 +364,7 @@ function removeUser($userId) {
         $userData = $getUserStmt->fetch(PDO::FETCH_ASSOC);
         
         if (!$userData) {
+            $pdo->rollBack();
             return ['success' => false, 'error' => 'Användaren kunde inte hittas.'];
         }
         
@@ -375,13 +379,14 @@ function removeUser($userId) {
         
         // If this would be deleting the last admin, don't allow it
         if ($result['admin_count'] < 1 && $userData['user_role'] == 1) {
+            $pdo->rollBack();
             return [
                 'success' => false, 
                 'error' => 'Kan inte ta bort den sista administratören.'
             ];
         }
         
-        // Log the deletion before actually deleting
+        // Log the deletion BEFORE actually deleting
         $logStmt = $pdo->prepare("
             INSERT INTO event_log (user_id, event_type, event_description)
             VALUES (?, 'delete_user', ?)
@@ -391,9 +396,37 @@ function removeUser($userId) {
             "User deleted: {$userData['user_username']}"
         ]);
         
-        // Delete the user
+        // Handle foreign key constraints properly
+        
+        // 1. Update event_log entries to reference the deleting user instead of deleted user
+        $updateEventLogStmt = $pdo->prepare("
+            UPDATE event_log 
+            SET user_id = ?, event_description = CONCAT(event_description, ' [Original user deleted: {$userData['user_username']}]')
+            WHERE user_id = ?
+        ");
+        $updateEventLogStmt->execute([$currentUser['user_id'], $userId]);
+        
+        // 2. Delete password reset entries (cascade should handle this, but be explicit)
+        $deleteResetStmt = $pdo->prepare("DELETE FROM password_reset WHERE user_id = ?");
+        $deleteResetStmt->execute([$userId]);
+        
+        // 3. Delete login attempts for this user
+        $deleteAttemptsStmt = $pdo->prepare("DELETE FROM login_attempts WHERE username = ?");
+        $deleteAttemptsStmt->execute([$userData['user_username']]);
+        
+        // 4. Finally delete the user
         $stmt = $pdo->prepare("DELETE FROM user WHERE user_id = ?");
         $stmt->execute([$userId]);
+        
+        if ($stmt->rowCount() == 0) {
+            $pdo->rollBack();
+            return [
+                'success' => false, 
+                'error' => 'Användaren kunde inte tas bort.'
+            ];
+        }
+        
+        $pdo->commit();
         
         return [
             'success' => true, 
@@ -401,6 +434,7 @@ function removeUser($userId) {
         ];
         
     } catch (PDOException $e) {
+        $pdo->rollBack();
         error_log("Error in removeUser: " . $e->getMessage());
         return ['success' => false, 'error' => 'Databasfel: Kunde inte ta bort användaren.'];
     }
@@ -609,18 +643,147 @@ function renderEditUserForm($userId = null) {
     <?php endif; ?>
     
     <!-- Activity Log Section (keeping this shorter) -->
-    <?php if ($userId): ?>
-    <div class="card mt-4">
-        <div class="card-header">
-            <h5 class="mb-0"><i class="fas fa-history me-2"></i>Aktivitetslogg</h5>
-        </div>
-        <div class="card-body">
-            <p class="text-muted">Senaste aktiviteter för denna användare visas här.</p>
-        </div>
+<?php if ($userId): ?>
+<div class="card mt-4">
+    <div class="card-header d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="fas fa-history me-2"></i>Aktivitetslogg</h5>
+        <small class="text-muted">Senaste 20 aktiviteterna</small>
     </div>
-    <?php endif; ?>
+    <div class="card-body">
+        <?php
+        $activities = getUserActivityLog($userId, 20);
+        
+        if (empty($activities)): ?>
+            <div class="text-center py-4">
+                <i class="fas fa-history fa-3x text-muted mb-3"></i>
+                <p class="text-muted">Inga aktiviteter registrerade för denna användare ännu.</p>
+            </div>
+        <?php else: ?>
+            <div class="table-responsive">
+                <table class="table table-sm table-hover">
+                    <thead class="table-light">
+                        <tr>
+                            <th width="120">Datum</th>
+                            <th width="140">Aktivitet</th>
+                            <th>Beskrivning</th>
+                            <th width="80">Produkt</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <?php foreach ($activities as $activity): 
+                            $eventFormat = formatEventType($activity['event_type']);
+                            $timestamp = new DateTime($activity['event_timestamp']);
+                        ?>
+                        <tr>
+                            <td class="text-nowrap">
+                                <small class="text-muted">
+                                    <?php echo $timestamp->format('Y-m-d'); ?><br>
+                                    <?php echo $timestamp->format('H:i:s'); ?>
+                                </small>
+                            </td>
+                            <td>
+                                <span class="badge bg-<?php echo $eventFormat['class']; ?> d-inline-flex align-items-center">
+                                    <i class="<?php echo $eventFormat['icon']; ?> me-1"></i>
+                                    <small><?php echo $eventFormat['text']; ?></small>
+                                </span>
+                            </td>
+                            <td>
+                                <small><?php echo htmlspecialchars($activity['event_description']); ?></small>
+                            </td>
+                            <td class="text-center">
+                                <?php if ($activity['product_id']): ?>
+                                    <a href="<?php echo rtrim(BASE_PATH, '/'); ?>/admin/adminsingleproduct.php?id=<?php echo $activity['product_id']; ?>" 
+                                       class="btn btn-sm btn-outline-primary" 
+                                       title="Visa produkt" 
+                                       target="_blank">
+                                        <i class="fas fa-external-link-alt"></i>
+                                    </a>
+                                <?php else: ?>
+                                    <span class="text-muted">-</span>
+                                <?php endif; ?>
+                            </td>
+                        </tr>
+                        <?php endforeach; ?>
+                    </tbody>
+                </table>
+            </div>
+            
+            <!-- Statistics summary -->
+            <div class="row mt-3">
+                <div class="col-md-12">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        Visar de senaste <?php echo count($activities); ?> aktiviteterna för denna användare.
+                        <?php if (count($activities) >= 20): ?>
+                            Det kan finnas fler aktiviteter i systemet.
+                        <?php endif; ?>
+                    </small>
+                </div>
+            </div>
+        <?php endif; ?>
+    </div>
+</div>
+<?php endif; ?>
     
     <?php
+}
+
+function getUserActivityLog($userId, $limit = 20) {
+    global $pdo;
+    
+    try {
+        $stmt = $pdo->prepare("
+            SELECT 
+                el.event_id,
+                el.event_type,
+                el.event_description,
+                el.event_timestamp,
+                el.product_id,
+                u.user_username as performer_username
+            FROM event_log el
+            LEFT JOIN user u ON el.user_id = u.user_id
+            WHERE el.user_id = ? 
+               OR el.event_description LIKE CONCAT('%', (SELECT user_username FROM user WHERE user_id = ?), '%')
+            ORDER BY el.event_timestamp DESC
+            LIMIT ?
+        ");
+        
+        $stmt->execute([$userId, $userId, $limit]);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+        
+    } catch (PDOException $e) {
+        error_log("Error in getUserActivityLog: " . $e->getMessage());
+        return [];
+    }
+}
+
+function formatEventType($eventType) {
+    $eventTypes = [
+        'login' => ['icon' => 'fas fa-sign-in-alt', 'class' => 'success', 'text' => 'Inloggning'],
+        'logout' => ['icon' => 'fas fa-sign-out-alt', 'class' => 'info', 'text' => 'Utloggning'],
+        'login_failed' => ['icon' => 'fas fa-exclamation-triangle', 'class' => 'warning', 'text' => 'Misslyckad inloggning'],
+        'create' => ['icon' => 'fas fa-plus-circle', 'class' => 'success', 'text' => 'Skapade produkt'],
+        'update' => ['icon' => 'fas fa-edit', 'class' => 'info', 'text' => 'Uppdaterade produkt'],
+        'delete' => ['icon' => 'fas fa-trash', 'class' => 'danger', 'text' => 'Raderade produkt'],
+        'sell' => ['icon' => 'fas fa-shopping-cart', 'class' => 'success', 'text' => 'Sålde produkt'],
+        'return' => ['icon' => 'fas fa-undo', 'class' => 'warning', 'text' => 'Återställde produkt'],
+        'batch_delete' => ['icon' => 'fas fa-trash-alt', 'class' => 'danger', 'text' => 'Batch-radering'],
+        'create_user' => ['icon' => 'fas fa-user-plus', 'class' => 'success', 'text' => 'Skapade användare'],
+        'update_user' => ['icon' => 'fas fa-user-edit', 'class' => 'info', 'text' => 'Uppdaterade användare'],
+        'delete_user' => ['icon' => 'fas fa-user-minus', 'class' => 'danger', 'text' => 'Raderade användare'],
+        'update_user_status' => ['icon' => 'fas fa-user-check', 'class' => 'info', 'text' => 'Ändrade använderstatus'],
+        'password_reset_request' => ['icon' => 'fas fa-key', 'class' => 'warning', 'text' => 'Begärde lösenordsåterställning'],
+        'password_changed' => ['icon' => 'fas fa-lock', 'class' => 'info', 'text' => 'Ändrade lösenord'],
+        'update_author' => ['icon' => 'fas fa-user-edit', 'class' => 'info', 'text' => 'Uppdaterade författare'],
+        'delete_subscriber' => ['icon' => 'fas fa-envelope-open', 'class' => 'warning', 'text' => 'Raderade prenumerant'],
+        'database_backup' => ['icon' => 'fas fa-database', 'class' => 'primary', 'text' => 'Databassäkerhetskopiering']
+    ];
+    
+    return $eventTypes[$eventType] ?? [
+        'icon' => 'fas fa-info-circle', 
+        'class' => 'secondary', 
+        'text' => ucfirst(str_replace('_', ' ', $eventType))
+    ];
 }
 
 // Process form submissions
