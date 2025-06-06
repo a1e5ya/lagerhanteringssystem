@@ -1,29 +1,155 @@
 <?php
 /**
- * Get Public Products
+ * Get Public Products - Secured Version with Smart Search
  *
- * Server-side script to handle product data for public index page
- * Modified to include 1000 product limit when no filters are applied
+ * Server-side script to handle product data for public index page with enhanced security.
+ * Features smart multi-field search functionality and 1000 product limit when no filters applied.
+ * Implements proper input validation, output sanitization, and error handling.
  *
  * @package     KarisAntikvariat
  * @subpackage  API
  * @author      Axxell
- * @version     1.1
+ * @version     1.3
+ * @since       2024-01-01
  */
 
 require_once dirname(__DIR__) . '/init.php';
 
-// Set header to JSON
-header('Content-Type: application/json');
+/**
+ * Smart search function that handles multi-field searches intelligently
+ * 
+ * Provides intelligent search across multiple database fields with word splitting
+ * and combination strategies to find relevant products.
+ * 
+ * @param string $searchTerm The search term to process
+ * @param string $language Current language ('sv' or 'fi')
+ * @return array Array containing WHERE clause and parameters for prepared statement
+ * @throws InvalidArgumentException If invalid language provided
+ */
+function buildSmartSearch($searchTerm, $language = 'sv') {
+    // Validate language parameter
+    $allowedLanguages = ['sv', 'fi'];
+    if (!in_array($language, $allowedLanguages)) {
+        throw new InvalidArgumentException('Invalid language parameter');
+    }
+    
+    // Sanitize and validate search term
+    $searchTerm = sanitizeInput($searchTerm, 'string', 500);
+    if (empty($searchTerm)) {
+        return ['where' => '', 'params' => []];
+    }
+    
+    // Split search term into words and filter empty elements
+    $words = preg_split('/\s+/', $searchTerm);
+    $words = array_filter($words, function($word) {
+        return strlen(trim($word)) >= 1;
+    });
+    
+    if (empty($words)) {
+        return ['where' => '', 'params' => []];
+    }
+    
+    $conditions = [];
+    $params = [];
+    
+    // Determine language field suffix
+    $langSuffix = ($language === 'fi') ? 'fi' : 'sv';
+    
+    // Strategy 1: Exact phrase search across all searchable fields
+    $conditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.publisher LIKE ? OR c.category_{$langSuffix}_name LIKE ? OR g.genre_{$langSuffix}_name LIKE ?)";
+    $exactPhrase = '%' . $searchTerm . '%';
+    for ($i = 0; $i < 6; $i++) {
+        $params[] = $exactPhrase;
+    }
+    
+    // Strategy 2: Multi-word intelligent combinations (author + title)
+    if (count($words) > 1) {
+        // Try different word splits: first N words as author, rest as title
+        for ($split = 1; $split < count($words); $split++) {
+            $authorPart = implode(' ', array_slice($words, 0, $split));
+            $titlePart = implode(' ', array_slice($words, $split));
+            
+            $conditions[] = "(a.author_name LIKE ? AND p.title LIKE ?)";
+            $params[] = '%' . $authorPart . '%';
+            $params[] = '%' . $titlePart . '%';
+        }
+        
+        // Try reverse combinations: title first, then author
+        for ($split = 1; $split < count($words); $split++) {
+            $titlePart = implode(' ', array_slice($words, 0, $split));
+            $authorPart = implode(' ', array_slice($words, $split));
+            
+            $conditions[] = "(p.title LIKE ? AND a.author_name LIKE ?)";
+            $params[] = '%' . $titlePart . '%';
+            $params[] = '%' . $authorPart . '%';
+        }
+        
+        // Strategy 3: All words must appear somewhere (flexible matching)
+        $allWordsConditions = [];
+        foreach ($words as $word) {
+            $word = trim($word);
+            if (strlen($word) >= 2) { // Skip very short words to improve performance
+                $allWordsConditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.publisher LIKE ? OR c.category_{$langSuffix}_name LIKE ? OR g.genre_{$langSuffix}_name LIKE ?)";
+                $wordParam = '%' . $word . '%';
+                for ($i = 0; $i < 6; $i++) {
+                    $params[] = $wordParam;
+                }
+            }
+        }
+        
+        if (!empty($allWordsConditions)) {
+            $conditions[] = "(" . implode(" AND ", $allWordsConditions) . ")";
+        }
+    }
+    
+    $whereClause = "(" . implode(" OR ", $conditions) . ")";
+    
+    return ['where' => $whereClause, 'params' => $params];
+}
 
-// Get parameters
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$category = isset($_GET['category']) ? $_GET['category'] : '';
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-$limit = isset($_GET['limit']) ? min((int)$_GET['limit'], 200) : 25; // Hard cap of 200
-$sort = isset($_GET['sort']) ? $_GET['sort'] : 'title';
-$order = isset($_GET['order']) && strtolower($_GET['order']) === 'desc' ? 'desc' : 'asc';
+/**
+ * Check if any search or filter parameters are applied
+ * 
+ * @param string $search Search term
+ * @param string $category Category filter
+ * @param bool $isSalePageRequest Whether this is from the sale page
+ * @return bool True if filters are applied
+ */
+function hasFiltersApplied($search, $category, $isSalePageRequest) {
+    // Search term counts as filter
+    if (!empty(trim($search))) {
+        return true;
+    }
+    
+    // Category filter (excluding 'all')
+    if (!empty($category) && $category !== 'all') {
+        return true;
+    }
+    
+    // Sale page special price filter
+    if ($isSalePageRequest) {
+        return true;
+    }
+    
+    return false;
+}
+
+// Set JSON response header
+header('Content-Type: application/json; charset=utf-8');
+
+// Sanitize and validate input parameters
+$search = sanitizeInput($_GET['search'] ?? '', 'string', 500);
+$category = sanitizeInput($_GET['category'] ?? '', 'string', 50);
+$page = sanitizeInput($_GET['page'] ?? 1, 'int', null, ['min' => 1, 'max' => 1000]);
+$limit = sanitizeInput($_GET['limit'] ?? 25, 'int', null, ['min' => 1, 'max' => 200]);
+$sort = sanitizeInput($_GET['sort'] ?? 'title', 'string', 50);
+$order = sanitizeInput($_GET['order'] ?? 'asc', 'string', 4);
 $randomSamples = isset($_GET['random_samples']) && $_GET['random_samples'] === 'true';
+
+// Validate sort order parameter
+if (!in_array(strtolower($order), ['asc', 'desc'])) {
+    $order = 'asc';
+}
 
 // Check for special_price parameter from sale.php
 $isSalePageRequest = isset($_GET['special_price']) && $_GET['special_price'] === '1';
@@ -33,60 +159,38 @@ if (session_status() === PHP_SESSION_NONE) {
     session_start();
 }
 
-// Get language from session or default to Swedish
-$language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
+// Get and validate language from session
+$language = isset($_SESSION['language']) && in_array($_SESSION['language'], ['sv', 'fi']) 
+    ? $_SESSION['language'] 
+    : 'sv';
 
 // Create formatter instance with appropriate locale
-$formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
-
-// MAXIMUM PRODUCTS LIMIT - only applies when no filters are used
-const MAX_PRODUCTS_WITHOUT_FILTERS = 1000;
-
-/**
- * Check if any filters are applied
- * 
- * @param string $search Search term
- * @param string $category Category filter
- * @param bool $isSalePageRequest Whether this is from the sale page
- * @return bool True if filters are applied
- */
-function hasFiltersApplied($search, $category, $isSalePageRequest) {
-    // If there's a search term, filters are applied
-    if (!empty($search)) {
-        return true;
-    }
-    
-    // If category is not empty and not 'all', filters are applied
-    if (!empty($category) && $category !== 'all') {
-        return true;
-    }
-    
-    // If this is from the sale page (special_price filter), filters are applied
-    if ($isSalePageRequest) {
-        return true;
-    }
-    
-    return false;
+try {
+    $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
+} catch (Exception $e) {
+    // Fallback to Swedish if formatter fails
+    $formatter = new Formatter('sv_SE');
 }
 
+// Maximum products limit for unfiltered requests
+const MAX_PRODUCTS_WITHOUT_FILTERS = 1000;
+
 try {
+    // Handle random samples request
     if ($randomSamples && empty($search) && ($category === 'all' || empty($category)) && !$isSalePageRequest) {
-        // Fetch random samples
         $sampleProducts = getRandomSampleProducts($pdo, 2, $language);
     
-        // Calculate total items and paginate
+        // Calculate pagination for samples
         $totalItems = count($sampleProducts);
         $totalPages = ceil($totalItems / $limit);
         $offset = ($page - 1) * $limit;
         $paginatedSamples = array_slice($sampleProducts, $offset, $limit);
     
-        // Format the product data
+        // Format and render products
         $formattedProducts = formatProductsData($paginatedSamples, $formatter);
-    
-        // Generate HTML for products
         $html = renderProductsHTML($formattedProducts, false);
     
-        // Prepare response
+        // Prepare and send response
         $response = [
             'success' => true,
             'items' => $formattedProducts,
@@ -102,25 +206,25 @@ try {
             ]
         ];
     
-        // Output JSON response
-        echo json_encode($response);
+        echo json_encode($response, JSON_UNESCAPED_UNICODE);
         return;
     }
 
     // Check if filters are applied
     $filtersApplied = hasFiltersApplied($search, $category, $isSalePageRequest);
 
-    // Build SQL query for public products
+    // Build main SQL query for public products
+    $langField = ($language === 'fi') ? 'fi' : 'sv';
     $sql = "SELECT 
                 p.prod_id, 
                 p.title, 
                 GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
-                c.category_" . ($language === 'fi' ? 'fi' : 'sv') . "_name as category_name,
+                c.category_{$langField}_name as category_name,
                 p.category_id,
-                GROUP_CONCAT(DISTINCT g.genre_" . ($language === 'fi' ? 'fi' : 'sv') . "_name SEPARATOR ', ') AS genre_names,
-                con.condition_" . ($language === 'fi' ? 'fi' : 'sv') . "_name as condition_name,
+                GROUP_CONCAT(DISTINCT g.genre_{$langField}_name SEPARATOR ', ') AS genre_names,
+                con.condition_{$langField}_name as condition_name,
                 p.price,
-                IFNULL(l.language_" . ($language === 'fi' ? 'fi' : 'sv') . "_name, '') as language,
+                IFNULL(l.language_{$langField}_name, '') as language,
                 p.year,
                 p.publisher,
                 p.notes,
@@ -137,37 +241,37 @@ try {
             LEFT JOIN `condition` con ON p.condition_id = con.condition_id
             LEFT JOIN `language` l ON p.language_id = l.language_id";
     
-    // Add WHERE conditions
+    // Build WHERE conditions with parameters
     $whereConditions = [];
     $params = [];
     
-    // Always show only available products (status = 1)
+    // Always show only available products
     $whereConditions[] = "p.status = 1";
 
-    // Add special_price condition if the request came from the sale page
+    // Add special price condition for sale page
     if ($isSalePageRequest) {
         $whereConditions[] = "p.special_price = 1";
     }
 
-    // Search condition
+    // Apply smart search if search term provided
     if (!empty($search)) {
-        $whereConditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.publisher LIKE ? OR c.category_" . ($language === 'fi' ? 'fi' : 'sv') . "_name LIKE ? OR g.genre_" . ($language === 'fi' ? 'fi' : 'sv') . "_name LIKE ?)";
-        $searchParam = '%' . $search . '%';
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
+        $searchResult = buildSmartSearch($search, $language);
+        if (!empty($searchResult['where'])) {
+            $whereConditions[] = $searchResult['where'];
+            $params = array_merge($params, $searchResult['params']);
+        }
     }
     
-    // Category condition
+    // Apply category filter
     if (!empty($category) && $category !== 'all') {
-        $whereConditions[] = "p.category_id = ?";
-        $params[] = $category;
+        $categoryId = sanitizeInput($category, 'int');
+        if ($categoryId > 0) {
+            $whereConditions[] = "p.category_id = ?";
+            $params[] = $categoryId;
+        }
     }
     
-    // Construct the full WHERE clause
+    // Add WHERE clause to SQL
     if (!empty($whereConditions)) {
         $sql .= " WHERE " . implode(" AND ", $whereConditions);
     }
@@ -176,20 +280,15 @@ try {
     $sql .= " GROUP BY p.prod_id";
     
     // Add ORDER BY clause with validation
-    if (!empty($sort)) {
-        // Sanitize sort column to prevent SQL injection
-        $allowedSortColumns = ['title', 'author_name', 'category_name', 'genre_names', 'condition_name', 'price', 'date_added'];
-        if (!in_array($sort, $allowedSortColumns)) {
-            $sort = 'title';
-        }
-        
-        $orderDirection = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
-        $sql .= " ORDER BY {$sort} {$orderDirection}";
-    } else {
-        $sql .= " ORDER BY title ASC";
+    $allowedSortColumns = ['title', 'author_name', 'category_name', 'genre_names', 'condition_name', 'price', 'date_added'];
+    if (!in_array($sort, $allowedSortColumns)) {
+        $sort = 'title';
     }
     
-    // Build SQL for counting total items
+    $orderDirection = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+    $sql .= " ORDER BY {$sort} {$orderDirection}";
+    
+    // Build count query for pagination
     $countSql = "SELECT COUNT(DISTINCT p.prod_id) 
                  FROM product p
                  LEFT JOIN product_author pa ON p.prod_id = pa.product_id
@@ -208,14 +307,14 @@ try {
     // Execute count query
     $stmt = $pdo->prepare($countSql);
     if (!empty($params)) {
-        for ($i = 0; $i < count($params); $i++) {
-            $stmt->bindValue($i + 1, $params[$i]);
+        foreach ($params as $index => $param) {
+            $stmt->bindValue($index + 1, $param, PDO::PARAM_STR);
         }
     }
     $stmt->execute();
-    $actualTotalItems = $stmt->fetchColumn();
+    $actualTotalItems = (int)$stmt->fetchColumn();
     
-    // Apply the 1000 limit if no filters are applied
+    // Apply 1000 item limit for unfiltered requests
     $totalItems = $actualTotalItems;
     $limitApplied = false;
     
@@ -223,44 +322,43 @@ try {
         $totalItems = MAX_PRODUCTS_WITHOUT_FILTERS;
         $limitApplied = true;
         
-        // Add LIMIT to the main query to respect the 1000 limit
+        // Calculate offset and limit with 1000 cap
         $maxOffset = ($page - 1) * $limit;
         if ($maxOffset >= MAX_PRODUCTS_WITHOUT_FILTERS) {
-            // If trying to access beyond the limit, show empty results
             $sql .= " LIMIT 0";
         } else {
-            // Calculate how many items we can actually fetch
             $remainingItems = MAX_PRODUCTS_WITHOUT_FILTERS - $maxOffset;
             $actualLimit = min($limit, $remainingItems);
             $sql .= " LIMIT " . $maxOffset . ", " . $actualLimit;
         }
     } else {
-        // Normal pagination without the 1000 limit
-        $sql .= " LIMIT " . (($page - 1) * $limit) . ", " . $limit;
+        // Normal pagination
+        $offset = ($page - 1) * $limit;
+        $sql .= " LIMIT " . $offset . ", " . $limit;
     }
 
     // Execute main query
     $stmt = $pdo->prepare($sql);
     if (!empty($params)) {
-        for ($i = 0; $i < count($params); $i++) {
-            $stmt->bindValue($i + 1, $params[$i]);
+        foreach ($params as $index => $param) {
+            $stmt->bindValue($index + 1, $param, PDO::PARAM_STR);
         }
     }
     $stmt->execute();
     $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
     
-    // Process products to format data
+    // Format product data
     $formattedProducts = formatProductsData($products, $formatter);
     
-    // Generate HTML for products
+    // Generate HTML output
     $html = renderProductsHTML($formattedProducts, $isSalePageRequest);
     
-    // Calculate pagination info
+    // Calculate pagination information
     $totalPages = ceil($totalItems / $limit);
     $firstRecord = $totalItems > 0 ? (($page - 1) * $limit) + 1 : 0;
     $lastRecord = min($totalItems, $page * $limit);
     
-    // Prepare response
+    // Prepare successful response
     $response = [
         'success' => true,
         'items' => $formattedProducts,
@@ -275,43 +373,64 @@ try {
             'pageSizeOptions' => [10, 25, 50, 100, 200],
             'sort' => $sort,
             'order' => $order,
-            'limitApplied' => $limitApplied, // to inform frontend
-            'actualTotalItems' => $actualTotalItems // to show real total
+            'limitApplied' => $limitApplied,
+            'actualTotalItems' => $actualTotalItems
         ]
     ];
     
-    // Output JSON response
-    echo json_encode($response);
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
     
-} catch (Exception $e) {
-    // Log the error
-    error_log('API Error in get_public_products.php: ' . $e->getMessage());
-    
-    // Send error response
+} catch (InvalidArgumentException $e) {
+    // Handle validation errors
+    http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => 'Ett fel inträffade: ' . $e->getMessage()
-    ]);
+        'message' => 'Ogiltiga parametrar angavs'
+    ], JSON_UNESCAPED_UNICODE);
+    
+} catch (PDOException $e) {
+    // Handle database errors
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Ett fel inträffade vid databasfrågan'
+    ], JSON_UNESCAPED_UNICODE);
+    
+} catch (Exception $e) {
+    // Handle general errors
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Ett oväntat fel inträffade'
+    ], JSON_UNESCAPED_UNICODE);
 }
-
 
 /**
  * Get random sample products from each category
  *
+ * Retrieves a specified number of random products from each category
+ * for display when no specific search criteria are applied.
+ *
  * @param PDO $pdo Database connection
  * @param int $samplesPerCategory Number of samples to get from each category
  * @param string $language Current language ('sv' or 'fi')
- * @return array Sample products
+ * @return array Sample products array
+ * @throws PDOException If database query fails
  */
 function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $language = 'sv'): array {
+    // Validate parameters
+    $samplesPerCategory = max(1, min($samplesPerCategory, 10)); // Limit to reasonable range
+    $language = in_array($language, ['sv', 'fi']) ? $language : 'sv';
+    
     try {
-        // Get all categories first
-        $stmtCategories = $pdo->query("SELECT category_id FROM category");
+        // Get all available categories
+        $stmtCategories = $pdo->query("SELECT category_id FROM category ORDER BY category_id");
         $categories = $stmtCategories->fetchAll(PDO::FETCH_COLUMN);
         
         $sampleProducts = [];
+        $langField = ($language === 'fi') ? 'fi' : 'sv';
         
-        // For each category, get sample products
+        // Get sample products from each category
         foreach ($categories as $categoryId) {
             $sql = "SELECT 
                         p.prod_id, 
@@ -324,9 +443,9 @@ function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $
                         p.recommended,
                         p.date_added,
                         GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
-                        c.category_" . ($language === 'fi' ? 'fi' : 'sv') . "_name as category_name,
-                        co.condition_" . ($language === 'fi' ? 'fi' : 'sv') . "_name as condition_name,
-                        GROUP_CONCAT(DISTINCT g.genre_" . ($language === 'fi' ? 'fi' : 'sv') . "_name SEPARATOR ', ') AS genre_names
+                        c.category_{$langField}_name as category_name,
+                        co.condition_{$langField}_name as condition_name,
+                        GROUP_CONCAT(DISTINCT g.genre_{$langField}_name SEPARATOR ', ') AS genre_names
                     FROM product p
                     LEFT JOIN product_author pa ON p.prod_id = pa.product_id
                     LEFT JOIN author a ON pa.author_id = a.author_id
@@ -340,8 +459,8 @@ function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $
                     LIMIT :limit";
             
             $stmt = $pdo->prepare($sql);
-            $stmt->bindParam(':category_id', $categoryId, PDO::PARAM_INT);
-            $stmt->bindParam(':limit', $samplesPerCategory, PDO::PARAM_INT);
+            $stmt->bindValue(':category_id', (int)$categoryId, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $samplesPerCategory, PDO::PARAM_INT);
             $stmt->execute();
             
             $categoryProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -349,35 +468,47 @@ function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $
         }
         
         return $sampleProducts;
+        
     } catch (PDOException $e) {
-        error_log('Error fetching sample products: ' . $e->getMessage());
-        return [];
+        throw new PDOException('Failed to fetch sample products: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
     }
 }
 
 /**
  * Format products data for consistent output
  *
+ * Processes raw product data from database and formats it for display,
+ * including price formatting and boolean flag processing.
+ *
  * @param array $products Raw products data from database
- * @param Formatter $formatter Formatter instance
+ * @param Formatter $formatter Formatter instance for price/date formatting
  * @return array Formatted products data
  */
 function formatProductsData(array $products, Formatter $formatter): array {
     foreach ($products as &$product) {
-        // Format price
-        $product['formatted_price'] = $formatter->formatPrice($product['price']);
+        // Format price using formatter
+        $product['formatted_price'] = $formatter->formatPrice($product['price'] ?? 0);
         
-        // Format date if it exists
-        if (isset($product['date_added'])) {
+        // Format date if available
+        if (isset($product['date_added']) && !empty($product['date_added'])) {
             $product['formatted_date'] = $formatter->formatDate($product['date_added']);
         } else {
             $product['formatted_date'] = '';
         }
         
-        // Format flags for display
+        // Process boolean flags for display
         $product['is_special'] = isset($product['special_price']) && (int)$product['special_price'] === 1;
         $product['is_rare'] = isset($product['rare']) && (int)$product['rare'] === 1;
         $product['is_recommended'] = isset($product['recommended']) && (int)$product['recommended'] === 1;
+        
+        // Ensure all string fields are properly handled for null values
+        $product['title'] = $product['title'] ?? '';
+        $product['author_name'] = $product['author_name'] ?? '';
+        $product['category_name'] = $product['category_name'] ?? '';
+        $product['genre_names'] = $product['genre_names'] ?? '';
+        $product['condition_name'] = $product['condition_name'] ?? '';
+        $product['notes'] = $product['notes'] ?? '';
+        $product['publisher'] = $product['publisher'] ?? '';
     }
     
     return $products;
@@ -386,16 +517,18 @@ function formatProductsData(array $products, Formatter $formatter): array {
 /**
  * Render HTML for the products table
  *
+ * Generates HTML table rows for product display in both desktop and mobile views.
+ *
  * @param array $products Formatted products data
- * @param bool $isSalePage If true, hide the last column (badges/details button)
- * @return string HTML for the products table
+ * @param bool $isSalePage If true, hide the badges column for sale page layout
+ * @return string HTML string for table rows
  */
 function renderProductsHTML(array $products, bool $isSalePage = false): string {
     ob_start();
     
     if (empty($products)) {
-        // Adjust colspan based on whether it's the sale page or not
-        echo '<tr><td colspan="' . ($isSalePage ? 6 : 7) . '" class="text-center py-3">Inga produkter hittades.</td></tr>';
+        $colspan = $isSalePage ? 6 : 7;
+        echo '<tr><td colspan="' . $colspan . '" class="text-center py-3">Inga produkter hittades.</td></tr>';
     } else {
         foreach ($products as $product) {
             renderPublicProductRow($product, $isSalePage);
@@ -406,27 +539,38 @@ function renderProductsHTML(array $products, bool $isSalePage = false): string {
 }
 
 /**
- * Render a product row for the public view
+ * Render a single product row for the public view
  *
- * @param array $product Product data
- * @param bool $isSalePage If true, do not render the badges/details button column
+ * Outputs HTML for both desktop table row and mobile card view of a product.
+ * Includes proper output sanitization for all dynamic content.
+ *
+ * @param array $product Product data array
+ * @param bool $isSalePage If true, do not render the badges column
  * @return void
  */
 function renderPublicProductRow(array $product, bool $isSalePage = false): void {
-    // Format the price using a fallback if price is null
-    $displayPrice = isset($product['price']) && $product['price'] !== null 
-                    ? number_format((float)$product['price'], 2, ',', ' ') . ' €' 
-                    : '<span class="text-muted">Pris på förfrågan</span>';
+    // Validate product ID
+    $productId = sanitizeInput($product['prod_id'] ?? 0, 'int');
+    if ($productId <= 0) {
+        return; // Skip invalid products
+    }
     
-    $productUrl = "singleproduct.php?id=" . $product['prod_id'];
+    // Format price with fallback for null values
+    if (isset($product['price']) && $product['price'] !== null && $product['price'] > 0) {
+        $displayPrice = number_format((float)$product['price'], 2, ',', ' ') . ' €';
+    } else {
+        $displayPrice = '<span class="text-muted">Pris på förfrågan</span>';
+    }
+    
+    $productUrl = "singleproduct.php?id=" . $productId;
     ?>
     <!-- Desktop Table Row -->
     <tr class="clickable-row d-none d-md-table-row" data-href="<?= safeEcho($productUrl) ?>">
         <td data-label="Titel"><?= safeEcho($product['title']) ?></td>
-        <td data-label="Författare/Artist"><?= safeEcho($product['author_name'] ?? '') ?></td>
-        <td data-label="Kategori"><?= safeEcho($product['category_name'] ?? '') ?></td>
-        <td data-label="Genre"><?= safeEcho($product['genre_names'] ?? '') ?></td>
-        <td data-label="Skick"><?= safeEcho($product['condition_name'] ?? '') ?></td>
+        <td data-label="Författare/Artist"><?= safeEcho($product['author_name']) ?></td>
+        <td data-label="Kategori"><?= safeEcho($product['category_name']) ?></td>
+        <td data-label="Genre"><?= safeEcho($product['genre_names']) ?></td>
+        <td data-label="Skick"><?= safeEcho($product['condition_name']) ?></td>
         <td data-label="Pris"><?= $displayPrice ?></td>
         <?php if (!$isSalePage): ?> 
         <td onclick="event.stopPropagation();">
@@ -449,7 +593,7 @@ function renderPublicProductRow(array $product, bool $isSalePage = false): void 
             <div class="card-body">
                 <h5 class="card-title" style="color: black; font-weight: bold;"><?= safeEcho($product['title']) ?></h5>
                 <p class="card-text">
-                    <span style="color: grey;"><?= safeEcho($product['author_name'] ?? 'Ej angivet') ?></span><br>
+                    <span style="color: grey;"><?= safeEcho($product['author_name'] ?: 'Ej angivet') ?></span><br>
                     <span style="color: #2e8b57; font-weight: bold;"><?= $displayPrice ?></span>
                 </p>
                 <?php if (!$isSalePage): ?>

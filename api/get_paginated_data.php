@@ -1,936 +1,617 @@
 <?php
 /**
- * Centralized API Endpoint for Paginated Data
- * 
- * Provides a single endpoint for retrieving paginated data across
- * the entire Karis Antikvariat inventory management system.
- * 
- * @package    KarisAntikvariat
- * @subpackage API
- * @author     Axxell
- * @version    2.0
+ * Get Public Products - Secured Version with Smart Search
+ *
+ * Server-side script to handle product data for public index page with enhanced security.
+ * Features smart multi-field search functionality and 1000 product limit when no filters applied.
+ * Implements proper input validation, output sanitization, and error handling.
+ *
+ * @package     KarisAntikvariat
+ * @subpackage  API
+ * @author      Axxell
+ * @version     1.3
+ * @since       2024-01-01
  */
 
-// Include initialization file
 require_once dirname(__DIR__) . '/init.php';
 
-// Set JSON content type
-header('Content-Type: application/json');
-
-// Check for AJAX request
-$isAjax = !empty($_SERVER['HTTP_X_REQUESTED_WITH']) && 
-          strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) === 'xmlhttprequest';
-
-// Get request method
-$requestMethod = $_SERVER['REQUEST_METHOD'];
-
-// Get request parameters (handle both GET and POST)
-$params = ($requestMethod === 'POST') ? $_POST : $_GET;
-
-// If Content-Type is application/json, parse the JSON body
-if ($requestMethod === 'POST' && isset($_SERVER['CONTENT_TYPE']) && 
-    strpos($_SERVER['CONTENT_TYPE'], 'application/json') !== false) {
-    $jsonInput = file_get_contents('php://input');
-    $params = json_decode($jsonInput, true) ?: [];
-}
-
-// Required parameters
-$entity = $params['entity'] ?? '';                 // Which entity to query (products, authors, etc.)
-$action = $params['action'] ?? 'list';             // Action to perform (list, count, etc.)
-$viewType = $params['view_type'] ?? 'public';      // View type (public, admin, lists)
-
-// Pagination parameters
-$page = isset($params['page']) ? max(1, (int)$params['page']) : 1;
-$limit = isset($params['limit']) ? max(1, (int)$params['limit']) : 20; // Default 20 items per page
-
-// Sorting parameters
-$sortColumn = isset($params['sort']) ? $params['sort'] : '';
-$sortDirection = (isset($params['order']) && strtolower($params['order']) === 'desc') ? 'desc' : 'asc';
-
-// Authentication check for protected entities
-$protectedEntities = ['users', 'settings', 'event_log'];
-if (in_array($entity, $protectedEntities)) {
-    // Check if user is logged in and has proper role without redirecting
-    if (!isset($_SESSION['logged_in']) || !$_SESSION['logged_in'] || 
-        !isset($_SESSION['user_role']) || $_SESSION['user_role'] > 2) {
-        sendErrorResponse('Unauthorized access - please log in', 401);
-        exit;
+/**
+ * Smart search function that handles multi-field searches intelligently
+ * 
+ * Provides intelligent search across multiple database fields with word splitting
+ * and combination strategies to find relevant products.
+ * 
+ * @param string $searchTerm The search term to process
+ * @param string $language Current language ('sv' or 'fi')
+ * @return array Array containing WHERE clause and parameters for prepared statement
+ * @throws InvalidArgumentException If invalid language provided
+ */
+function buildSmartSearch($searchTerm, $language = 'sv') {
+    // Validate language parameter
+    $allowedLanguages = ['sv', 'fi'];
+    if (!in_array($language, $allowedLanguages)) {
+        throw new InvalidArgumentException('Invalid language parameter');
     }
     
-    // Additional check for users entity
-    if ($entity === 'users' && $_SESSION['user_role'] > 1) {
-        sendErrorResponse('Unauthorized access - admin required', 403);
-        exit;
+    // Sanitize and validate search term
+    $searchTerm = sanitizeInput($searchTerm, 'string', 500);
+    if (empty($searchTerm)) {
+        return ['where' => '', 'params' => []];
     }
+    
+    // Split search term into words and filter empty elements
+    $words = preg_split('/\s+/', $searchTerm);
+    $words = array_filter($words, function($word) {
+        return strlen(trim($word)) >= 1;
+    });
+    
+    if (empty($words)) {
+        return ['where' => '', 'params' => []];
+    }
+    
+    $conditions = [];
+    $params = [];
+    
+    // Determine language field suffix
+    $langSuffix = ($language === 'fi') ? 'fi' : 'sv';
+    
+    // Strategy 1: Exact phrase search across all searchable fields
+    $conditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.publisher LIKE ? OR c.category_{$langSuffix}_name LIKE ? OR g.genre_{$langSuffix}_name LIKE ?)";
+    $exactPhrase = '%' . $searchTerm . '%';
+    for ($i = 0; $i < 6; $i++) {
+        $params[] = $exactPhrase;
+    }
+    
+    // Strategy 2: Multi-word intelligent combinations (author + title)
+    if (count($words) > 1) {
+        // Try different word splits: first N words as author, rest as title
+        for ($split = 1; $split < count($words); $split++) {
+            $authorPart = implode(' ', array_slice($words, 0, $split));
+            $titlePart = implode(' ', array_slice($words, $split));
+            
+            $conditions[] = "(a.author_name LIKE ? AND p.title LIKE ?)";
+            $params[] = '%' . $authorPart . '%';
+            $params[] = '%' . $titlePart . '%';
+        }
+        
+        // Try reverse combinations: title first, then author
+        for ($split = 1; $split < count($words); $split++) {
+            $titlePart = implode(' ', array_slice($words, 0, $split));
+            $authorPart = implode(' ', array_slice($words, $split));
+            
+            $conditions[] = "(p.title LIKE ? AND a.author_name LIKE ?)";
+            $params[] = '%' . $titlePart . '%';
+            $params[] = '%' . $authorPart . '%';
+        }
+        
+        // Strategy 3: All words must appear somewhere (flexible matching)
+        $allWordsConditions = [];
+        foreach ($words as $word) {
+            $word = trim($word);
+            if (strlen($word) >= 2) { // Skip very short words to improve performance
+                $allWordsConditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.publisher LIKE ? OR c.category_{$langSuffix}_name LIKE ? OR g.genre_{$langSuffix}_name LIKE ?)";
+                $wordParam = '%' . $word . '%';
+                for ($i = 0; $i < 6; $i++) {
+                    $params[] = $wordParam;
+                }
+            }
+        }
+        
+        if (!empty($allWordsConditions)) {
+            $conditions[] = "(" . implode(" AND ", $allWordsConditions) . ")";
+        }
+    }
+    
+    $whereClause = "(" . implode(" OR ", $conditions) . ")";
+    
+    return ['where' => $whereClause, 'params' => $params];
 }
-
-// Create paginator instance with allowed sort columns
-$allowedSortColumns = getAllowedSortColumns($entity);
-$paginator = new Paginator(0, $limit, $page, $sortColumn, $sortDirection, $allowedSortColumns);
 
 /**
- * Get allowed sort columns for an entity
+ * Check if any search or filter parameters are applied
  * 
- * @param string $entity Entity name
- * @return array Allowed sort columns
+ * @param string $search Search term
+ * @param string $category Category filter
+ * @param bool $isSalePageRequest Whether this is from the sale page
+ * @return bool True if filters are applied
  */
-function getAllowedSortColumns($entity) {
-    switch ($entity) {
-        case 'products':
-            return ['prod_id', 'title', 'author_name', 'price', 'category_name', 
-                    'status', 'condition_name', 'date_added'];
-        case 'authors':
-            return ['author_id', 'author_name'];
-        case 'categories':
-            return ['category_id', 'category_name'];
-        case 'shelves':
-            return ['shelf_id', 'shelf_name'];
-        case 'users':
-            return ['user_id', 'user_username', 'user_created_at', 'user_last_login'];
-        case 'event_log':
-            return ['event_id', 'event_timestamp', 'event_type', 'user_username'];
-        default:
-            return [];
+function hasFiltersApplied($search, $category, $isSalePageRequest) {
+    // Search term counts as filter
+    if (!empty(trim($search))) {
+        return true;
     }
+    
+    // Category filter (excluding 'all')
+    if (!empty($category) && $category !== 'all') {
+        return true;
+    }
+    
+    // Sale page special price filter
+    if ($isSalePageRequest) {
+        return true;
+    }
+    
+    return false;
 }
+
+// Set JSON response header
+header('Content-Type: application/json; charset=utf-8');
+
+// Sanitize and validate input parameters
+$search = sanitizeInput($_GET['search'] ?? '', 'string', 500);
+$category = sanitizeInput($_GET['category'] ?? '', 'string', 50);
+$page = sanitizeInput($_GET['page'] ?? 1, 'int', null, ['min' => 1, 'max' => 1000]);
+$limit = sanitizeInput($_GET['limit'] ?? 25, 'int', null, ['min' => 1, 'max' => 200]);
+$sort = sanitizeInput($_GET['sort'] ?? 'title', 'string', 50);
+$order = sanitizeInput($_GET['order'] ?? 'asc', 'string', 4);
+$randomSamples = isset($_GET['random_samples']) && $_GET['random_samples'] === 'true';
+
+// Validate sort order parameter
+if (!in_array(strtolower($order), ['asc', 'desc'])) {
+    $order = 'asc';
+}
+
+// Check for special_price parameter from sale.php
+$isSalePageRequest = isset($_GET['special_price']) && $_GET['special_price'] === '1';
+
+// Start session if not already started
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+// Get and validate language from session
+$language = isset($_SESSION['language']) && in_array($_SESSION['language'], ['sv', 'fi']) 
+    ? $_SESSION['language'] 
+    : 'sv';
+
+// Create formatter instance with appropriate locale
+try {
+    $formatter = new Formatter($language === 'fi' ? 'fi_FI' : 'sv_SE');
+} catch (Exception $e) {
+    // Fallback to Swedish if formatter fails
+    $formatter = new Formatter('sv_SE');
+}
+
+// Maximum products limit for unfiltered requests
+const MAX_PRODUCTS_WITHOUT_FILTERS = 1000;
 
 try {
-    // Validate entity
-    $allowedEntities = ['products', 'authors', 'categories', 'shelves', 'genres', 'conditions', 'users', 'event_log'];
-    if (!in_array($entity, $allowedEntities)) {
-        sendErrorResponse('Invalid entity specified');
-        exit;
+    // Handle random samples request
+    if ($randomSamples && empty($search) && ($category === 'all' || empty($category)) && !$isSalePageRequest) {
+        $sampleProducts = getRandomSampleProducts($pdo, 2, $language);
+    
+        // Calculate pagination for samples
+        $totalItems = count($sampleProducts);
+        $totalPages = ceil($totalItems / $limit);
+        $offset = ($page - 1) * $limit;
+        $paginatedSamples = array_slice($sampleProducts, $offset, $limit);
+    
+        // Format and render products
+        $formattedProducts = formatProductsData($paginatedSamples, $formatter);
+        $html = renderProductsHTML($formattedProducts, false);
+    
+        // Prepare and send response
+        $response = [
+            'success' => true,
+            'items' => $formattedProducts,
+            'html' => $html,
+            'pagination' => [
+                'currentPage' => $page,
+                'totalPages' => $totalPages,
+                'totalItems' => $totalItems,
+                'itemsPerPage' => $limit,
+                'firstRecord' => $totalItems > 0 ? $offset + 1 : 0,
+                'lastRecord' => min($totalItems, $page * $limit),
+                'pageSizeOptions' => [10, 25, 50, 100, 200]
+            ]
+        ];
+    
+        echo json_encode($response, JSON_UNESCAPED_UNICODE);
+        return;
+    }
+
+    // Check if filters are applied
+    $filtersApplied = hasFiltersApplied($search, $category, $isSalePageRequest);
+
+    // Build main SQL query for public products
+    $langField = ($language === 'fi') ? 'fi' : 'sv';
+    $sql = "SELECT 
+                p.prod_id, 
+                p.title, 
+                GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
+                c.category_{$langField}_name as category_name,
+                p.category_id,
+                GROUP_CONCAT(DISTINCT g.genre_{$langField}_name SEPARATOR ', ') AS genre_names,
+                con.condition_{$langField}_name as condition_name,
+                p.price,
+                IFNULL(l.language_{$langField}_name, '') as language,
+                p.year,
+                p.publisher,
+                p.notes,
+                p.special_price,
+                p.rare,
+                p.recommended,
+                p.date_added
+            FROM product p
+            LEFT JOIN product_author pa ON p.prod_id = pa.product_id
+            LEFT JOIN author a ON pa.author_id = a.author_id
+            JOIN category c ON p.category_id = c.category_id
+            LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
+            LEFT JOIN genre g ON pg.genre_id = g.genre_id
+            LEFT JOIN `condition` con ON p.condition_id = con.condition_id
+            LEFT JOIN `language` l ON p.language_id = l.language_id";
+    
+    // Build WHERE conditions with parameters
+    $whereConditions = [];
+    $params = [];
+    
+    // Always show only available products
+    $whereConditions[] = "p.status = 1";
+
+    // Add special price condition for sale page
+    if ($isSalePageRequest) {
+        $whereConditions[] = "p.special_price = 1";
+    }
+
+    // Apply smart search if search term provided
+    if (!empty($search)) {
+        $searchResult = buildSmartSearch($search, $language);
+        if (!empty($searchResult['where'])) {
+            $whereConditions[] = $searchResult['where'];
+            $params = array_merge($params, $searchResult['params']);
+        }
     }
     
-    // Initialize Formatter for consistent data formatting
-    $formatter = new Formatter();
-    
-    // Process request based on entity and action
-    switch ($entity) {
-        case 'products':
-            // For products, delegate to the specialized product API endpoints
-if ($viewType === 'public') {
-    // Redirect to public products API
-    header('Location: ' . url('api/get_public_products.php?' . http_build_query($params)));
-    exit;
-} else {
-    // Redirect to admin products API
-    header('Location: ' . url('admin/get_products.php?' . http_build_query($params)));
-    exit;
-}
-            break;
-            
-        case 'authors':
-            handleAuthorsRequest($params, $paginator, $formatter);
-            break;
-            
-        case 'categories':
-            handleCategoriesRequest($params, $paginator, $formatter);
-            break;
-            
-        case 'shelves':
-            handleShelvesRequest($params, $paginator, $formatter);
-            break;
-            
-        case 'genres':
-            handleGenresRequest($params, $paginator, $formatter);
-            break;
-            
-        case 'conditions':
-            handleConditionsRequest($params, $paginator, $formatter);
-            break;
-            
-        case 'users':
-            handleUsersRequest($params, $paginator, $formatter);
-            break;
-            
-        case 'event_log':
-            handleEventLogRequest($params, $paginator, $formatter);
-            break;
-            
-        default:
-            sendErrorResponse('Entity not supported');
-            break;
+    // Apply category filter
+    if (!empty($category) && $category !== 'all') {
+        $categoryId = sanitizeInput($category, 'int');
+        if ($categoryId > 0) {
+            $whereConditions[] = "p.category_id = ?";
+            $params[] = $categoryId;
+        }
     }
-} catch (Exception $e) {
-    // Log the error
-    error_log('API Error: ' . $e->getMessage());
     
-    // Send error response
-    sendErrorResponse('An error occurred: ' . $e->getMessage());
-}
+    // Add WHERE clause to SQL
+    if (!empty($whereConditions)) {
+        $sql .= " WHERE " . implode(" AND ", $whereConditions);
+    }
+    
+    // Add GROUP BY clause
+    $sql .= " GROUP BY p.prod_id";
+    
+    // Add ORDER BY clause with validation
+    $allowedSortColumns = ['title', 'author_name', 'category_name', 'genre_names', 'condition_name', 'price', 'date_added'];
+    if (!in_array($sort, $allowedSortColumns)) {
+        $sort = 'title';
+    }
+    
+    $orderDirection = strtoupper($order) === 'DESC' ? 'DESC' : 'ASC';
+    $sql .= " ORDER BY {$sort} {$orderDirection}";
+    
+    // Build count query for pagination
+    $countSql = "SELECT COUNT(DISTINCT p.prod_id) 
+                 FROM product p
+                 LEFT JOIN product_author pa ON p.prod_id = pa.product_id
+                 LEFT JOIN author a ON pa.author_id = a.author_id
+                 JOIN category c ON p.category_id = c.category_id
+                 LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
+                 LEFT JOIN genre g ON pg.genre_id = g.genre_id
+                 LEFT JOIN `condition` con ON p.condition_id = con.condition_id
+                 LEFT JOIN `language` l ON p.language_id = l.language_id";
+    
+    // Add WHERE conditions to count query
+    if (!empty($whereConditions)) {
+        $countSql .= " WHERE " . implode(" AND ", $whereConditions);
+    }
 
-/**
- * Send JSON response
- * 
- * @param array $data Response data
- * @param int $statusCode HTTP status code
- * @return void
- */
-function sendJsonResponse(array $data, int $statusCode = 200): void {
-    http_response_code($statusCode);
-    echo json_encode($data);
-    exit;
-}
+    // Execute count query
+    $stmt = $pdo->prepare($countSql);
+    if (!empty($params)) {
+        foreach ($params as $index => $param) {
+            $stmt->bindValue($index + 1, $param, PDO::PARAM_STR);
+        }
+    }
+    $stmt->execute();
+    $actualTotalItems = (int)$stmt->fetchColumn();
+    
+    // Apply 1000 item limit for unfiltered requests
+    $totalItems = $actualTotalItems;
+    $limitApplied = false;
+    
+    if (!$filtersApplied && $actualTotalItems > MAX_PRODUCTS_WITHOUT_FILTERS) {
+        $totalItems = MAX_PRODUCTS_WITHOUT_FILTERS;
+        $limitApplied = true;
+        
+        // Calculate offset and limit with 1000 cap
+        $maxOffset = ($page - 1) * $limit;
+        if ($maxOffset >= MAX_PRODUCTS_WITHOUT_FILTERS) {
+            $sql .= " LIMIT 0";
+        } else {
+            $remainingItems = MAX_PRODUCTS_WITHOUT_FILTERS - $maxOffset;
+            $actualLimit = min($limit, $remainingItems);
+            $sql .= " LIMIT " . $maxOffset . ", " . $actualLimit;
+        }
+    } else {
+        // Normal pagination
+        $offset = ($page - 1) * $limit;
+        $sql .= " LIMIT " . $offset . ", " . $limit;
+    }
 
-/**
- * Send error response
- * 
- * @param string $message Error message
- * @param int $statusCode HTTP status code
- * @return void
- */
-function sendErrorResponse(string $message, int $statusCode = 400): void {
-    http_response_code($statusCode);
+    // Execute main query
+    $stmt = $pdo->prepare($sql);
+    if (!empty($params)) {
+        foreach ($params as $index => $param) {
+            $stmt->bindValue($index + 1, $param, PDO::PARAM_STR);
+        }
+    }
+    $stmt->execute();
+    $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    
+    // Format product data
+    $formattedProducts = formatProductsData($products, $formatter);
+    
+    // Generate HTML output
+    $html = renderProductsHTML($formattedProducts, $isSalePageRequest);
+    
+    // Calculate pagination information
+    $totalPages = ceil($totalItems / $limit);
+    $firstRecord = $totalItems > 0 ? (($page - 1) * $limit) + 1 : 0;
+    $lastRecord = min($totalItems, $page * $limit);
+    
+    // Prepare successful response
+    $response = [
+        'success' => true,
+        'items' => $formattedProducts,
+        'html' => $html,
+        'pagination' => [
+            'currentPage' => $page,
+            'totalPages' => $totalPages,
+            'totalItems' => $totalItems,
+            'itemsPerPage' => $limit,
+            'firstRecord' => $firstRecord,
+            'lastRecord' => $lastRecord,
+            'pageSizeOptions' => [10, 25, 50, 100, 200],
+            'sort' => $sort,
+            'order' => $order,
+            'limitApplied' => $limitApplied,
+            'actualTotalItems' => $actualTotalItems
+        ]
+    ];
+    
+    echo json_encode($response, JSON_UNESCAPED_UNICODE);
+    
+} catch (InvalidArgumentException $e) {
+    // Handle validation errors
+    http_response_code(400);
     echo json_encode([
         'success' => false,
-        'message' => $message
-    ]);
-    exit;
+        'message' => 'Ogiltiga parametrar angavs'
+    ], JSON_UNESCAPED_UNICODE);
+    
+} catch (PDOException $e) {
+    // Handle database errors
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Ett fel inträffade vid databasfrågan'
+    ], JSON_UNESCAPED_UNICODE);
+    
+} catch (Exception $e) {
+    // Handle general errors
+    http_response_code(500);
+    echo json_encode([
+        'success' => false,
+        'message' => 'Ett oväntat fel inträffade'
+    ], JSON_UNESCAPED_UNICODE);
 }
 
 /**
- * Handle Authors data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
- * @return void
+ * Get random sample products from each category
+ *
+ * Retrieves a specified number of random products from each category
+ * for display when no specific search criteria are applied.
+ *
+ * @param PDO $pdo Database connection
+ * @param int $samplesPerCategory Number of samples to get from each category
+ * @param string $language Current language ('sv' or 'fi')
+ * @return array Sample products array
+ * @throws PDOException If database query fails
  */
-function handleAuthorsRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    $search = $params['search'] ?? '';
+function getRandomSampleProducts(PDO $pdo, int $samplesPerCategory = 2, string $language = 'sv'): array {
+    // Validate parameters
+    $samplesPerCategory = max(1, min($samplesPerCategory, 10)); // Limit to reasonable range
+    $language = in_array($language, ['sv', 'fi']) ? $language : 'sv';
     
     try {
-        switch ($action) {
-            case 'list':
-                // Build the SQL query
-                $sql = "SELECT author_id, author_name FROM author";
-                $countSql = "SELECT COUNT(*) FROM author";
-                $sqlParams = [];
-                
-                // Add search condition if provided
-                if (!empty($search)) {
-                    $sql .= " WHERE author_name LIKE :search";
-                    $countSql .= " WHERE author_name LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                // Add sorting
-                if (!empty($paginator->getSortColumn())) {
-                    $sql .= " " . $paginator->getOrderBySql();
-                } else {
-                    $sql .= " ORDER BY author_name ASC";
-                }
-                
-                // Add pagination
-                $sql .= " " . $paginator->getLimitSql();
-                
-                // Get total count for pagination
-                $stmt = $pdo->prepare($countSql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $totalItems = (int)$stmt->fetchColumn();
-                
-                // Set total items in paginator
-                $paginator->setTotalItems($totalItems);
-                
-                // Get paginated results
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $authors = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Prepare response
-                $response = [
-                    'success' => true,
-                    'items' => $authors,
-                    'pagination' => $paginator->toArray()
-                ];
-                
-                sendJsonResponse($response);
-                break;
-                
-            case 'count':
-                // Build count query
-                $sql = "SELECT COUNT(*) FROM author";
-                $sqlParams = [];
-                
-                // Add search condition if provided
-                if (!empty($search)) {
-                    $sql .= " WHERE author_name LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                // Execute the query
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $count = (int)$stmt->fetchColumn();
-                
-                // Send response
-                sendJsonResponse([
-                    'success' => true,
-                    'count' => $count
-                ]);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for authors entity');
-                break;
-        }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleAuthorsRequest: ' . $e->getMessage());
+        // Get all available categories
+        $stmtCategories = $pdo->query("SELECT category_id FROM category ORDER BY category_id");
+        $categories = $stmtCategories->fetchAll(PDO::FETCH_COLUMN);
         
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
+        $sampleProducts = [];
+        $langField = ($language === 'fi') ? 'fi' : 'sv';
+        
+        // Get sample products from each category
+        foreach ($categories as $categoryId) {
+            $sql = "SELECT 
+                        p.prod_id, 
+                        p.title, 
+                        p.status,
+                        p.category_id,
+                        p.price,
+                        p.special_price,
+                        p.rare,
+                        p.recommended,
+                        p.date_added,
+                        GROUP_CONCAT(DISTINCT a.author_name SEPARATOR ', ') AS author_name,
+                        c.category_{$langField}_name as category_name,
+                        co.condition_{$langField}_name as condition_name,
+                        GROUP_CONCAT(DISTINCT g.genre_{$langField}_name SEPARATOR ', ') AS genre_names
+                    FROM product p
+                    LEFT JOIN product_author pa ON p.prod_id = pa.product_id
+                    LEFT JOIN author a ON pa.author_id = a.author_id
+                    JOIN category c ON p.category_id = c.category_id
+                    LEFT JOIN product_genre pg ON p.prod_id = pg.product_id
+                    LEFT JOIN genre g ON pg.genre_id = g.genre_id
+                    LEFT JOIN `condition` co ON p.condition_id = co.condition_id
+                    WHERE p.status = 1 AND p.category_id = :category_id
+                    GROUP BY p.prod_id
+                    ORDER BY RAND()
+                    LIMIT :limit";
+            
+            $stmt = $pdo->prepare($sql);
+            $stmt->bindValue(':category_id', (int)$categoryId, PDO::PARAM_INT);
+            $stmt->bindValue(':limit', $samplesPerCategory, PDO::PARAM_INT);
+            $stmt->execute();
+            
+            $categoryProducts = $stmt->fetchAll(PDO::FETCH_ASSOC);
+            $sampleProducts = array_merge($sampleProducts, $categoryProducts);
+        }
+        
+        return $sampleProducts;
+        
+    } catch (PDOException $e) {
+        throw new PDOException('Failed to fetch sample products: ' . htmlspecialchars($e->getMessage(), ENT_QUOTES, 'UTF-8'));
     }
 }
 
 /**
- * Handle Categories data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
- * @return void
+ * Format products data for consistent output
+ *
+ * Processes raw product data from database and formats it for display,
+ * including price formatting and boolean flag processing.
+ *
+ * @param array $products Raw products data from database
+ * @param Formatter $formatter Formatter instance for price/date formatting
+ * @return array Formatted products data
  */
-function handleCategoriesRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
-    
-    // Get language from session or default to Swedish
-    $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
-    
-    // Determine which field to use based on language
-    $nameField = ($language === 'fi') ? 'category_fi_name' : 'category_sv_name';
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    $search = $params['search'] ?? '';
-    
-    try {
-        switch ($action) {
-            case 'list':
-                // Build the SQL query
-                $sql = "SELECT category_id, {$nameField} AS category_name FROM category";
-                $countSql = "SELECT COUNT(*) FROM category";
-                $sqlParams = [];
-                
-                // Add search condition if provided
-                if (!empty($search)) {
-                    $sql .= " WHERE {$nameField} LIKE :search";
-                    $countSql .= " WHERE {$nameField} LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                // Add sorting
-                if (!empty($paginator->getSortColumn())) {
-                    $sql .= " " . $paginator->getOrderBySql();
-                } else {
-                    $sql .= " ORDER BY {$nameField} ASC";
-                }
-                
-                // Add pagination
-                $sql .= " " . $paginator->getLimitSql();
-                
-                // Get total count for pagination
-                $stmt = $pdo->prepare($countSql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $totalItems = (int)$stmt->fetchColumn();
-                
-                // Set total items in paginator
-                $paginator->setTotalItems($totalItems);
-                
-                // Get paginated results
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Prepare response
-                $response = [
-                    'success' => true,
-                    'items' => $categories,
-                    'pagination' => $paginator->toArray()
-                ];
-                
-                sendJsonResponse($response);
-                break;
-                
-            case 'all':
-                // Get all categories without pagination
-                $sql = "SELECT category_id, {$nameField} AS category_name FROM category ORDER BY {$nameField} ASC";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute();
-                $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Send response
-                sendJsonResponse([
-                    'success' => true,
-                    'items' => $categories
-                ]);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for categories entity');
-                break;
-        }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleCategoriesRequest: ' . $e->getMessage());
+function formatProductsData(array $products, Formatter $formatter): array {
+    foreach ($products as &$product) {
+        // Format price using formatter
+        $product['formatted_price'] = $formatter->formatPrice($product['price'] ?? 0);
         
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
+        // Format date if available
+        if (isset($product['date_added']) && !empty($product['date_added'])) {
+            $product['formatted_date'] = $formatter->formatDate($product['date_added']);
+        } else {
+            $product['formatted_date'] = '';
+        }
+        
+        // Process boolean flags for display
+        $product['is_special'] = isset($product['special_price']) && (int)$product['special_price'] === 1;
+        $product['is_rare'] = isset($product['rare']) && (int)$product['rare'] === 1;
+        $product['is_recommended'] = isset($product['recommended']) && (int)$product['recommended'] === 1;
+        
+        // Ensure all string fields are properly handled for null values
+        $product['title'] = $product['title'] ?? '';
+        $product['author_name'] = $product['author_name'] ?? '';
+        $product['category_name'] = $product['category_name'] ?? '';
+        $product['genre_names'] = $product['genre_names'] ?? '';
+        $product['condition_name'] = $product['condition_name'] ?? '';
+        $product['notes'] = $product['notes'] ?? '';
+        $product['publisher'] = $product['publisher'] ?? '';
     }
+    
+    return $products;
 }
 
 /**
- * Handle Shelves data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
- * @return void
+ * Render HTML for the products table
+ *
+ * Generates HTML table rows for product display in both desktop and mobile views.
+ *
+ * @param array $products Formatted products data
+ * @param bool $isSalePage If true, hide the badges column for sale page layout
+ * @return string HTML string for table rows
  */
-function handleShelvesRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
+function renderProductsHTML(array $products, bool $isSalePage = false): string {
+    ob_start();
     
-    // Get language from session or default to Swedish
-    $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
-    
-    // Determine which field to use based on language
-    $nameField = ($language === 'fi') ? 'shelf_fi_name' : 'shelf_sv_name';
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    $search = $params['search'] ?? '';
-    
-    try {
-        switch ($action) {
-            case 'list':
-                // Build the SQL query
-                $sql = "SELECT shelf_id, {$nameField} AS shelf_name FROM shelf";
-                $countSql = "SELECT COUNT(*) FROM shelf";
-                $sqlParams = [];
-                
-                // Add search condition if provided
-                if (!empty($search)) {
-                    $sql .= " WHERE {$nameField} LIKE :search";
-                    $countSql .= " WHERE {$nameField} LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                // Add sorting
-                if (!empty($paginator->getSortColumn())) {
-                    $sql .= " " . $paginator->getOrderBySql();
-                } else {
-                    $sql .= " ORDER BY {$nameField} ASC";
-                }
-                
-                // Add pagination
-                $sql .= " " . $paginator->getLimitSql();
-                
-                // Get total count for pagination
-                $stmt = $pdo->prepare($countSql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $totalItems = (int)$stmt->fetchColumn();
-                
-                // Set total items in paginator
-                $paginator->setTotalItems($totalItems);
-                
-                // Get paginated results
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $shelves = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Prepare response
-                $response = [
-                    'success' => true,
-                    'items' => $shelves,
-                    'pagination' => $paginator->toArray()
-                ];
-                
-                sendJsonResponse($response);
-                break;
-                
-            case 'all':
-                // Get all shelves without pagination
-                $sql = "SELECT shelf_id, {$nameField} AS shelf_name FROM shelf ORDER BY {$nameField} ASC";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute();
-                $shelves = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Send response
-                sendJsonResponse([
-                    'success' => true,
-                    'items' => $shelves
-                ]);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for shelves entity');
-                break;
+    if (empty($products)) {
+        $colspan = $isSalePage ? 6 : 7;
+        echo '<tr><td colspan="' . $colspan . '" class="text-center py-3">Inga produkter hittades.</td></tr>';
+    } else {
+        foreach ($products as $product) {
+            renderPublicProductRow($product, $isSalePage);
         }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleShelvesRequest: ' . $e->getMessage());
-        
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
     }
+    
+    return ob_get_clean();
 }
 
 /**
- * Handle Genres data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
+ * Render a single product row for the public view
+ *
+ * Outputs HTML for both desktop table row and mobile card view of a product.
+ * Includes proper output sanitization for all dynamic content.
+ *
+ * @param array $product Product data array
+ * @param bool $isSalePage If true, do not render the badges column
  * @return void
  */
-function handleGenresRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
-    
-    // Get language from session or default to Swedish
-    $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
-    
-    // Determine which field to use based on language
-    $nameField = ($language === 'fi') ? 'genre_fi_name' : 'genre_sv_name';
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    $search = $params['search'] ?? '';
-    
-    try {
-        switch ($action) {
-            case 'list':
-                // Build the SQL query
-                $sql = "SELECT genre_id, {$nameField} AS genre_name FROM genre";
-                $countSql = "SELECT COUNT(*) FROM genre";
-                $sqlParams = [];
-                
-                // Add search condition if provided
-                if (!empty($search)) {
-                    $sql .= " WHERE {$nameField} LIKE :search";
-                    $countSql .= " WHERE {$nameField} LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                // Add sorting
-                if (!empty($paginator->getSortColumn())) {
-                    $sql .= " " . $paginator->getOrderBySql();
-                } else {
-                    $sql .= " ORDER BY {$nameField} ASC";
-                }
-                
-                // Add pagination
-                $sql .= " " . $paginator->getLimitSql();
-                
-                // Get total count for pagination
-                $stmt = $pdo->prepare($countSql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $totalItems = (int)$stmt->fetchColumn();
-                
-                // Set total items in paginator
-                $paginator->setTotalItems($totalItems);
-                
-                // Get paginated results
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $genres = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Prepare response
-                $response = [
-                    'success' => true,
-                    'items' => $genres,
-                    'pagination' => $paginator->toArray()
-                ];
-                
-                sendJsonResponse($response);
-                break;
-                
-            case 'all':
-                // Get all genres without pagination
-                $sql = "SELECT genre_id, {$nameField} AS genre_name FROM genre ORDER BY {$nameField} ASC";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute();
-                $genres = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Send response
-                sendJsonResponse([
-                    'success' => true,
-                    'items' => $genres
-                ]);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for genres entity');
-                break;
-        }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleGenresRequest: ' . $e->getMessage());
-        
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
+function renderPublicProductRow(array $product, bool $isSalePage = false): void {
+    // Validate product ID
+    $productId = sanitizeInput($product['prod_id'] ?? 0, 'int');
+    if ($productId <= 0) {
+        return; // Skip invalid products
     }
-}
+    
+    // Format price with fallback for null values
+    if (isset($product['price']) && $product['price'] !== null && $product['price'] > 0) {
+        $displayPrice = number_format((float)$product['price'], 2, ',', ' ') . ' €';
+    } else {
+        $displayPrice = '<span class="text-muted">Pris på förfrågan</span>';
+    }
+    
+    $productUrl = "singleproduct.php?id=" . $productId;
+    ?>
+    <!-- Desktop Table Row -->
+    <tr class="clickable-row d-none d-md-table-row" data-href="<?= safeEcho($productUrl) ?>">
+        <td data-label="Titel"><?= safeEcho($product['title']) ?></td>
+        <td data-label="Författare/Artist"><?= safeEcho($product['author_name']) ?></td>
+        <td data-label="Kategori"><?= safeEcho($product['category_name']) ?></td>
+        <td data-label="Genre"><?= safeEcho($product['genre_names']) ?></td>
+        <td data-label="Skick"><?= safeEcho($product['condition_name']) ?></td>
+        <td data-label="Pris"><?= $displayPrice ?></td>
+        <?php if (!$isSalePage): ?> 
+        <td onclick="event.stopPropagation();">
+            <?php if (isset($product['is_special']) && $product['is_special']): ?>
+                <span class="badge bg-danger">Rea</span>
+            <?php endif; ?>
+            <?php if (isset($product['is_rare']) && $product['is_rare']): ?>
+                <span class="badge bg-warning text-dark">Sällsynt</span>
+            <?php endif; ?>
+            <?php if (isset($product['is_recommended']) && $product['is_recommended']): ?>
+                <span class="badge bg-info">Rekommenderad</span>
+            <?php endif; ?>
+        </td>
+        <?php endif; ?>
+    </tr>
 
-/**
- * Handle Conditions data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
- * @return void
- */
-function handleConditionsRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
-    
-    // Get language from session or default to Swedish
-    $language = isset($_SESSION['language']) ? $_SESSION['language'] : 'sv';
-    
-    // Determine which field to use based on language
-    $nameField = ($language === 'fi') ? 'condition_fi_name' : 'condition_sv_name';
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    
-    try {
-        switch ($action) {
-            case 'list':
-            case 'all':
-                // For conditions, we'll always return all of them (it's a small table)
-                $sql = "SELECT condition_id, {$nameField} AS condition_name, condition_code, condition_description 
-                        FROM `condition` ORDER BY condition_id ASC";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute();
-                $conditions = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Send response
-                sendJsonResponse([
-                    'success' => true,
-                    'items' => $conditions
-                ]);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for conditions entity');
-                break;
-        }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleConditionsRequest: ' . $e->getMessage());
-        
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
-    }
+    <!-- Mobile Card -->
+    <a href="<?= safeEcho($productUrl) ?>" class="text-decoration-none">
+        <div class="card d-block d-md-none mb-3">
+            <div class="card-body">
+                <h5 class="card-title" style="color: black; font-weight: bold;"><?= safeEcho($product['title']) ?></h5>
+                <p class="card-text">
+                    <span style="color: grey;"><?= safeEcho($product['author_name'] ?: 'Ej angivet') ?></span><br>
+                    <span style="color: #2e8b57; font-weight: bold;"><?= $displayPrice ?></span>
+                </p>
+                <?php if (!$isSalePage): ?>
+                    <div class="mt-2">
+                        <?php if (isset($product['is_special']) && $product['is_special']): ?>
+                            <span class="badge bg-danger me-1">Rea</span>
+                        <?php endif; ?>
+                        <?php if (isset($product['is_rare']) && $product['is_rare']): ?>
+                            <span class="badge bg-warning text-dark me-1">Sällsynt</span>
+                        <?php endif; ?>
+                        <?php if (isset($product['is_recommended']) && $product['is_recommended']): ?>
+                            <span class="badge bg-info">Rekommenderad</span>
+                        <?php endif; ?>
+                    </div>
+                <?php endif; ?>
+            </div>
+        </div>
+    </a>
+    <?php
 }
-
-/**
- * Handle Users data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
- * @return void
- */
-function handleUsersRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
-    
-    // Verify admin privileges again (belt and suspenders)
-    if (!isset($_SESSION['user_role']) || $_SESSION['user_role'] > 1) {
-        sendErrorResponse('Unauthorized access', 403);
-        exit;
-    }
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    $search = $params['search'] ?? '';
-    
-    try {
-        switch ($action) {
-            case 'list':
-                // Build the SQL query
-                $sql = "SELECT user_id, user_username, user_email, user_role, user_last_login, 
-                        user_created_at, user_is_active FROM user";
-                $countSql = "SELECT COUNT(*) FROM user";
-                $sqlParams = [];
-                
-                // Add search condition if provided
-                if (!empty($search)) {
-                    $sql .= " WHERE user_username LIKE :search OR user_email LIKE :search";
-                    $countSql .= " WHERE user_username LIKE :search OR user_email LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                // Add sorting
-                if (!empty($paginator->getSortColumn())) {
-                    $sql .= " " . $paginator->getOrderBySql();
-                } else {
-                    $sql .= " ORDER BY user_username ASC";
-                }
-                
-                // Add pagination
-                $sql .= " " . $paginator->getLimitSql();
-                
-                // Get total count for pagination
-                $stmt = $pdo->prepare($countSql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $totalItems = (int)$stmt->fetchColumn();
-                
-                // Set total items in paginator
-                $paginator->setTotalItems($totalItems);
-                
-                // Get paginated results
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $users = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Format date fields
-                foreach ($users as &$user) {
-                    $user['user_last_login'] = $user['user_last_login'] ? 
-                        $formatter->formatDate($user['user_last_login']) : 'Never';
-                    $user['user_created_at'] = $formatter->formatDate($user['user_created_at']);
-                    
-                    // Map role ID to name
-                    switch ($user['user_role']) {
-                        case 1:
-                            $user['role_name'] = 'Admin';
-                            break;
-                        case 2:
-                            $user['role_name'] = 'Editor';
-                            break;
-                        default:
-                            $user['role_name'] = 'Guest';
-                            break;
-                    }
-                }
-                
-                // Prepare response
-                $response = [
-                    'success' => true,
-                    'items' => $users,
-                    'pagination' => $paginator->toArray()
-                ];
-                
-                sendJsonResponse($response);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for users entity');
-                break;
-        }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleUsersRequest: ' . $e->getMessage());
-        
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
-    }
-}
-
-/**
- * Handle Event Log data requests
- * 
- * @param array $params Request parameters
- * @param Paginator $paginator Paginator instance
- * @param Formatter $formatter Formatter instance
- * @return void
- */
-function handleEventLogRequest(array $params, Paginator $paginator, Formatter $formatter): void {
-    global $pdo;
-    
-    // Get request parameters
-    $action = $params['action'] ?? 'list';
-    $search = $params['search'] ?? '';
-    $dateFrom = $params['date_from'] ?? '';
-    $dateTo = $params['date_to'] ?? '';
-    $eventType = $params['event_type'] ?? '';
-    $userId = isset($params['user_id']) ? (int)$params['user_id'] : 0;
-    $productId = isset($params['product_id']) ? (int)$params['product_id'] : 0;
-    
-    try {
-        switch ($action) {
-            case 'list':
-                // Build the SQL query
-                $sql = "SELECT el.event_id, el.event_timestamp, el.event_type, el.event_description, 
-                        el.product_id, u.user_username 
-                        FROM event_log el 
-                        LEFT JOIN user u ON el.user_id = u.user_id";
-                $countSql = "SELECT COUNT(*) FROM event_log el LEFT JOIN user u ON el.user_id = u.user_id";
-                
-                // Build WHERE clause
-                $whereClauses = [];
-                $sqlParams = [];
-                
-                if (!empty($search)) {
-                    $whereClauses[] = "el.event_description LIKE :search";
-                    $sqlParams[':search'] = "%{$search}%";
-                }
-                
-                if (!empty($dateFrom)) {
-                    $whereClauses[] = "el.event_timestamp >= :date_from";
-                    $sqlParams[':date_from'] = $dateFrom . ' 00:00:00';
-                }
-                
-                if (!empty($dateTo)) {
-                    $whereClauses[] = "el.event_timestamp <= :date_to";
-                    $sqlParams[':date_to'] = $dateTo . ' 23:59:59';
-                }
-
-                if (!empty($eventType)) {
-                    $whereClauses[] = "el.event_type = :event_type";
-                    $sqlParams[':event_type'] = $eventType;
-                }
-                
-                if ($userId > 0) {
-                    $whereClauses[] = "el.user_id = :user_id";
-                    $sqlParams[':user_id'] = $userId;
-                }
-                
-                if ($productId > 0) {
-                    $whereClauses[] = "el.product_id = :product_id";
-                    $sqlParams[':product_id'] = $productId;
-                }
-                
-                // Add WHERE clause if conditions exist
-                if (!empty($whereClauses)) {
-                    $sql .= " WHERE " . implode(" AND ", $whereClauses);
-                    $countSql .= " WHERE " . implode(" AND ", $whereClauses);
-                }
-                
-                // Add sorting
-                if (!empty($paginator->getSortColumn())) {
-                    $sql .= " " . $paginator->getOrderBySql();
-                } else {
-                    $sql .= " ORDER BY el.event_timestamp DESC";
-                }
-                
-                // Add pagination
-                $sql .= " " . $paginator->getLimitSql();
-                
-                // Get total count for pagination
-                $stmt = $pdo->prepare($countSql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $totalItems = (int)$stmt->fetchColumn();
-                
-                // Set total items in paginator
-                $paginator->setTotalItems($totalItems);
-                
-                // Get paginated results
-                $stmt = $pdo->prepare($sql);
-                if (!empty($sqlParams)) {
-                    foreach ($sqlParams as $key => $value) {
-                        $stmt->bindValue($key, $value);
-                    }
-                }
-                $stmt->execute();
-                $events = $stmt->fetchAll(PDO::FETCH_ASSOC);
-                
-                // Format date fields
-                foreach ($events as &$event) {
-                    $event['event_timestamp'] = $formatter->formatDate($event['event_timestamp'], 'Y-m-d H:i:s');
-                    
-                    // Set user to 'System' if null
-                    if (empty($event['user_username'])) {
-                        $event['user_username'] = 'System';
-                    }
-                }
-                
-                // Prepare response
-                $response = [
-                    'success' => true,
-                    'items' => $events,
-                    'pagination' => $paginator->toArray()
-                ];
-                
-                sendJsonResponse($response);
-                break;
-                
-            case 'types':
-                // Get all unique event types
-                $sql = "SELECT DISTINCT event_type FROM event_log ORDER BY event_type";
-                $stmt = $pdo->prepare($sql);
-                $stmt->execute();
-                $types = $stmt->fetchAll(PDO::FETCH_COLUMN);
-                
-                // Send response
-                sendJsonResponse([
-                    'success' => true,
-                    'items' => $types
-                ]);
-                break;
-                
-            default:
-                sendErrorResponse('Invalid action for event_log entity');
-                break;
-        }
-    } catch (PDOException $e) {
-        // Log the error
-        error_log('Database error in handleEventLogRequest: ' . $e->getMessage());
-        
-        // Send error response
-        sendErrorResponse('Database error: ' . $e->getMessage());
-    }
-}
+?>

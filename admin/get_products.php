@@ -1,43 +1,129 @@
 <?php
 /**
- * Get Products for Admin Search and Lists - FIXED VERSION
+ * Get Products for Admin Search and Lists - FIXED VERSION WITH SMART SEARCH
  * 
  * Server-side proxy script to handle API requests for both admin search and lists views
  * Now supports special filters like special_price, rare, recommended
+ * Enhanced with smart multi-field search functionality
+ * 
+ * @package KarisInventory
+ * @author  Karis Inventory Team
+ * @version 1.1
+ * @since   2024-01-01
  */
 
 require_once dirname(__DIR__) . '/init.php';
 
-// Get parameters
-$search = isset($_GET['search']) ? $_GET['search'] : '';
-$category = isset($_GET['category']) ? $_GET['category'] : '';
+/**
+ * Smart search function that handles multi-field searches intelligently
+ * Example: "Jim Butcher Storm Front" will find books where author contains "Jim Butcher" and title contains "Storm Front"
+ */
+function buildSmartSearch($searchTerm) {
+    if (empty(trim($searchTerm))) {
+        return ['where' => '', 'params' => []];
+    }
+    
+    $searchTerm = trim($searchTerm);
+    $words = preg_split('/\s+/', $searchTerm);
+    $words = array_filter($words); // Remove empty elements
+    
+    if (empty($words)) {
+        return ['where' => '', 'params' => []];
+    }
+    
+    $conditions = [];
+    $params = [];
+    
+    // Strategy 1: Exact phrase search across all fields
+    $conditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.internal_notes LIKE ? OR p.publisher LIKE ? OR c.category_sv_name LIKE ? OR g.genre_sv_name LIKE ?)";
+    $exactPhrase = '%' . $searchTerm . '%';
+    for ($i = 0; $i < 7; $i++) {
+        $params[] = $exactPhrase;
+    }
+    
+    // Strategy 2: If multiple words, try smart author + title combinations
+    if (count($words) > 1) {
+        // Try different splits: first N words as author, rest as title
+        for ($split = 1; $split < count($words); $split++) {
+            $authorPart = implode(' ', array_slice($words, 0, $split));
+            $titlePart = implode(' ', array_slice($words, $split));
+            
+            $conditions[] = "(a.author_name LIKE ? AND p.title LIKE ?)";
+            $params[] = '%' . $authorPart . '%';
+            $params[] = '%' . $titlePart . '%';
+        }
+        
+        // Also try reverse: title first, then author
+        for ($split = 1; $split < count($words); $split++) {
+            $titlePart = implode(' ', array_slice($words, 0, $split));
+            $authorPart = implode(' ', array_slice($words, $split));
+            
+            $conditions[] = "(p.title LIKE ? AND a.author_name LIKE ?)";
+            $params[] = '%' . $titlePart . '%';
+            $params[] = '%' . $authorPart . '%';
+        }
+        
+        // Strategy 3: All words must appear somewhere (flexible matching)
+        $allWordsConditions = [];
+        foreach ($words as $word) {
+            if (strlen($word) >= 2) { // Skip very short words
+                $allWordsConditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.internal_notes LIKE ? OR p.publisher LIKE ? OR c.category_sv_name LIKE ? OR g.genre_sv_name LIKE ?)";
+                $wordParam = '%' . $word . '%';
+                for ($i = 0; $i < 7; $i++) {
+                    $params[] = $wordParam;
+                }
+            }
+        }
+        
+        if (!empty($allWordsConditions)) {
+            $conditions[] = "(" . implode(" AND ", $allWordsConditions) . ")";
+        }
+    }
+    
+    $whereClause = "(" . implode(" OR ", $conditions) . ")";
+    
+    return ['where' => $whereClause, 'params' => $params];
+}
+
+// Get and sanitize parameters
+$search = isset($_GET['search']) ? trim((string)$_GET['search']) : '';
+if (strlen($search) > 255) $search = substr($search, 0, 255);
+
+$category = isset($_GET['category']) ? trim((string)$_GET['category']) : '';
+if ($category === 'all') $category = '';
+
 $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+
 $limit = isset($_GET['limit']) ? (int)$_GET['limit'] : 20;
+if ($limit < 1) $limit = 1;
+if ($limit > 100) $limit = 100;
+
 $showAllStatuses = isset($_GET['show_all_statuses']) && $_GET['show_all_statuses'] === 'true';
-$status = isset($_GET['status']) ? $_GET['status'] : '';
+$status = isset($_GET['status']) ? trim((string)$_GET['status']) : '';
 
 // Handle lists view type and additional parameters
-$viewType = $_GET['view_type'] ?? 'admin';
+$viewType = isset($_GET['view_type']) ? trim((string)$_GET['view_type']) : 'admin';
 $isListsView = ($viewType === 'lists');
 
 // Handle additional filter parameters for lists view
-$genre = isset($_GET['genre']) ? $_GET['genre'] : '';
-$condition = isset($_GET['condition']) ? $_GET['condition'] : '';
-$shelf = isset($_GET['shelf']) ? $_GET['shelf'] : '';
-$priceMin = isset($_GET['price_min']) ? floatval($_GET['price_min']) : 0;
-$priceMax = isset($_GET['price_max']) ? floatval($_GET['price_max']) : 0;
-$dateMin = isset($_GET['date_min']) ? $_GET['date_min'] : '';
-$dateMax = isset($_GET['date_max']) ? $_GET['date_max'] : '';
+$genre = isset($_GET['genre']) ? trim((string)$_GET['genre']) : '';
+$condition = isset($_GET['condition']) ? trim((string)$_GET['condition']) : '';
+$shelf = isset($_GET['shelf']) ? trim((string)$_GET['shelf']) : '';
+$priceMin = isset($_GET['price_min']) ? (float)$_GET['price_min'] : 0;
+$priceMax = isset($_GET['price_max']) ? (float)$_GET['price_max'] : 0;
+$dateMin = isset($_GET['date_min']) ? trim((string)$_GET['date_min']) : '';
+$dateMax = isset($_GET['date_max']) ? trim((string)$_GET['date_max']) : '';
 
 // Handle special filters for lists view
 $noPrice = isset($_GET['no_price']) && $_GET['no_price'];
 $poorCondition = isset($_GET['poor_condition']) && $_GET['poor_condition'];
-$yearThreshold = isset($_GET['year_threshold']) ? intval($_GET['year_threshold']) : 0;
+$yearThreshold = isset($_GET['year_threshold']) ? (int)$_GET['year_threshold'] : 0;
 
-// Handle special marking filters (FIXED - removed duplicate)
-$specialPrice = isset($_GET['special_price']) ? intval($_GET['special_price']) : 0;
-$rare = isset($_GET['rare']) ? intval($_GET['rare']) : 0;
-$recommended = isset($_GET['recommended']) ? intval($_GET['recommended']) : 0;
+// Handle special marking filters
+$specialPrice = isset($_GET['special_price']) ? (int)$_GET['special_price'] : 0;
+$rare = isset($_GET['rare']) ? (int)$_GET['rare'] : 0;
+$recommended = isset($_GET['recommended']) ? (int)$_GET['recommended'] : 0;
 
 // Set header to JSON
 header('Content-Type: application/json');
@@ -121,17 +207,13 @@ try {
     $whereConditions = [];
     $params = [];
     
-    // Search condition - now also including internal_notes
+    // Smart search condition - UPDATED SECTION
     if (!empty($search)) {
-        $whereConditions[] = "(p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.internal_notes LIKE ? OR p.publisher LIKE ? OR c.category_sv_name LIKE ? OR g.genre_sv_name LIKE ?)";
-        $searchParam = '%' . $search . '%';
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam; // For internal_notes
-        $params[] = $searchParam;
-        $params[] = $searchParam;
-        $params[] = $searchParam;
+        $searchResult = buildSmartSearch($search);
+        if (!empty($searchResult['where'])) {
+            $whereConditions[] = $searchResult['where'];
+            $params = array_merge($params, $searchResult['params']);
+        }
     }
     
     // Category condition
@@ -200,7 +282,7 @@ try {
         }
     }
     
-    // Special filters for lists view (THESE WERE MISSING CONDITIONS!)
+    // Special filters for lists view
     if ($isListsView) {
         if ($noPrice) {
             $whereConditions[] = "(p.price IS NULL OR p.price = 0 OR p.price = '')";
@@ -320,14 +402,14 @@ try {
                 }
                 ?>
                 <tr>
-                    <td><input type="checkbox" name="list-item" value="<?= $product['prod_id'] ?>"></td>
+                    <td><input type="checkbox" name="list-item" value="<?= safeEcho($product['prod_id']) ?>"></td>
                     <td><?= safeEcho($product['title']) ?></td>
                     <td><?= safeEcho($product['author_name']) ?></td>
                     <td><?= safeEcho($product['category_name']) ?></td>
                     <td><?= safeEcho($product['shelf_name']) ?></td>
                     <td><?= safeEcho($product['condition_name']) ?></td>
-                    <td><?= $formattedPrice ?></td>
-                    <td class="<?= $statusClass ?>"><?= safeEcho($product['status_name']) ?></td>
+                    <td><?= safeEcho($formattedPrice) ?></td>
+                    <td class="<?= safeEcho($statusClass) ?>"><?= safeEcho($product['status_name']) ?></td>
                     <td><?= $markings ?></td>
                     <td><?= safeEcho($product['formatted_date']) ?></td>
                 </tr>
@@ -338,7 +420,7 @@ try {
             foreach ($formattedProducts as $product) {
                 $statusClass = (int)$product['status'] === 1 ? 'text-success' : 'text-danger';
                 ?>
-                <tr class="clickable-row" data-href="<?= url('admin/adminsingleproduct.php', ['id' => $product['prod_id']]) ?>">
+                <tr class="clickable-row" data-href="<?= safeEcho(url('admin/adminsingleproduct.php', ['id' => $product['prod_id']])) ?>">
                     <td>
                         <?= safeEcho($product['title']) ?>
                         <?php if (!empty($product['internal_notes'])): ?>
@@ -358,7 +440,7 @@ try {
                             <span class="text-muted">-</span>
                         <?php endif; ?>
                     </td>
-                    <td class="<?= $statusClass ?>"><?= safeEcho($product['status_name']) ?></td>
+                    <td class="<?= safeEcho($statusClass) ?>"><?= safeEcho($product['status_name']) ?></td>
                     <td>
                         <?php if ((int)$product['special_price'] === 1): ?>
                             <span class="badge bg-danger">Rea</span>
@@ -414,9 +496,13 @@ try {
     echo json_encode($response);
     
 } catch (Exception $e) {
+    // Log the detailed error for debugging
+    error_log('Error in get_products.php: ' . $e->getMessage() . ' - Trace: ' . $e->getTraceAsString());
+    
     // Send error response
     echo json_encode([
         'success' => false,
-        'message' => 'Error: ' . $e->getMessage()
+        'message' => 'Ett fel inträffade vid hämtning av produkter'
     ]);
 }
+?>

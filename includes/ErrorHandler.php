@@ -325,7 +325,7 @@ class ErrorHandler {
         $logEntry = date('Y-m-d H:i:s') . " [$level] $message " . 
                    (empty($context) ? '' : json_encode($context)) . PHP_EOL;
         
-        file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
+        //file_put_contents($logFile, $logEntry, FILE_APPEND | LOCK_EX);
     }
     
     /**
