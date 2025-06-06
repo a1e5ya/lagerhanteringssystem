@@ -1,9 +1,14 @@
 <?php
 /**
- * Export functionality for product lists - UPDATED
+ * Export Functionality for Product Lists
  * 
- * Exports data in various formats (CSV, etc.)
- * Now supports "select all pages" functionality and additional filters
+ * Exports data in various formats (CSV, etc.) with comprehensive security validation
+ * Supports "select all pages" functionality and additional filters
+ * 
+ * @package KarisInventory
+ * @author  Karis Inventory Team
+ * @version 1.0
+ * @since   2024-01-01
  */
 
 require_once '../init.php';
@@ -12,153 +17,331 @@ require_once '../init.php';
 // Only Admin (1) or Editor (2) roles can access this page
 checkAuth(2); // Role 2 (Editor) or above required
 
-// Get requested format
-$format = $_GET['format'] ?? 'csv';
-
-// Get filter parameters - the same ones used in lists.php
-$filters = [];
-
-// Extract all parameters from GET
-foreach ($_GET as $key => $value) {
-    if ($key !== 'format') {
-        $filters[$key] = $value;
-    }
-}
-
-// Handle "select all with filters" scenario
-$selectAllWithFilters = isset($_GET['select_all_with_filters']) && $_GET['select_all_with_filters'] === 'true';
-
-// Handle selected items if provided
-if (isset($_GET['selected_items']) && !$selectAllWithFilters) {
-    $selectedItems = json_decode($_GET['selected_items'], true);
-    if (is_array($selectedItems) && !empty($selectedItems)) {
-        $filters['selected_items'] = $selectedItems;
-    }
-}
-
-// Handle filters from "select all pages" scenario
-if ($selectAllWithFilters && isset($_GET['filters'])) {
-    $filtersFromSelectAll = json_decode($_GET['filters'], true);
-    if (is_array($filtersFromSelectAll)) {
-        $filters = array_merge($filters, $filtersFromSelectAll);
-        $filters['select_all_with_filters'] = true;
-    }
-}
-
-// Generate filename
-$timestamp = date('Y-m-d_His');
-$filename = "karis_antikvariat_export_{$timestamp}";
-
-// Handle different export formats
-switch ($format) {
-    case 'csv':
-        exportCSV($filters, $filename);
-        break;
+try {
+    // Get and validate requested format
+    $format = sanitizeInput($_GET['format'] ?? 'csv', 'string', 10);
     
+    // Validate format against allowed values
+    $allowedFormats = ['csv'];
+    if (!in_array($format, $allowedFormats)) {
+        $format = 'csv'; // Default to CSV if invalid format
+    }
     
-    default:
-        // Default to CSV if format not recognized
-        exportCSV($filters, $filename);
-        break;
+    // Get and sanitize filter parameters
+    $filters = sanitizeFilters($_GET);
+    
+    // Generate secure filename with timestamp
+    $timestamp = date('Y-m-d_His');
+    $filename = sanitizeInput("karis_antikvariat_export_{$timestamp}", 'filename');
+    
+    // Handle different export formats
+    switch ($format) {
+        case 'csv':
+            exportCSV($filters, $filename);
+            break;
+        
+        default:
+            // Default to CSV if format not recognized
+            exportCSV($filters, $filename);
+            break;
+    }
+    
+} catch (InvalidArgumentException $e) {
+    // Log the error and return user-friendly message
+    error_log('Export validation error: ' . $e->getMessage());
+    http_response_code(400);
+    die('Ogiltiga exportparametrar');
+} catch (Exception $e) {
+    // Log the error and return generic message
+    error_log('Export error: ' . $e->getMessage());
+    http_response_code(500);
+    die('Ett fel inträffade vid export');
 }
 
 /**
- * Export data as CSV
+ * Export data as CSV with security validation
  * 
- * @param array $filters Filters to apply when selecting products
- * @param string $filename Base filename (without extension)
+ * @param array $filters Sanitized filters to apply when selecting products
+ * @param string $filename Sanitized base filename (without extension)
+ * @throws Exception If export fails
  */
 function exportCSV($filters, $filename) {
     global $pdo;
     
+    // Validate filename
+    if (empty($filename) || !preg_match('/^[a-zA-Z0-9._-]+$/', $filename)) {
+        throw new InvalidArgumentException('Ogiltigt filnamn');
+    }
+    
     // Set headers for CSV download
     header('Content-Type: text/csv; charset=utf-8');
     header('Content-Disposition: attachment; filename="' . $filename . '.csv"');
+    header('Cache-Control: no-cache, must-revalidate');
+    header('Pragma: no-cache');
+    header('Expires: 0');
     
-    // Create a file pointer connected to the output stream
-    $output = fopen('php://output', 'w');
+    // Output UTF-8 BOM
+    echo "\xEF\xBB\xBF";
     
-    // Add UTF-8 BOM for Excel compatibility
-    fprintf($output, chr(0xEF).chr(0xBB).chr(0xBF));
-    
-    // Define CSV headers - Updated to exclude ID and include new columns
+    // Define headers without special characters initially
     $headers = [
         'Titel', 
-        'Författare', 
+        'Forfattare', 
         'Kategori', 
         'Hylla', 
         'Skick', 
-        'Pris (€)', 
+        'Pris', 
         'Status', 
-        'Språk',
-        'År',
-        'Förlag',
-        'Märkning',
+        'Sprak',
+        'Ar',
+        'Forlag',
+        'Markning',
         'Bilder',
-        'Tillagd datum',
+        'Tillagd_datum',
         'Anteckningar'
     ];
     
-    // Output the column headings
-    fputcsv($output, $headers);
+    // Output headers
+    echo implode(';', $headers) . "\r\n";
     
-    // Get the products based on filters
+    // Get products
     $products = getProductsForExport($filters);
     
-    // Output each row of the data
+    // Output data rows
     foreach ($products as $product) {
-        // Format date
-        $dateAdded = date('Y-m-d', strtotime($product['date_added']));
-        
-        // Format price
-        $price = $product['price'] ? number_format($product['price'], 2, '.', '') : '';
-        
-        // Format marking/tags
-        $markings = [];
-        if ($product['special_price']) $markings[] = 'Rea';
-        if ($product['rare']) $markings[] = 'Sällsynt';
-        if ($product['recommended']) $markings[] = 'Rekommenderas';
-        $markingString = implode(', ', $markings);
-        
-        // Format images - all images comma-separated
-        $imageString = $product['image_paths'] ?? '';
-        
-        // Create row
         $row = [
-            $product['title'],
-            $product['author_name'],
-            $product['category_name'],
-            $product['shelf_name'],
-            $product['condition_name'],
-            $price,
-            $product['status_name'],
-            $product['language'],
-            $product['year'],
-            $product['publisher'],
-            $markingString,
-            $imageString,
-            $dateAdded,
-            $product['notes']
+            escapeCsvField($product['title'] ?? ''),
+            escapeCsvField($product['author_name'] ?? ''),
+            escapeCsvField($product['category_name'] ?? ''),
+            escapeCsvField($product['shelf_name'] ?? ''),
+            escapeCsvField($product['condition_name'] ?? ''),
+            $product['price'] ? number_format((float)$product['price'], 2, '.', '') : '',
+            escapeCsvField($product['status_name'] ?? ''),
+            escapeCsvField($product['language'] ?? ''),
+            $product['year'] ?? '',
+            escapeCsvField($product['publisher'] ?? ''),
+            escapeCsvField(formatMarkings($product)),
+            escapeCsvField($product['image_paths'] ?? ''),
+            $product['date_added'] ? date('Y-m-d', strtotime($product['date_added'])) : '',
+            escapeCsvField($product['notes'] ?? '')
         ];
         
-        fputcsv($output, $row);
+        echo implode(';', $row) . "\r\n";
     }
     
-    // Close the file pointer
-    fclose($output);
     exit;
 }
 
 /**
- * Get products for export based on filters - UPDATED
+ * Escape CSV field properly
  * 
- * @param array $filters Filters to apply
+ * @param string $field Field to escape
+ * @return string Escaped field
+ */
+function escapeCsvField($field) {
+    // If field contains semicolon, quote, or newline, wrap in quotes
+    if (strpos($field, ';') !== false || strpos($field, '"') !== false || strpos($field, "\n") !== false) {
+        return '"' . str_replace('"', '""', $field) . '"';
+    }
+    return $field;
+}
+
+/**
+ * Format special markings for export
+ * 
+ * @param array $product Product data
+ * @return string Formatted markings string
+ */
+function formatMarkings($product) {
+    $markings = [];
+    
+    if (!empty($product['special_price']) && $product['special_price'] == 1) {
+        $markings[] = 'Rea';
+    }
+    if (!empty($product['rare']) && $product['rare'] == 1) {
+        $markings[] = 'Sallsynt';
+    }
+    if (!empty($product['recommended']) && $product['recommended'] == 1) {
+        $markings[] = 'Rekommenderas';
+    }
+    
+    return implode(', ', $markings);
+}
+
+/**
+ * Sanitize and validate all filter parameters
+ * 
+ * @param array $rawFilters Raw filter data from GET parameters
+ * @return array Sanitized filter array
+ * @throws InvalidArgumentException If validation fails
+ */
+function sanitizeFilters($rawFilters) {
+    $filters = [];
+    
+    // Handle "select all with filters" scenario
+    $selectAllWithFilters = isset($rawFilters['select_all_with_filters']) && 
+                           $rawFilters['select_all_with_filters'] === 'true';
+    
+    // Handle selected items if provided
+    if (isset($rawFilters['selected_items']) && !$selectAllWithFilters) {
+        $selectedItemsJson = sanitizeInput($rawFilters['selected_items'], 'json', 10000);
+        $selectedItems = json_decode($selectedItemsJson, true);
+        
+        if (is_array($selectedItems) && !empty($selectedItems)) {
+            // Validate all selected items are positive integers
+            $validatedItems = [];
+            foreach ($selectedItems as $item) {
+                $validatedItem = sanitizeInput($item, 'int', null, ['min' => 1]);
+                if ($validatedItem > 0) {
+                    $validatedItems[] = $validatedItem;
+                }
+            }
+            
+            if (!empty($validatedItems)) {
+                $filters['selected_items'] = $validatedItems;
+            }
+        }
+    }
+    
+    // Handle filters from "select all pages" scenario
+    if ($selectAllWithFilters && isset($rawFilters['filters'])) {
+        $filtersJson = sanitizeInput($rawFilters['filters'], 'json', 5000);
+        $filtersFromSelectAll = json_decode($filtersJson, true);
+        
+        if (is_array($filtersFromSelectAll)) {
+            $filters = array_merge($filters, sanitizeIndividualFilters($filtersFromSelectAll));
+            $filters['select_all_with_filters'] = true;
+        }
+    } else {
+        // Sanitize individual filter parameters
+        $filters = array_merge($filters, sanitizeIndividualFilters($rawFilters));
+    }
+    
+    return $filters;
+}
+
+/**
+ * Sanitize individual filter parameters
+ * 
+ * @param array $rawFilters Raw filter parameters
+ * @return array Sanitized filters
+ * @throws InvalidArgumentException If validation fails
+ */
+function sanitizeIndividualFilters($rawFilters) {
+    $filters = [];
+    
+    // Status filter
+    if (isset($rawFilters['status'])) {
+        $status = sanitizeInput($rawFilters['status'], 'string', 50);
+        $allowedStatuses = ['', 'all', 'Såld', 'Tillgänglig', 'Reserverad'];
+        if (in_array($status, $allowedStatuses)) {
+            $filters['status'] = $status;
+        }
+    }
+    
+    // Category filter (integer ID)
+    if (isset($rawFilters['category'])) {
+        $category = sanitizeInput($rawFilters['category'], 'int', null, ['min' => 1]);
+        if ($category > 0) {
+            $filters['category'] = $category;
+        }
+    }
+    
+    // Genre filter (string name)
+    if (isset($rawFilters['genre'])) {
+        $genre = sanitizeInput($rawFilters['genre'], 'string', 100);
+        if (!empty($genre)) {
+            $filters['genre'] = $genre;
+        }
+    }
+    
+    // Shelf filter (string name)
+    if (isset($rawFilters['shelf'])) {
+        $shelf = sanitizeInput($rawFilters['shelf'], 'string', 100);
+        if (!empty($shelf)) {
+            $filters['shelf'] = $shelf;
+        }
+    }
+    
+    // Condition filter (string name)
+    if (isset($rawFilters['condition'])) {
+        $condition = sanitizeInput($rawFilters['condition'], 'string', 100);
+        if (!empty($condition)) {
+            $filters['condition'] = $condition;
+        }
+    }
+    
+    // Price range filters
+    if (isset($rawFilters['price_min'])) {
+        $priceMin = sanitizeInput($rawFilters['price_min'], 'float');
+        if ($priceMin > 0) {
+            $filters['price_min'] = $priceMin;
+        }
+    }
+    
+    if (isset($rawFilters['price_max'])) {
+        $priceMax = sanitizeInput($rawFilters['price_max'], 'float');
+        if ($priceMax > 0) {
+            $filters['price_max'] = $priceMax;
+        }
+    }
+    
+    // Date range filters
+    if (isset($rawFilters['date_min'])) {
+        $dateMin = sanitizeInput($rawFilters['date_min'], 'string', 10);
+        if (validateDate($dateMin, 'Y-m-d')) {
+            $filters['date_min'] = $dateMin;
+        }
+    }
+    
+    if (isset($rawFilters['date_max'])) {
+        $dateMax = sanitizeInput($rawFilters['date_max'], 'string', 10);
+        if (validateDate($dateMax, 'Y-m-d')) {
+            $filters['date_max'] = $dateMax;
+        }
+    }
+    
+    // Year threshold filter
+    if (isset($rawFilters['year_threshold'])) {
+        $yearThreshold = sanitizeInput($rawFilters['year_threshold'], 'int', null, ['min' => 1000, 'max' => 9999]);
+        if ($yearThreshold > 0) {
+            $filters['year_threshold'] = $yearThreshold;
+        }
+    }
+    
+    // Search filter
+    if (isset($rawFilters['search'])) {
+        $search = sanitizeInput($rawFilters['search'], 'string', 255);
+        if (!empty($search)) {
+            $filters['search'] = $search;
+        }
+    }
+    
+    // Boolean filters
+    $booleanFilters = ['no_price', 'poor_condition', 'special_price', 'rare', 'recommended'];
+    foreach ($booleanFilters as $filter) {
+        if (isset($rawFilters[$filter])) {
+            $value = sanitizeInput($rawFilters[$filter], 'int', null, ['min' => 0, 'max' => 1]);
+            if ($value !== null) {
+                $filters[$filter] = $value;
+            }
+        }
+    }
+    
+    return $filters;
+}
+
+/**
+ * Get products for export based on sanitized filters
+ * 
+ * @param array $filters Sanitized filters to apply
  * @return array Products data
+ * @throws Exception If query fails
  */
 function getProductsForExport($filters) {
     global $pdo;
     
-    // Build SQL query with appropriate filters - updated to include new fields and exclude ID
+    // Build SQL query with appropriate filters
     $sql = "SELECT
                 p.title,
                 p.status,
@@ -205,11 +388,13 @@ function getProductsForExport($filters) {
         
         // Default to available products only if no status filter is specified
         if (!isset($filters['status']) || $filters['status'] === '') {
-            $sql .= " AND p.status = 1";
+            $sql .= " AND p.status = ?";
+            $params[] = 1;
         } elseif ($filters['status'] === 'all') {
             // Show all statuses - no additional filter
         } elseif ($filters['status'] === 'Såld') {
-            $sql .= " AND p.status = 2";
+            $sql .= " AND p.status = ?";
+            $params[] = 2;
         } else {
             $sql .= " AND s.status_sv_name = ?";
             $params[] = $filters['status'];
@@ -240,14 +425,14 @@ function getProductsForExport($filters) {
         }
         
         // Price range
-        if (!empty($filters['price_min']) && floatval($filters['price_min']) > 0) {
+        if (!empty($filters['price_min'])) {
             $sql .= " AND p.price >= ?";
-            $params[] = floatval($filters['price_min']);
+            $params[] = $filters['price_min'];
         }
         
-        if (!empty($filters['price_max']) && floatval($filters['price_max']) > 0) {
+        if (!empty($filters['price_max'])) {
             $sql .= " AND p.price <= ?";
-            $params[] = floatval($filters['price_max']);
+            $params[] = $filters['price_max'];
         }
         
         // Date range
@@ -270,7 +455,7 @@ function getProductsForExport($filters) {
         // Search filter
         if (!empty($filters['search'])) {
             $sql .= " AND (p.title LIKE ? OR a.author_name LIKE ? OR p.notes LIKE ? OR p.internal_notes LIKE ? OR p.publisher LIKE ?)";
-            $searchTerm = "%{$filters['search']}%";
+            $searchTerm = "%" . $filters['search'] . "%";
             $params[] = $searchTerm;
             $params[] = $searchTerm;
             $params[] = $searchTerm;
@@ -284,31 +469,35 @@ function getProductsForExport($filters) {
         }
         
         if (isset($filters['poor_condition']) && $filters['poor_condition']) {
-            $sql .= " AND p.condition_id = 4"; // Assuming 4 is 'Acceptabelt' (lowest condition)
+            $sql .= " AND p.condition_id = ?";
+            $params[] = 4; // Assuming 4 is 'Acceptabelt' (lowest condition)
         }
         
-        // NEW: Special marking filters
-        if (isset($filters['special_price']) && intval($filters['special_price']) > 0) {
-            $sql .= " AND p.special_price = 1";
+        // Special marking filters
+        if (isset($filters['special_price']) && $filters['special_price'] > 0) {
+            $sql .= " AND p.special_price = ?";
+            $params[] = 1;
         }
         
-        if (isset($filters['rare']) && intval($filters['rare']) > 0) {
-            $sql .= " AND p.rare = 1";
+        if (isset($filters['rare']) && $filters['rare'] > 0) {
+            $sql .= " AND p.rare = ?";
+            $params[] = 1;
         }
         
-        if (isset($filters['recommended']) && intval($filters['recommended']) > 0) {
-            $sql .= " AND p.recommended = 1";
+        if (isset($filters['recommended']) && $filters['recommended'] > 0) {
+            $sql .= " AND p.recommended = ?";
+            $params[] = 1;
         }
     }
     
     // Group by to avoid duplicates due to JOIN with authors and genres
     $sql .= " GROUP BY p.prod_id";
     
-    // Order by for consistent export ordering - changed from category/shelf to title
+    // Order by for consistent export ordering
     $sql .= " ORDER BY p.title ASC";
     
     try {
-        // Prepare and execute the query
+        // Prepare and execute the query with parameter binding
         $stmt = $pdo->prepare($sql);
         $stmt->execute($params);
         
@@ -316,6 +505,7 @@ function getProductsForExport($filters) {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     } catch (PDOException $e) {
         error_log("Export query error: " . $e->getMessage());
-        return []; // Return empty array on error
+        throw new Exception('Databasfrågan misslyckades');
     }
 }
+?>
