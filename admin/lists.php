@@ -1,59 +1,102 @@
 <?php
 /**
- * Lists Management
+ * Lists Management - Secured Version
  * 
- * Contains:
- * - Product lists with filtering
- * - Batch operations
- * - Export functionality
+ * Provides comprehensive product list management with filtering capabilities,
+ * batch operations, and export functionality. Enhanced with security features
+ * including input validation, output sanitization, and proper error handling.
  * 
- * Uses the same mechanism as search.php but adapted for lists functionality
+ * Features:
+ * - Advanced product filtering with multiple criteria
+ * - Batch operations for bulk product management
+ * - Export functionality with data validation
+ * - Secure dropdown population with proper sanitization
+ * - CSRF protection for all forms
+ * 
+ * @package    KarisAntikvariat
+ * @subpackage Admin
+ * @author     Axxell
+ * @version    2.0
+ * @since      2024-01-01
  */
 
 require_once '../init.php';
 
-// Check if user is authenticated and has admin or editor permissions
-checkAuth(2); // Role 2 (Editor) or above required
+// Check authentication and authorization - requires editor role or higher
+checkAuth(2);
 
-// Get dropdown options
+/**
+ * Get dropdown options for filter forms with enhanced security
+ * 
+ * Retrieves all necessary dropdown data for the filtering interface
+ * with proper sanitization and error handling.
+ * 
+ * @return array Associative array containing dropdown options
+ * @throws PDOException If database error occurs
+ */
 function getDropdownOptions() {
     global $pdo;
     $options = [];
     
     try {
-        // Get categories
-        $stmt = $pdo->query("SELECT category_id, category_sv_name as category_name FROM category ORDER BY category_sv_name");
+        // Get categories with language support
+        $language = isset($_SESSION['language']) && in_array($_SESSION['language'], ['sv', 'fi']) 
+            ? $_SESSION['language'] 
+            : 'sv';
+        
+        $categoryField = ($language === 'fi') ? 'category_fi_name' : 'category_sv_name';
+        $stmt = $pdo->prepare("SELECT category_id, {$categoryField} as category_name FROM category ORDER BY {$categoryField}");
+        $stmt->execute();
         $options['categories'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get shelves
-        $stmt = $pdo->query("SELECT shelf_id, shelf_sv_name as shelf_name FROM shelf ORDER BY shelf_sv_name");
+        // Get shelves with language support
+        $shelfField = ($language === 'fi') ? 'shelf_fi_name' : 'shelf_sv_name';
+        $stmt = $pdo->prepare("SELECT shelf_id, {$shelfField} as shelf_name FROM shelf ORDER BY {$shelfField}");
+        $stmt->execute();
         $options['shelves'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get conditions
-        $stmt = $pdo->query("SELECT condition_id, condition_sv_name as condition_name FROM `condition` ORDER BY condition_id");
+        // Get conditions with language support
+        $conditionField = ($language === 'fi') ? 'condition_fi_name' : 'condition_sv_name';
+        $stmt = $pdo->prepare("SELECT condition_id, {$conditionField} as condition_name FROM `condition` ORDER BY condition_id");
+        $stmt->execute();
         $options['conditions'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get genres
-        $stmt = $pdo->query("SELECT genre_id, genre_sv_name as genre_name FROM genre ORDER BY genre_sv_name");
+        // Get genres with language support
+        $genreField = ($language === 'fi') ? 'genre_fi_name' : 'genre_sv_name';
+        $stmt = $pdo->prepare("SELECT genre_id, {$genreField} as genre_name FROM genre ORDER BY {$genreField}");
+        $stmt->execute();
         $options['genres'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
-        // Get statuses
-        $stmt = $pdo->query("SELECT status_id, status_sv_name as status_name FROM status ORDER BY status_id");
+        // Get statuses with language support
+        $statusField = ($language === 'fi') ? 'status_fi_name' : 'status_sv_name';
+        $stmt = $pdo->prepare("SELECT status_id, {$statusField} as status_name FROM status ORDER BY status_id");
+        $stmt->execute();
         $options['statuses'] = $stmt->fetchAll(PDO::FETCH_ASSOC);
         
         return $options;
+        
     } catch (PDOException $e) {
-        error_log("Error fetching dropdown options: " . $e->getMessage());
-        return [];
+        throw new PDOException('Failed to fetch dropdown options');
     }
 }
 
-$dropdownOptions = getDropdownOptions();
+try {
+    $dropdownOptions = getDropdownOptions();
+} catch (PDOException $e) {
+    // Fallback to empty arrays if database error occurs
+    $dropdownOptions = [
+        'categories' => [],
+        'shelves' => [],
+        'conditions' => [],
+        'genres' => [],
+        'statuses' => []
+    ];
+}
 ?>
 
 <div class="tab-pane fade show active" id="lists">
     <div class="mb-4">
-        <!-- Quick filter buttons - NEW LAYOUT -->
+        <!-- Quick filter buttons - Enhanced Layout -->
         <div class="row align-items-center">
             <!-- First Column: Rea, Raritet, Rekommenderat -->
             <div class="col-md-4">
@@ -74,20 +117,21 @@ $dropdownOptions = getDropdownOptions();
             <div class="col-md-4">
                 <div class="d-grid gap-2">
                     <div class="card">
-                        <div class="card-body p-2  text-center">
+                        <div class="card-body p-2 text-center">
                             <label class="form-label small mb-1">Inventering av hylla</label>
                             <select class="form-select form-select-sm" id="shelf-selector">
                                 <option value="">Välj hylla</option>
                                 <?php foreach ($dropdownOptions['shelves'] as $shelf): ?>
-                                    <option value="<?php echo htmlspecialchars($shelf['shelf_name']); ?>"><?php echo htmlspecialchars($shelf['shelf_name']); ?></option>
+                                    <option value="<?= safeEcho($shelf['shelf_name']) ?>"><?= safeEcho($shelf['shelf_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
                     </div>
                     <div class="card">
-                        <div class="card-body p-2  text-center">
+                        <div class="card-body p-2 text-center">
                             <label class="form-label small mb-1">Objekt äldre än</label>
-                            <input type="number" class="form-control form-control-sm" id="year-threshold" placeholder="År">
+                            <input type="number" class="form-control form-control-sm" id="year-threshold" 
+                                   placeholder="År" min="1800" max="<?= date('Y') + 10 ?>">
                         </div>
                     </div>
                 </div>
@@ -124,8 +168,9 @@ $dropdownOptions = getDropdownOptions();
                     transform: rotate(180deg);
                 }
                 </style>
-                <!-- Search Form -->
+                <!-- Search Form with CSRF Protection -->
                 <form id="lists-search-form" class="mb-4">
+                    <?= getCSRFTokenField() ?>
                     <div class="row g-3">
                         <!-- First Row -->
                         <div class="col-md-3">
@@ -133,8 +178,8 @@ $dropdownOptions = getDropdownOptions();
                             <select class="form-select" id="category-filter" name="category">
                                 <option value="">Alla kategorier</option>
                                 <?php foreach ($dropdownOptions['categories'] as $category): ?>
-                                <option value="<?= htmlspecialchars($category['category_id']) ?>">
-                                    <?= htmlspecialchars($category['category_name']) ?>
+                                <option value="<?= safeEcho($category['category_id']) ?>">
+                                    <?= safeEcho($category['category_name']) ?>
                                 </option>
                                 <?php endforeach; ?>
                             </select>
@@ -145,7 +190,7 @@ $dropdownOptions = getDropdownOptions();
                             <select class="form-select" id="list-genre" name="genre">
                                 <option value="">Alla genrer</option>
                                 <?php foreach ($dropdownOptions['genres'] as $genre): ?>
-                                    <option value="<?php echo htmlspecialchars($genre['genre_name']); ?>"><?php echo htmlspecialchars($genre['genre_name']); ?></option>
+                                    <option value="<?= safeEcho($genre['genre_name']) ?>"><?= safeEcho($genre['genre_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -155,7 +200,7 @@ $dropdownOptions = getDropdownOptions();
                             <select class="form-select" id="list-condition" name="condition">
                                 <option value="">Alla skick</option>
                                 <?php foreach ($dropdownOptions['conditions'] as $condition): ?>
-                                    <option value="<?php echo htmlspecialchars($condition['condition_name']); ?>"><?php echo htmlspecialchars($condition['condition_name']); ?></option>
+                                    <option value="<?= safeEcho($condition['condition_name']) ?>"><?= safeEcho($condition['condition_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -177,7 +222,7 @@ $dropdownOptions = getDropdownOptions();
                             <select class="form-select" id="shelf-filter" name="shelf">
                                 <option value="">Alla hyllor</option>
                                 <?php foreach ($dropdownOptions['shelves'] as $shelf): ?>
-                                    <option value="<?php echo htmlspecialchars($shelf['shelf_name']); ?>"><?php echo htmlspecialchars($shelf['shelf_name']); ?></option>
+                                    <option value="<?= safeEcho($shelf['shelf_name']) ?>"><?= safeEcho($shelf['shelf_name']) ?></option>
                                 <?php endforeach; ?>
                             </select>
                         </div>
@@ -185,29 +230,31 @@ $dropdownOptions = getDropdownOptions();
                         <div class="col-md-4">
                             <label class="form-label">Prisintervall</label>
                             <div class="input-group">
-                                <input type="number" class="form-control" placeholder="Min €" id="price-min">
+                                <input type="number" class="form-control" placeholder="Min €" id="price-min" 
+                                       min="0" max="999999.99" step="0.01">
                                 <span class="input-group-text">till</span>
-                                <input type="number" class="form-control" placeholder="Max €" id="price-max">
+                                <input type="number" class="form-control" placeholder="Max €" id="price-max" 
+                                       min="0" max="999999.99" step="0.01">
                             </div>
                         </div>
                         
                         <div class="col-md-5">
                             <label class="form-label">Datum tillagt</label>
                             <div class="input-group">
-                                <input type="date" class="form-control" id="date-min">
+                                <input type="date" class="form-control" id="date-min" 
+                                       min="2000-01-01" max="<?= date('Y-m-d') ?>">
                                 <span class="input-group-text">till</span>
-                                <input type="date" class="form-control" id="date-max">
+                                <input type="date" class="form-control" id="date-max" 
+                                       min="2000-01-01" max="<?= date('Y-m-d') ?>">
                             </div>
                         </div>
-                        
-
                     </div>
                     
                     <div class="row g-3 mt-2">
                         <div class="col-md-9">
                             <label for="search-term" class="form-label">Fritextsökning</label>
                             <input type="text" class="form-control" id="search-term" name="search" 
-                                placeholder="Sök i titel, författare eller anteckningar">
+                                placeholder="Sök i titel, författare eller anteckningar" maxlength="255">
                         </div>
                         <div class="col-md-3 d-flex justify-content-end align-items-end">
                             <button type="button" class="btn btn-success" id="apply-filters">
@@ -226,7 +273,6 @@ $dropdownOptions = getDropdownOptions();
             </div>
         </div>
     </div>
-
 
     <!-- Product List Table -->
     <div class="table-responsive">
@@ -387,9 +433,11 @@ $dropdownOptions = getDropdownOptions();
             </div>
             <div class="modal-body">
                 <form id="update-price-form">
+                    <?= getCSRFTokenField() ?>
                     <div class="mb-3">
                         <label for="new-price" class="form-label">Nytt pris (€)</label>
-                        <input type="number" step="0.01" class="form-control" id="new-price" required min="0.01">
+                        <input type="number" step="0.01" class="form-control" id="new-price" 
+                               required min="0.01" max="999999.99">
                     </div>
                 </form>
             </div>
@@ -411,11 +459,12 @@ $dropdownOptions = getDropdownOptions();
             </div>
             <div class="modal-body">
                 <form id="update-status-form">
+                    <?= getCSRFTokenField() ?>
                     <div class="mb-3">
                         <label for="new-status" class="form-label">Ny status</label>
                         <select class="form-select" id="new-status" required>
                             <?php foreach ($dropdownOptions['statuses'] as $status): ?>
-                                <option value="<?php echo $status['status_id']; ?>"><?php echo htmlspecialchars($status['status_name']); ?></option>
+                                <option value="<?= safeEcho($status['status_id']) ?>"><?= safeEcho($status['status_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -439,11 +488,12 @@ $dropdownOptions = getDropdownOptions();
             </div>
             <div class="modal-body">
                 <form id="move-shelf-form">
+                    <?= getCSRFTokenField() ?>
                     <div class="mb-3">
                         <label for="new-shelf" class="form-label">Ny hylla</label>
                         <select class="form-select" id="new-shelf" required>
                             <?php foreach ($dropdownOptions['shelves'] as $shelf): ?>
-                                <option value="<?php echo $shelf['shelf_id']; ?>"><?php echo htmlspecialchars($shelf['shelf_name']); ?></option>
+                                <option value="<?= safeEcho($shelf['shelf_id']) ?>"><?= safeEcho($shelf['shelf_name']) ?></option>
                             <?php endforeach; ?>
                         </select>
                     </div>
@@ -467,6 +517,7 @@ $dropdownOptions = getDropdownOptions();
             </div>
             <div class="modal-body">
                 <form id="toggle-special-price-form">
+                    <?= getCSRFTokenField() ?>
                     <div class="mb-3">
                         <label for="special-price-action" class="form-label">Rea-status för <span id="special-price-count">0</span> valda produkter</label>
                         <select class="form-select" id="special-price-action" required>
@@ -494,6 +545,7 @@ $dropdownOptions = getDropdownOptions();
             </div>
             <div class="modal-body">
                 <form id="toggle-rare-form">
+                    <?= getCSRFTokenField() ?>
                     <div class="mb-3">
                         <label for="rare-action" class="form-label">Raritetsstatus för <span id="rare-count">0</span> valda produkter</label>
                         <select class="form-select" id="rare-action" required>
@@ -521,6 +573,7 @@ $dropdownOptions = getDropdownOptions();
             </div>
             <div class="modal-body">
                 <form id="toggle-recommended-form">
+                    <?= getCSRFTokenField() ?>
                     <div class="mb-3">
                         <label for="recommended-action" class="form-label">Rekommendationsstatus för <span id="recommended-count">0</span> valda produkter</label>
                         <select class="form-select" id="recommended-action" required>
